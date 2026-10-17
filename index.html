@@ -425,9 +425,18 @@ function drawCar(){
 }
 
 /* ---- particles ---- */
-function burst(x,y,z,n,sp,col){for(let i=0;i<n;i++){const a=Math.random()*6.283,b=Math.random()*3.14;parts.push({x,y,z,vx:Math.cos(a)*sp*Math.random(),vy:Math.sin(a)*sp*Math.random(),vz:(Math.random()-.5)*sp*1.2+v*.3,l:0,m:.5+Math.random()*.5,c:col})}if(parts.length>400)parts.splice(0,parts.length-400)}
-function stepParts(dt){for(let i=parts.length-1;i>=0;i--){const p=parts[i];p.l+=dt;if(p.l>p.m){parts.splice(i,1);continue}p.x+=p.vx*dt;p.y+=p.vy*dt;p.z+=(p.vz-v)*dt*.0+p.vz*dt*-1*0}}
-function drawParts(){ctx.globalCompositeOperation='lighter';for(const p of parts){const q=pj(p.x,p.y,p.z-0),a=1-p.l/p.m;if(camZ-p.z<NEAR+.5)continue;ctx.fillStyle=rgb(p.c,a);ctx.beginPath();ctx.arc(q[0],q[1],Math.max(.8,.11*q[2]*a),0,6.2832);ctx.fill()}ctx.globalCompositeOperation='source-over'}
+function burst(x,y,z,n,sp,col){
+  for(let i=0;i<n;i++){const a=Math.random()*6.283,r=Math.random();
+    parts.push({x,y,z,px:x,py:y,pz:z,vx:Math.cos(a)*sp*r,vy:Math.sin(a)*sp*r,vz:(Math.random()-.5)*sp*1.6+v*.25,
+      l:0,m:.45+Math.random()*.75,c:col,w:.5+Math.random()*1.1,gx:(Math.random()-.5)*3,gy:(Math.random()-.5)*3})}
+  if(parts.length>600)parts.splice(0,parts.length-600)}
+function stepParts(dt){for(let i=parts.length-1;i>=0;i--){const p=parts[i];p.l+=dt;if(p.l>p.m){parts.splice(i,1);continue}
+  p.px=p.x;p.py=p.y;p.pz=p.z;const dr=Math.exp(-2.2*dt);p.vx=p.vx*dr+p.gx*dt;p.vy=p.vy*dr+p.gy*dt;p.vz*=dr;
+  p.x+=p.vx*dt;p.y+=p.vy*dt;p.z-=p.vz*dt}}
+function drawParts(){ctx.globalCompositeOperation='lighter';ctx.lineCap='round';
+  for(const p of parts){if(camZ-p.z<NEAR+.5||camZ-p.pz<NEAR+.5)continue;const q=pj(p.x,p.y,p.z),o=pj(p.px,p.py,p.pz),f=1-p.l/p.m,a=f*f;
+    ctx.strokeStyle=rgb(p.c,a);ctx.lineWidth=Math.max(.8,.1*q[2]*p.w*f);ctx.beginPath();ctx.moveTo(o[0],o[1]);ctx.lineTo(q[0],q[1]);ctx.stroke()}
+  ctx.lineCap='butt';ctx.globalCompositeOperation='source-over'}
 const streakA=Array.from({length:30},()=>({a:Math.random()*6.283,o:Math.random()}));
 function drawStreaks(){
   const fx=Math.max(0,(v-24)/16);if(fx<=0||state==='menu')return;
