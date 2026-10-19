@@ -102,7 +102,7 @@
   @media (pointer:coarse){ #danger{ bottom:calc(max(16px,env(safe-area-inset-bottom)) + 84px); } }
   @media (prefers-reduced-motion:reduce){ #danger.on{ animation:none; } }
   @media (prefers-reduced-motion:reduce){ #pulse.go,#flash.pop,#count span,.pp{ animation-duration:.01s; } }
-</style>
+/*m-land*/@media (max-height:480px){#menu h1{font-size:38px;line-height:1}#menu p.tag{display:none}#menu #go{position:sticky;bottom:6px;z-index:5}}</style>
 </head>
 <body>
 <div id="stage">
@@ -333,6 +333,7 @@ function drawRow(j,r){
     ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);
     for(const lat of[-2.5,0,2.5]){const p=pj(nx+TAN[k][0]*lat,ny+TAN[k][1]*lat,z0),q=pj(nx+TAN[k][0]*lat,ny+TAN[k][1]*lat,z1);ctx.moveTo(p[0],p[1]);ctx.lineTo(q[0],q[1])}
     ctx.stroke();
+    if(fg<.2){ctx.globalCompositeOperation='lighter';ctx.strokeStyle=rgb(f,(1-fg)*(.2-.03*diff));ctx.lineWidth=lw*2.5;ctx.stroke();ctx.globalCompositeOperation='source-over'}
     if(el4&&fg<.8){ // crackling lightning across the electrified plate
       ctx.globalCompositeOperation='lighter';ctx.strokeStyle=rgb([255,238,150],(1-fg)*.95);ctx.lineWidth=Math.max(1,.05*a[2]);ctx.beginPath();
       for(let q=0;q<2;q++){const l0=-4+Math.random()*8;for(let st=0;st<=3;st++){const lat=l0+(Math.random()-.5)*1.8,zz=z0+(z1-z0)*st/3,pp=pj(nx+TAN[k][0]*lat,ny+TAN[k][1]*lat,zz);st?ctx.lineTo(pp[0],pp[1]):ctx.moveTo(pp[0],pp[1])}}
@@ -358,7 +359,7 @@ function drawGate(j){
   const col=j===N?[255,215,90]:CPS.includes(j)?[90,255,150]:isA?FRGB[track[j].safe]:accC;
   ctx.lineJoin='round';
   ctx.strokeStyle=rgb(col,(1-fg)*.3);ctx.lineWidth=Math.max(3,.9*a[2]);quad(a,b,c,e);ctx.stroke();
-  if(d<150)neon(rgb(col,1),15);ctx.strokeStyle=rgb(mix([255,255,255],col,.3),(1-fg));ctx.lineWidth=Math.max(1.2,.28*a[2]);quad(a,b,c,e);ctx.stroke();neonOff();
+  if(d<150)neon(rgb(col,1),(j===N||CPS.includes(j))?26:15);ctx.strokeStyle=rgb(mix([255,255,255],col,.3),(1-fg));ctx.lineWidth=Math.max(1.2,.28*a[2]);quad(a,b,c,e);ctx.stroke();neonOff();
   if(isA){const S2=TH-.25,a2=pj(-S2,-S2,z),b2=pj(S2,-S2,z),c2=pj(S2,S2,z),e2=pj(-S2,S2,z);ctx.strokeStyle=rgb(col,(1-fg)*(.5+.4*Math.sin(time*8)));ctx.lineWidth=Math.max(1.5,.22*a2[2]);quad(a2,b2,c2,e2);ctx.stroke()}
   ctx.lineJoin='miter';
 }
@@ -382,7 +383,8 @@ function drawBlock(j,k,off){
   const x0=Math.min(A[0],Dd[0]),x1=Math.max(B[0],C[0]),yT=Math.min(C[1],Dd[1])-4,yB=Math.max(A[1],B[1])+4,hgt=yB-yT;
   for(let x=x0-hgt;x<x1;x+=Math.max(10,hgt*.5)){ctx.moveTo(x,yB);ctx.lineTo(x+hgt,yT)}
   ctx.stroke();ctx.restore();
-  ctx.strokeStyle=rgb([255,95,85],1-fg);ctx.lineWidth=Math.max(1.2,.07*A[2]);quad(A,B,C,Dd);ctx.stroke();quad(Dd,C,G,Hp);ctx.stroke();
+  if(camZ-zc<110)neon('rgb(255,95,85)',14);ctx.strokeStyle=rgb([255,95,85],1-fg);ctx.lineWidth=Math.max(1.2,.07*A[2]);quad(A,B,C,Dd);ctx.stroke();quad(Dd,C,G,Hp);ctx.stroke();neonOff();
+  if(fg<.5){ctx.globalCompositeOperation='lighter';ctx.strokeStyle=rgb([255,95,85],(1-fg)*.22);ctx.lineWidth=Math.max(3,.22*A[2]);quad(A,B,C,Dd);ctx.stroke();quad(Dd,C,G,Hp);ctx.stroke();ctx.globalCompositeOperation='source-over'}
   ctx.fillStyle=rgb(mix([178,186,208],fogC,fg)); // spikes along the top edge
   for(const lat of[-2.6,-.9,.9,2.6]){const s1=pt(lat-.7,Hh,z0),s2=pt(lat+.7,Hh,z0),ap=pt(lat,Hh+.9,zc);ctx.beginPath();ctx.moveTo(s1[0],s1[1]);ctx.lineTo(s2[0],s2[1]);ctx.lineTo(ap[0],ap[1]);ctx.closePath();ctx.fill()}
 }
@@ -455,7 +457,7 @@ function render(){
   camX=cx*.35+cUx*1.2;camY=cy*.35+cUy*1.2;camZ=-D+8.5;
   FF=F*(1+.1*Math.min(1,fovPunch)+.07*Math.max(0,(v-22)/16));
   ctx.setTransform(DPR,0,0,DPR,0,0);
-  const sh=shake*6;if(sh>.1){ctx.translate((Math.random()-.5)*sh,(Math.random()-.5)*sh)}
+  const sh=shake*6;if(sh>.1&&state!=='paused'){ctx.translate((Math.random()-.5)*sh,(Math.random()-.5)*sh)}
   // palette by sector
   const sec=Math.min(2,Math.floor(D/(30*L)));
   accC=mix(accC,ACC[sec],.04);fogC=mix(fogC,FOG[sec],.04);
@@ -764,7 +766,7 @@ function frame(t){
 }
 placeOnFace(track[3].safe);D=3*L;
 if(location.hash.includes('test')){window.__wso={step,render,begin:s=>{begin(s||0);state='run';$('#count').classList.remove('on')},bot:b=>{bot=b},look:x=>{botLook=x},
-  snap:()=>({state,D,face,elapsed,orbs:got.size,total:totalOrbs,deaths,shifts,cp:cpSeg,score:flux(),chain,boost,eff:effi(),burst:burstT,sc:Object.assign({},sc)}),setD:d=>{D=d},track}}
+  snap:()=>({state,D,face,elapsed,orbs:got.size,total:totalOrbs,deaths,shifts,cp:cpSeg,score:flux(),chain,boost,eff:effi(),burst:burstT,sc:Object.assign({},sc)}),setD:d=>{D=d},track,np:()=>parts.length,sk:()=>shake,setSk:x=>{shake=x},emit:burst,sp:stepParts,L:()=>L}}
 requestAnimationFrame(t=>{last=t;requestAnimationFrame(frame)});
 })();
 </script>
