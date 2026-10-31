@@ -102,7 +102,17 @@
   @media (pointer:coarse){ #danger{ bottom:calc(max(16px,env(safe-area-inset-bottom)) + 84px); } }
   @media (prefers-reduced-motion:reduce){ #danger.on{ animation:none; } }
   @media (prefers-reduced-motion:reduce){ #pulse.go,#flash.pop,#count span,.pp{ animation-duration:.01s; } }
-/*m-land*/@media (max-height:480px){#menu h1{font-size:38px;line-height:1}#menu p.tag{display:none}#menu #go{position:sticky;bottom:6px;z-index:5}}</style>
+/*m-land*/@media (max-height:480px){#menu h1{font-size:38px;line-height:1}#menu p.tag{display:none}#menu #go{position:sticky;bottom:6px;z-index:5}}
+/* BIG-TOUCH-BUTTONS */
+@media (pointer:coarse){
+  :root{ --tbh:clamp(80px,22vh,120px); }
+  #touch{ justify-content:flex-end; align-items:flex-end; gap:12px; padding:0 max(14px,env(safe-area-inset-left)) 0 max(14px,env(safe-area-inset-right)); bottom:max(10px,env(safe-area-inset-bottom)); }
+  #touch button{ height:var(--tbh); width:clamp(110px,24vw,190px); font-size:clamp(30px,8vh,44px); border-radius:22px; }
+  #touch #tl{ margin-right:auto; }
+  #touch #tf{ width:clamp(90px,18vw,150px); }
+  #danger{ bottom:calc(max(10px,env(safe-area-inset-bottom)) + var(--tbh) + 14px); }
+  #hint{ bottom:calc(var(--tbh) + 44px); }
+}</style>
 </head>
 <body>
 <div id="stage">
