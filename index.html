@@ -804,9 +804,17 @@ function guideTick(dt){
     guideScale+=(1-guideScale)*k;
     if(transit)return guideScale>.98?1:guideScale;
     const cur=Math.floor(D/L),lim=Math.max(20,v*1.4);
+    const nx=!guideSeen.includes(-1)?-1:!guideSeen.includes(1)?1:!guideSeen.includes(2)?2:0;
+    const lg=(track[guideTick.lg]&&track[guideTick.lg].gf)?guideTick.lg:-1;
+    if(nx&&cur>=Math.max(6,lg+6)&&cur<track.length-6){
+      const jj=cur+1,hc=track[cur].hz[face];
+      if((!hc.t||cur*L+(hc.t===2?10+hc.off:hc.t===3?.8:5.8)-D<0)&&!ANCH.some(a=>Math.abs(a-jj)<3)&&!(jj>=28&&jj<=32)&&!(jj>=58&&jj<=62)){
+        const sf=(face+nx+4)%4,tt=track[jj];tt.safe=sf;tt.hz[sf]={t:0,off:0};tt.hz[face]={t:1,off:0};tt.gf=1;guideTick.lg=jj;
+      }
+    }
     for(let j=Math.max(0,cur);j<=Math.min(track.length-1,cur+1);j++){
       const h=track[j].hz[face];
-       if(h&&h.t){const ahead=(h.t===2?j*L+10+h.off:h.t===3?j*L+.8:j*L+5.8)-D;
+      if(h&&h.t){const ahead=(h.t===2?j*L+10+h.off:h.t===3?j*L+.8:j*L+5.8)-D;
         if(ahead>0&&ahead<lim){const d=((track[j].safe-face)%4+4)%4;
           if(d){const rl=d===1?1:d===3?-1:2;if(guideSeen.includes(rl))continue;guideRel=rl;guideSafe=track[j].safe;guideOn=true;guideShow();break}}}
     }
