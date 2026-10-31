@@ -806,7 +806,7 @@ function guideTick(dt){
     const cur=Math.floor(D/L),lim=Math.max(20,v*1.4);
     for(let j=Math.max(0,cur);j<=Math.min(track.length-1,cur+1);j++){
       const h=track[j].hz[face];
-      if(h&&h.t===1){const ahead=j*L+5.8-D;
+       if(h&&h.t){const ahead=(h.t===2?j*L+10+h.off:h.t===3?j*L+.8:j*L+5.8)-D;
         if(ahead>0&&ahead<lim){const d=((track[j].safe-face)%4+4)%4;
           if(d){guideRel=d===1?1:d===3?-1:2;guideSafe=track[j].safe;guideOn=true;guideShow();break}}}
     }
