@@ -162,14 +162,14 @@
   <section class="overlay" id="pause"><div class="panel">
     <div class="eyebrow">SYSTEMS HOLDING</div><h2>PAUSED</h2>
     <p class="tag">Gravity is on hold. Take a breath.</p>
-    <button class="btn" id="resume">RESUME</button><button class="btn alt" id="pquit">RESTART RUN</button>
+    <button class="btn" id="resume">RESUME</button><button class="btn alt" id="pquit">RESTART RUN</button><button class="btn alt" id="phome">HOME</button>
   </div></section>
 
   <section class="overlay" id="crash"><div class="panel">
     <div class="eyebrow" id="creason">STRUCTURAL FAILURE</div><h2 style="color:#ff6a70">WRECKED</h2>
     <p class="tag" id="chint">Find the wall that's safe, and shift before it hits.</p>
     <div class="stats" style="margin-top:0"><div>SCORE<strong id="cscore">0</strong></div></div>
-    <button class="btn" id="retry">RETRY</button><button class="btn alt" id="restart1">RESTART FROM SECTOR 1</button>
+    <button class="btn" id="retry">RETRY</button><button class="btn alt" id="restart1">RESTART FROM SECTOR 1</button><button class="btn alt" id="chome">HOME</button>
   </div></section>
 
   <section class="overlay" id="finish"><div class="panel">
@@ -181,7 +181,7 @@
     <div class="stats"><div>TIME<strong id="ftime">0:00.00</strong></div><div>ORBS<strong id="forbs">0</strong></div><div>SHIFTS<strong id="fshift">0</strong></div></div>
     <div class="best" id="fbest"></div>
     <div class="rec" id="frec"></div>
-    <button class="btn" id="again">RACE AGAIN</button>
+    <button class="btn" id="again">RACE AGAIN</button><button class="btn alt" id="fhome">HOME</button>
   </div></section>
 </div>
 
@@ -745,7 +745,7 @@ function pauseGame(){if(demo||(state!=='run'&&state!=='count'))return;$('#pause'
 function resumeGame(){if(state!=='paused')return;state=$('#pause')._prev||'run';$('#pause').classList.remove('on')}
 function toMenu(){['pause','crash','finish'].forEach(i=>$('#'+i).classList.remove('on'));$('#menu').classList.add('on');document.body.classList.remove('playing');$('#count').classList.remove('on');demo=true;state='menu';reset(0);D=3*L;placeOnFace(track[3].safe)}
 $('#go').onclick=()=>begin(0);$('#again').onclick=()=>begin(0);$('#restart1').onclick=()=>begin(0);
-$('#retry').onclick=()=>begin(cpSeg);$('#resume').onclick=resumeGame;$('#pquit').onclick=()=>begin(0);
+$('#retry').onclick=()=>begin(cpSeg);$('#resume').onclick=resumeGame;$('#pquit').onclick=()=>begin(0);$('#chome').onclick=$('#phome').onclick=$('#fhome').onclick=toMenu;
 $('#mute').onclick=()=>{muted=!muted;$('#mute').textContent=muted?'🔇':'🔊'};
 const tb=(id,r)=>{$(id).addEventListener('pointerdown',e=>{e.preventDefault();requestShift(r)})};tb('#tl',-1);tb('#tr',1);tb('#tf',2);
 addEventListener('keydown',e=>{
