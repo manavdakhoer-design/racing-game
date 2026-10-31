@@ -354,7 +354,7 @@ function drawRow(j,r){
     const a=pj(nx-tx,ny-ty,z0),b=pj(nx+tx,ny+ty,z0),c=pj(nx+tx,ny+ty,z1),d=pj(nx-tx,ny-ty,z1);
     lw=Math.max(.6,.04*a[2]*.6+.04*d[2]*.4);
     const hh=(j>=0&&j<N)?track[j].hz[k]:null, el4=!!(hh&&hh.t===4&&r*RL>=5&&r*RL<15);
-    const f=el4?[255,190,60]:FRGB[k],base=el4?(par?[78,24,16]:[56,17,12]):par?[f[0]*.15+5,f[1]*.15+8,f[2]*.15+22]:[f[0]*.09+4,f[1]*.09+6,f[2]*.09+16];
+    const f=el4?[255,190,60]:FRGB[k],base=el4?(par?[78,24,16]:[56,17,12]):par?[f[0]*.15+GBP[0],f[1]*.15+GBP[1],f[2]*.15+GBP[2]]:[f[0]*.09+GBN[0],f[1]*.09+GBN[1],f[2]*.09+GBN[2]];
     ctx.fillStyle=rgb(mix(base,fogC,fg));quad(a,b,c,d);ctx.fill();
     if(fin){ // chequered finish strip
       for(let q=0;q<4;q++){const l0=-TH+q*RL,l1=l0+RL,w=((q+r)&1)===0;
@@ -382,7 +382,7 @@ function drawRow(j,r){
   ctx.lineCap='butt';
 }
 const GLOW=true;
-function neon(col,blur){if(GLOW){ctx.shadowBlur=blur;ctx.shadowColor=col}}
+function neon(col,blur){if(GLOW){ctx.shadowBlur=blur*GK;ctx.shadowColor=col}}
 function neonOff(){if(GLOW){ctx.shadowBlur=0;ctx.shadowColor='transparent'}}
 function drawGate(j){
   const z=-(j*L),d=camZ-z; if(d<NEAR+.3||d>330)return;
@@ -439,20 +439,20 @@ function drawCar(){
   if(state==='falling'){cx+=NORM[face][0]*fallD;cy+=NORM[face][1]*fallD;th+=fallT*5}
   const q=pj(cx,cy,-D),s=q[2];
   ctx.save();ctx.translate(q[0],q[1]);ctx.rotate(camT-th);ctx.scale(s,-s);
-  ctx.globalCompositeOperation='lighter';ctx.drawImage(sprite('rgba(55,230,255,A)',128),-1.9,-1.05,3.8,1.0);ctx.globalCompositeOperation='source-over';
+  ctx.globalCompositeOperation='lighter';ctx.drawImage(   sprite(CAR.ug,128),-1.9,-1.05,3.8,1.0);ctx.globalCompositeOperation='source-over';
   const rr=(x,y,w,h,c)=>{ctx.fillStyle=c;ctx.fillRect(x,y,w,h)};
   rr(-1.0,-.62,.34,.6,'#090b13');rr(.66,-.62,.34,.6,'#090b13');rr(-1.0,-.62,.05,.6,'#262c3c');rr(.95,-.62,.05,.6,'#262c3c');
-  let g=ctx.createLinearGradient(-.95,0,.95,0);g.addColorStop(0,'#6e1626');g.addColorStop(.3,'#e23a4a');g.addColorStop(.5,'#ff6b61');g.addColorStop(.7,'#e23a4a');g.addColorStop(1,'#6e1626');
-  ctx.fillStyle=g;ctx.beginPath();ctx.moveTo(-.95,-.44);ctx.lineTo(.95,-.44);ctx.lineTo(.88,.06);ctx.lineTo(-.88,.06);ctx.closePath();ctx.fill();
+  let g=ctx.createLinearGradient(-.95,0,.95,0);g.addColorStop(0,CAR.e);g.addColorStop(.3,CAR.b);g.addColorStop(.5,CAR.m);g.addColorStop(.7,CAR.b);g.addColorStop(1,CAR.e);
+  ctx.fillStyle=g;ctx.beginPath();ctx.moveTo(-.95,-.44);ctx.lineTo(.95,-.44);ctx.lineTo(.88,.06);ctx.lineTo(-.88,.06);ctx.closePath();ctx.fill();ctx.strokeStyle=CAR.rim;ctx.lineWidth=.035;ctx.stroke();
   rr(-.9,-.46,1.8,.14,'#12141f');
-  ctx.fillStyle='#a8222f';ctx.beginPath();ctx.moveTo(-.66,.06);ctx.lineTo(.66,.06);ctx.lineTo(.48,.5);ctx.lineTo(-.48,.5);ctx.closePath();ctx.fill();
-  g=ctx.createLinearGradient(0,.5,0,.08);g.addColorStop(0,'#1d5b86');g.addColorStop(1,'#06121f');
+  ctx.fillStyle=CAR.roof;ctx.beginPath();ctx.moveTo(-.66,.06);ctx.lineTo(.66,.06);ctx.lineTo(.48,.5);ctx.lineTo(-.48,.5);ctx.closePath();ctx.fill();
+  g=ctx.createLinearGradient(0,.5,0,.08);g.addColorStop(0,CAR.gl1);g.addColorStop(1,'#06121f');
   ctx.fillStyle=g;ctx.beginPath();ctx.moveTo(-.54,.11);ctx.lineTo(.54,.11);ctx.lineTo(.4,.44);ctx.lineTo(-.4,.44);ctx.closePath();ctx.fill();
   ctx.strokeStyle='#ffffff55';ctx.lineWidth=.03;ctx.beginPath();ctx.moveTo(-.3,.4);ctx.lineTo(-.15,.14);ctx.stroke();
-  rr(-.82,.5,.07,.12,'#222');rr(.75,.5,.07,.12,'#222');rr(-1.0,.58,2.0,.1,'#ffd9a0');
-  neon('#ff2b45',15);rr(-.82,-.2,.46,.16,'#ff2b45');rr(.36,-.2,.46,.16,'#ff2b45');rr(-.36,-.14,.72,.05,'#ff7080');neonOff();
+  rr(-.82,.5,.07,.12,'#222');rr(.75,.5,.07,.12,'#222');rr(-1.0,.58,2.0,.1,CAR.lip);
+  neon(CAR.lt,15);rr(-.82,-.2,.46,.16,CAR.lt);rr(.36,-.2,.46,.16,CAR.lt);rr(-.36,-.14,.72,.05,CAR.lt2);neonOff();
   ctx.globalCompositeOperation='lighter';
-  const fl=sprite('rgba(255,60,80,A)',64),big=state==='run'?1+.15*Math.sin(time*40):1;
+  const fl=sprite(CAR.fl,64),big=state==='run'?1+.15*Math.sin(time*40):1;
   ctx.drawImage(fl,-1.35,-.55,1.5*big,1.0);ctx.drawImage(fl,-.15,-.55,1.5*big,1.0);
   ctx.globalCompositeOperation='source-over';
   ctx.restore();
@@ -846,31 +846,78 @@ function guideTick(dt){
   if(transit||face===guideSafe){guideEnd(face===guideSafe||(transit&&transit.k1===guideSafe));return guideScale}
   guideScale+=(.12-guideScale)*k;guidePos();return guideScale;
 }
+/* SKIN-CAR */
+const CAR={ug:'',e:'',b:'',m:'',roof:'',gl1:'',lip:'',lt:'',lt2:'',fl:'',rim:''};
+const carHx=a=>'#'+a.map(v=>Math.max(0,Math.min(255,v|0)).toString(16).padStart(2,'0')).join('');
+const carMix=(a,b,t)=>a.map((v,i)=>v+(b[i]-v)*t);
+function applyCarColors(T){
+  const B=hexRgb(T.car.body),G=hexRgb(T.car.glow),Gl=hexRgb(T.pal.glow),W=[255,255,255];
+  const add=(c,g,k)=>c.map((v,i)=>v+g[i]*k);
+  CAR.e=carHx(B.map(v=>v*.5));
+  CAR.b=carHx(add(B,G,.12));
+  CAR.m=carHx(add(B,G,.38));
+  CAR.roof=carHx(add(B.map(v=>v*.7),G,.15));
+  CAR.gl1=carHx(carMix(G,[8,16,28],.6));
+  CAR.lip=carHx(carMix(G,W,.55));
+  CAR.lt=T.car.glow;
+  CAR.lt2=carHx(carMix(G,W,.45));
+  CAR.ug='rgba('+G.join(',')+',A)';
+  CAR.fl='rgba('+G.join(',')+',A)';
+  CAR.rim='rgba('+G.join(',')+',.7)';
+}
+/* SKIN-SKY */
+let GK=1;
+const ACC0=ACC.map(a=>a.slice()),FOG0=FOG.map(a=>a.slice());
+function applySkyColors(T,gb){
+  GK=T.glowK||1;
+  const P=[T.pal.primary,T.pal.secondary,T.pal.accent].map(hexRgb),f=P[0];
+  for(let i=0;i<3&&i<ACC.length;i++){
+    if(T.id==='tokyo'){ACC[i]=ACC0[i].slice();FOG[i]=FOG0[i].slice()}
+    else{ACC[i]=P[i].slice();FOG[i]=[0,1,2].map(c=>gb[c]*(1.2+.25*i)+f[c]*.03*(i+1))}
+  }
+}
+/* SKIN-COLORS */
+const GBP=[5,8,22],GBN=[4,6,16];
+const SKIN_FN={
+  tokyo:['CYAN','MAGENTA','AMBER','VIOLET'],
+  matrix:['LIME','EMERALD','MINT','VOLT'],
+  blood:['CRIMSON','EMBER','AMBER','ROSE'],
+  solar:['GOLD','SUNSET','CREAM','BRONZE'],
+  space:['PURPLE','INDIGO','ORCHID','LAVENDER']
+};
+function applySkinColors(){
+  const T=THEME,gb=hexRgb(T.ground.base),nm=SKIN_FN[T.id]||SKIN_FN.tokyo;
+  for(let i=0;i<4;i++){
+    const h=T.ground.faces[i],c=hexRgb(h);
+    FHEX[i]=h;FRGB[i][0]=c[0];FRGB[i][1]=c[1];FRGB[i][2]=c[2];FNAME[i]=nm[i];
+  }
+  for(let i=0;i<3;i++){GBP[i]=gb[i]*.8;GBN[i]=gb[i]*.6}applySkyColors(T,gb);applyCarColors(T);
+}
 /* VAULT-DATA */
 const SKINS=[
  {id:'tokyo',name:'Neon Tokyo',tag:'The Classic',price:0,glowK:1,
   pal:{primary:'#00F0FF',secondary:'#FF2BD6',accent:'#7A5CFF',glow:'#19F3FF'},
-  car:{body:'#0B1A3A',glow:'#00F0FF'},
+       car:{body:'#FFB26B',glow:'#FFC04D'},
   ground:{base:'#060C24',line:'#19E6FF',faces:['#37e6ff','#ff4fd8','#ffb347','#9b6bff']},
   obs:{a:'#FF2BD6',b:'#FF7AF0'}},
  {id:'matrix',name:'Matrix Code',tag:'The Digital',price:100,glowK:1.1,
   pal:{primary:'#39FF14',secondary:'#00FFA3',accent:'#D6FFE0',glow:'#7CFF5A'},
-  car:{body:'#050805',glow:'#39FF14'},
+       car:{body:'#FF8AE6',glow:'#FF8EEB'},
   ground:{base:'#020602',line:'#2BFF4F',faces:['#39FF14','#00FFA3','#D6FFE0','#A6FF00']},
   obs:{a:'#E8FFF1',b:'#00FF88'}},
  {id:'blood',name:'Blood Moon',tag:'The Aggressive',price:250,glowK:1.15,
   pal:{primary:'#FF1744',secondary:'#FF6A1F',accent:'#FFB300',glow:'#FF4F6B'},
-  car:{body:'#2A2D33',glow:'#FF1744'},
+       car:{body:'#7FF3FF',glow:'#2FEFFF'},
   ground:{base:'#14090B',line:'#E0142E',faces:['#FF1744','#FF6A1F','#FFB300','#FF4F7B']},
   obs:{a:'#FF8A00',b:'#FFD23F'}},
  {id:'solar',name:'Solar Flare',tag:'The Luxury',price:400,glowK:1.2,
   pal:{primary:'#FFC400',secondary:'#FFE9A0',accent:'#FF8A00',glow:'#FFD65A'},
-  car:{body:'#F6F2E8',glow:'#FFC400'},
+      car:{body:'#8CCBFF',glow:'#86CCFF'},
   ground:{base:'#1E1005',line:'#FFB81F',faces:['#FFC400','#FF8A00','#FFE9A0','#D99A2B']},
   obs:{a:'#FFFFFF',b:'#FFF3B0'}},
  {id:'space',name:'Deep Space',tag:'The Ethereal',price:600,glowK:1.05,
   pal:{primary:'#9D4DFF',secondary:'#5B6CFF',accent:'#1DE9D6',glow:'#B77CFF'},
-  car:{body:'#0A1034',glow:'#9D4DFF'},
+       car:{body:'#FFE87A',glow:'#FFD21F'},
   ground:{base:'#0C0B2E',line:'#8A5BFF',faces:['#9D4DFF','#5B6CFF','#D66BFF','#7FA0FF']},
   obs:{a:'#1DF2D0',b:'#5FFFEA'}}
 ];
@@ -890,7 +937,7 @@ function buySkin(id){const s=skinOf(id);if(owned.includes(id)||wallet<s.price)re
 function equipSkin(id){if(!owned.includes(id))return false;skinId=id;saveSkins();applyTheme();return true}
 function applyTheme(){
   THEME=skinOf(skinId);const r=document.documentElement,p=THEME.pal;
-  r.dataset.skin=THEME.id;
+  r.dataset.skin=THEME.id;applySkinColors();
   r.style.setProperty('--th-primary',p.primary);r.style.setProperty('--th-secondary',p.secondary);
   r.style.setProperty('--th-accent',p.accent);r.style.setProperty('--th-glow',p.glow);
 }
