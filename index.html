@@ -767,7 +767,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden)pauseGame()
 addEventListener('blur',pauseGame);
 /* GUIDED-PLAY */
 let guideOn=false,guideScale=1,guideRel=0,guideSafe=0,guideDone=false,guideEl=null,guideBtn=null;
-try{guideDone=!!localStorage.getItem('wso_guided')}catch(e){}
+let guideSeen=[];try{guideSeen=JSON.parse(localStorage.getItem('wso_guided2')||'[]');guideDone=guideSeen.length>=3}catch(e){}
 if(location.hash.includes('test'))guideDone=true;
 function guideInit(){
   const s=document.createElement('style');
@@ -790,12 +790,12 @@ function guideShow(){
   if(!guideEl)guideInit();
   guideBtn=guideRel<0?$('#tl'):guideRel===2?$('#tf'):([...document.querySelectorAll('#touch button')].find(x=>x.id!=='tl'&&x.id!=='tf')||null);
   if(guideBtn)guideBtn.classList.add('gglow');
-  guideEl.classList.add('on');guidePos();buzz(20);
+  guideEl.firstChild.textContent=guideRel===2?'Flip to survive!':'Shift to survive!';guideEl.classList.add('on');guidePos();buzz(20);
 }
 function guideEnd(done){
   guideOn=false;if(guideEl)guideEl.classList.remove('on');
   if(guideBtn){guideBtn.classList.remove('gglow');guideBtn=null}
-  if(done){guideDone=true;try{localStorage.setItem('wso_guided','1')}catch(e){}flashMsg('NICE! YOU GOT IT','#7dffb0')}
+  if(done){if(!guideSeen.includes(guideRel))guideSeen.push(guideRel);guideDone=guideSeen.length>=3;try{localStorage.setItem('wso_guided2',JSON.stringify(guideSeen))}catch(e){}flashMsg(guideDone?'NICE! YOU KNOW ALL 3 SHIFTS':'NICE! '+guideSeen.length+'/3 SHIFTS','#7dffb0')}
 }
 function guideTick(dt){
   const k=Math.min(1,dt*8);
@@ -808,12 +808,12 @@ function guideTick(dt){
       const h=track[j].hz[face];
        if(h&&h.t){const ahead=(h.t===2?j*L+10+h.off:h.t===3?j*L+.8:j*L+5.8)-D;
         if(ahead>0&&ahead<lim){const d=((track[j].safe-face)%4+4)%4;
-          if(d){guideRel=d===1?1:d===3?-1:2;guideSafe=track[j].safe;guideOn=true;guideShow();break}}}
+          if(d){const rl=d===1?1:d===3?-1:2;if(guideSeen.includes(rl))continue;guideRel=rl;guideSafe=track[j].safe;guideOn=true;guideShow();break}}}
     }
     return guideScale>.98?1:guideScale;
   }
   if(state!=='run'){guideEnd(false);guideScale=1;return 1}
-  if(transit||face===guideSafe){guideEnd(true);return guideScale}
+  if(transit||face===guideSafe){guideEnd(face===guideSafe||(transit&&transit.k1===guideSafe));return guideScale}
   guideScale+=(.12-guideScale)*k;guidePos();return guideScale;
 }
 
