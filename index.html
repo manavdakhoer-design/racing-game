@@ -15,7 +15,7 @@
 <style>
   :root{ --cy:#37e6ff; --mg:#ff4fd8; --am:#ffb347; --vi:#9b6bff; --ink:#070a1c; --glass:rgba(9,13,34,.72); --pc:#37e6ff; }
   *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none; -webkit-user-select:none; }
-  html,body{ margin:0; height:100%; background:#05060f; overflow:hidden; color:#f4f7ff; font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  html,body{ overscroll-behavior:none; margin:0; height:100%; background:#05060f; overflow:hidden; color:#f4f7ff; font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
   button{ font:inherit; color:inherit; border:0; cursor:pointer; }
   #stage{ position:fixed; inset:0; touch-action:none; }
   #gl{ position:absolute; inset:0; width:100%; height:100%; display:block; }
@@ -549,7 +549,7 @@ function render(){
 }
 
 /* ============================ AUDIO ============================ */
-let AC=null,master,eng,engG,nbuf,muted=false;
+let AC=null,master,eng,engG,nbuf,muted=false;try{muted=localStorage.getItem('wso_mute')==='1'}catch(e){}
 function audioInit(){if(AC)return;try{AC=new(window.AudioContext||window.webkitAudioContext)();master=AC.createGain();master.gain.value=.55;master.connect(AC.destination);
   eng=AC.createOscillator();eng.type='sawtooth';const f=AC.createBiquadFilter();f.type='lowpass';f.frequency.value=420;engG=AC.createGain();engG.gain.value=0;eng.connect(f);f.connect(engG);engG.connect(master);eng.start();
   nbuf=AC.createBuffer(1,AC.sampleRate,AC.sampleRate);const d=nbuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1}catch(e){AC=null}}
@@ -793,7 +793,8 @@ function resumeGame(){if(state!=='paused')return;state=$('#pause')._prev||'run';
 function toMenu(){tutMode=false;useTrack(false);tutHide();document.body.classList.remove('tut');$('#pquit').textContent='RESTART RUN';renderVault();['pause','crash','finish','tdone'].forEach(i=>$('#'+i).classList.remove('on'));$('#menu').classList.add('on');document.body.classList.remove('playing');$('#count').classList.remove('on');demo=true;state='menu';reset(0);D=3*L;placeOnFace(track[3].safe)}
 $('#go').onclick=()=>{tutMode=false;begin(0)};$('#again').onclick=()=>{tutMode=false;begin(0)};$('#restart1').onclick=()=>begin(0);
 $('#retry').onclick=()=>begin(cpSeg);$('#resume').onclick=resumeGame;$('#pquit').onclick=()=>begin(0);$('#chome').onclick=$('#phome').onclick=$('#fhome').onclick=toMenu;
-$('#mute').onclick=()=>{muted=!muted;$('#mute').textContent=muted?'🔇':'🔊'};
+$('#mute').textContent=muted?'🔇':'🔊';
+$('#mute').onclick=()=>{muted=!muted;$('#mute').textContent=muted?'🔇':'🔊';try{localStorage.setItem('wso_mute',muted?'1':'0')}catch(e){}};
 const tb=(id,r)=>{$(id).addEventListener('pointerdown',e=>{e.preventDefault();requestShift(r)})};tb('#tl',-1);tb('#tr',1);tb('#tf',2);
 addEventListener('keydown',e=>{
   if(e.repeat)return;const k=e.key;
