@@ -744,7 +744,7 @@ function pickups(){
       const dz=D-(j*L+o.o);if(Math.abs(dz)>2.6)return;
       const dx=px-o.x,dy=py-o.y;
       if(dx*dx+dy*dy+dz*dz<2.7*2.7){got.add(key);if(!bot&&!tutMode)walletAdd(1);sfx.orb(o.tr);burst(o.x,o.y,-(j*L+o.o),14,5,o.tr?[255,120,230]:[255,214,102]);
-        if(o.tr){sc.slingN++;award('sling',100,'SLINGSHOT','#ff9cec');boost=Math.max(boost,9);fovPunch=1;flashMsg('SLINGSHOT!','#ff9cec')}
+        if(o.tr){sc.slingN++;award('sling',100,'SLINGSHOT','#ff9cec');boost=Math.max(boost,diff===2?5:9);fovPunch=1;flashMsg('SLINGSHOT!','#ff9cec')}
         else{sc.orbN++;award('orb',10,'ORB','#ffd166')}
       }
     });
