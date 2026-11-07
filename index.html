@@ -244,8 +244,16 @@ const TAN =[[1,0],[0,1],[-1,0],[0,-1]];
 const FRGB=[[55,230,255],[255,79,216],[255,179,71],[155,107,255]];
 const FHEX=['#37e6ff','#ff4fd8','#ffb347','#9b6bff'], FNAME=['CYAN','MAGENTA','AMBER','VIOLET'];
 const ACC=[[55,230,255],[255,79,216],[255,209,102]], FOG=[[9,12,38],[26,9,40],[40,20,12]];
-const rgb=(c,a)=>a===undefined?`rgb(${c[0]|0},${c[1]|0},${c[2]|0})`:`rgba(${c[0]|0},${c[1]|0},${c[2]|0},${a})`;
+/* PERF-COLOR */
+const RC=new Map();
+const rgb=(c,a)=>{const r=c[0]|0,g=c[1]|0,b=c[2]|0,k=(r*256+g)*256+b;
+  if(a===undefined){let s=RC.get(k);if(s===undefined){s=`rgb(${r},${g},${b})`;RC.set(k,s)}return s}
+  const q=a>=1?200:a>0?Math.round(a*200):0,key=k*201+q+.5;let s=RC.get(key);
+  if(s===undefined){if(RC.size>20000)RC.clear();s=`rgba(${r},${g},${b},${q/200})`;RC.set(key,s)}return s};
 const mix=(a,b,t)=>[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t];
+const MXR=Array.from({length:16},()=>[0,0,0]);let mxI=0;      // scratch results: use only for immediate reads (never store)
+const mixs=(a,b,t)=>{const o=MXR[mxI=(mxI+1)&15];o[0]=a[0]+(b[0]-a[0])*t;o[1]=a[1]+(b[1]-a[1])*t;o[2]=a[2]+(b[2]-a[2])*t;return o};
+const LATS=[-2.5,0,2.5],CORNERS=[[TH,TH],[-TH,TH],[TH,-TH],[-TH,-TH]];
 let diff=1;try{const r=localStorage.getItem('wso_diff'),d=r===null?NaN:+r;if(Number.isInteger(d)&&d>=0&&d<=2)diff=d}catch(e){}
 const SPD=[.85,1,1.18], DNAME=['CHILL','NORMAL','HYPER'], SECN=['NEON DRIFT','MAGENTA RUSH','AMBER STORM'];
 const tSpeed=D=>tutMode?TUT_V:(22+16*Math.min(1,D/(N*L*.85)))*SPD[diff]*(diff===2?1+Math.min(.08,chain*.004):1);
@@ -316,10 +324,12 @@ const parts=[];
 /* ============================ CANVAS / PROJECTION ============================ */
 const cv=$('#gl'), ctx=cv.getContext('2d');
 let W=1,HH=1,DPR=1,F=600,CX=0,CY=0;
-function resize(){DPR=Math.min(window.devicePixelRatio||1,2);W=innerWidth;HH=innerHeight;cv.width=Math.round(W*DPR);cv.height=Math.round(HH*DPR);F=Math.min(HH*.7,W*.9);CX=W/2;CY=HH*.43}
+let DPRCAP=2,dirtyR=true;
+function resize(){dirtyR=true;DPR=Math.min(window.devicePixelRatio||1,DPRCAP);W=innerWidth;HH=innerHeight;cv.width=Math.round(W*DPR);cv.height=Math.round(HH*DPR);F=Math.min(HH*.7,W*.9);CX=W/2;CY=HH*.43}
 addEventListener('resize',resize);resize();
 let camX=0,camY=0,camZ=0,cUx=0,cUy=1,cRx=1,cRy=0,FF=600;
-function pj(x,y,z){const dx=x-camX,dy=y-camY;let d=camZ-z;if(d<NEAR)d=NEAR;const s=FF/d;return[CX+(dx*cRx+dy*cRy)*s,CY-(dx*cUx+dy*cUy)*s,s]}
+const PJR=Array.from({length:64},()=>[0,0,0]);let pjI=0;      // ring of reusable results: a result is valid for the next 63 pj calls
+function pj(x,y,z){const dx=x-camX,dy=y-camY;let d=camZ-z;if(d<NEAR)d=NEAR;const s=FF/d,o=PJR[pjI=(pjI+1)&63];o[0]=CX+(dx*cRx+dy*cRy)*s;o[1]=CY-(dx*cUx+dy*cUy)*s;o[2]=s;return o}
 const fogF=d=>1-Math.exp(-Math.pow(d*FOGD,2));
 let accC=ACC[0].slice(), fogC=FOG[0].slice();
 
@@ -337,14 +347,14 @@ function drawBox(b,rot){
   const d=camZ-b.z; if(d<4||d>420)return;
   const al=(1-fogF(d))*(b.cube?.85:.7), col=ACC[b.col];
   if(!b.cube){ // tower: dark front face
-    ctx.fillStyle=rgb(mix([6,9,26],fogC,fogF(d)));ctx.beginPath();[4,5,7,6].forEach((i,n)=>n?ctx.lineTo(c[i][0],c[i][1]):ctx.moveTo(c[i][0],c[i][1]));ctx.closePath();ctx.fill();
+    ctx.fillStyle=rgb(mixs([6,9,26],fogC,fogF(d)));ctx.beginPath();[4,5,7,6].forEach((i,n)=>n?ctx.lineTo(c[i][0],c[i][1]):ctx.moveTo(c[i][0],c[i][1]));ctx.closePath();ctx.fill();
   }
   ctx.strokeStyle=rgb(col,al);ctx.lineWidth=Math.max(.8,c[0][2]*.05);ctx.beginPath();
   [[0,1],[1,3],[3,2],[2,0],[4,5],[5,7],[7,6],[6,4],[0,4],[1,5],[2,6],[3,7]].forEach(([a,e])=>{ctx.moveTo(c[a][0],c[a][1]);ctx.lineTo(c[e][0],c[e][1])});ctx.stroke();
 }
 function drawBackground(){
   const g=ctx.createRadialGradient(CX,CY,0,CX,CY,Math.max(W,HH)*.8);
-  g.addColorStop(0,rgb(mix(fogC,accC,.28)));g.addColorStop(.35,rgb(fogC));g.addColorStop(1,'#04050c');
+  g.addColorStop(0,rgb(mixs(fogC,accC,.28)));g.addColorStop(.35,rgb(fogC));g.addColorStop(1,'#04050c');
   ctx.fillStyle=g;ctx.fillRect(0,0,W,HH);
   const R=Math.max(W,HH)*.75;
   for(const s of stars){const an=s.a+camT,x=CX+Math.cos(an)*s.r*R,y=CY+Math.sin(an)*s.r*R;
@@ -364,6 +374,7 @@ function panelOK(j,r,k){
   return true;
 }
 function quad(a,b,c,d){ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.lineTo(c[0],c[1]);ctx.lineTo(d[0],d[1]);ctx.closePath()}
+const BSC=[0,0,0];
 function drawRow(j,r){
   const z0=-(j*L+r*RL),z1=z0-RL,d0=camZ-z0,d1=camZ-z1;
   if(d1<NEAR||d0>330)return;
@@ -373,22 +384,22 @@ function drawRow(j,r){
     const nx=NORM[k][0]*TH,ny=NORM[k][1]*TH,tx=TAN[k][0]*TH,ty=TAN[k][1]*TH;
     if(!panelOK(j,r,k)){ // a hole in the floor: show it as a dark void with a faint red rim
       const a=pj(nx-tx,ny-ty,z0),b=pj(nx+tx,ny+ty,z0),c=pj(nx+tx,ny+ty,z1),d=pj(nx-tx,ny-ty,z1);
-      ctx.fillStyle=rgb(mix([2,3,10],fogC,fg*.8));quad(a,b,c,d);ctx.fill();ctx.strokeStyle=rgb(OB.rim,(1-fg)*.5);ctx.lineWidth=Math.max(1,.05*a[2]);ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke();
+      ctx.fillStyle=rgb(mixs([2,3,10],fogC,fg*.8));quad(a,b,c,d);ctx.fill();ctx.strokeStyle=rgb(OB.rim,(1-fg)*.5);ctx.lineWidth=Math.max(1,.05*a[2]);ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke();
       continue;
     }
     const a=pj(nx-tx,ny-ty,z0),b=pj(nx+tx,ny+ty,z0),c=pj(nx+tx,ny+ty,z1),d=pj(nx-tx,ny-ty,z1);
     lw=Math.max(.6,.04*a[2]*.6+.04*d[2]*.4);
     const hh=(j>=0&&j<N)?track[j].hz[k]:null, el4=!!(hh&&hh.t===4&&r*RL>=5&&r*RL<15);
-    const f=el4?OB.pl:FRGB[k],base=el4?(par?OB.pb1:OB.pb2):par?[f[0]*.15+GBP[0],f[1]*.15+GBP[1],f[2]*.15+GBP[2]]:[f[0]*.09+GBN[0],f[1]*.09+GBN[1],f[2]*.09+GBN[2]];
-    ctx.fillStyle=rgb(mix(base,fogC,fg));quad(a,b,c,d);ctx.fill();
+    const f=el4?OB.pl:FRGB[k],base=el4?(par?OB.pb1:OB.pb2):BSC;if(!el4){const m=par?.15:.09,G=par?GBP:GBN;BSC[0]=f[0]*m+G[0];BSC[1]=f[1]*m+G[1];BSC[2]=f[2]*m+G[2]}
+    ctx.fillStyle=rgb(mixs(base,fogC,fg));quad(a,b,c,d);ctx.fill();
     if(fin){ // chequered finish strip
       for(let q=0;q<4;q++){const l0=-TH+q*RL,l1=l0+RL,w=((q+r)&1)===0;
         const A=pj(nx+TAN[k][0]*l0,ny+TAN[k][1]*l0,z0),B=pj(nx+TAN[k][0]*l1,ny+TAN[k][1]*l1,z0),C=pj(nx+TAN[k][0]*l1,ny+TAN[k][1]*l1,z1),E=pj(nx+TAN[k][0]*l0,ny+TAN[k][1]*l0,z1);
-        ctx.fillStyle=rgb(mix(w?[235,240,255]:[12,14,30],fogC,fg));quad(A,B,C,E);ctx.fill()}
+        ctx.fillStyle=rgb(mixs(w?[235,240,255]:[12,14,30],fogC,fg));quad(A,B,C,E);ctx.fill()}
     }
     ctx.strokeStyle=rgb(f,(1-fg)*.85);ctx.lineWidth=lw;ctx.beginPath();
     ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);
-    for(const lat of[-2.5,0,2.5]){const p=pj(nx+TAN[k][0]*lat,ny+TAN[k][1]*lat,z0),q=pj(nx+TAN[k][0]*lat,ny+TAN[k][1]*lat,z1);ctx.moveTo(p[0],p[1]);ctx.lineTo(q[0],q[1])}
+    for(const lat of LATS){const p=pj(nx+TAN[k][0]*lat,ny+TAN[k][1]*lat,z0),q=pj(nx+TAN[k][0]*lat,ny+TAN[k][1]*lat,z1);ctx.moveTo(p[0],p[1]);ctx.lineTo(q[0],q[1])}
     ctx.stroke();
     if(fg<.2){ctx.globalCompositeOperation='lighter';ctx.strokeStyle=rgb(f,(1-fg)*(.2-.03*diff));ctx.lineWidth=lw*2.5;ctx.stroke();ctx.globalCompositeOperation='source-over'}
     if(el4&&fg<.8){ // crackling lightning across the electrified plate
@@ -399,10 +410,10 @@ function drawRow(j,r){
   }
   // glowing corner rails
   ctx.lineCap='round';
-  for(const[cx,cy]of[[TH,TH],[-TH,TH],[TH,-TH],[-TH,-TH]]){
+  for(const[cx,cy]of CORNERS){
     const p=pj(cx,cy,z0),q=pj(cx,cy,z1);
     ctx.strokeStyle=rgb(accC,(1-fg)*.35);ctx.lineWidth=Math.max(1.5,.32*p[2]);ctx.beginPath();ctx.moveTo(p[0],p[1]);ctx.lineTo(q[0],q[1]);ctx.stroke();
-    ctx.strokeStyle=rgb(mix([255,255,255],accC,.35),(1-fg)*.95);ctx.lineWidth=Math.max(.8,.09*p[2]);ctx.beginPath();ctx.moveTo(p[0],p[1]);ctx.lineTo(q[0],q[1]);ctx.stroke();
+    ctx.strokeStyle=rgb(mixs([255,255,255],accC,.35),(1-fg)*.95);ctx.lineWidth=Math.max(.8,.09*p[2]);ctx.beginPath();ctx.moveTo(p[0],p[1]);ctx.lineTo(q[0],q[1]);ctx.stroke();
   }
   ctx.lineCap='butt';
 }
@@ -416,7 +427,7 @@ function drawGate(j){
   const col=j===N?[255,215,90]:CPS.includes(j)?[90,255,150]:isA?FRGB[track[j].safe]:accC;
   ctx.lineJoin='round';
   ctx.strokeStyle=rgb(col,(1-fg)*.3);ctx.lineWidth=Math.max(3,.9*a[2]);quad(a,b,c,e);ctx.stroke();
-  if(d<150)neon(rgb(col,1),(j===N||CPS.includes(j))?26:15);ctx.strokeStyle=rgb(mix([255,255,255],col,.3),(1-fg));ctx.lineWidth=Math.max(1.2,.28*a[2]);quad(a,b,c,e);ctx.stroke();neonOff();
+  if(d<150)neon(rgb(col,1),(j===N||CPS.includes(j))?26:15);ctx.strokeStyle=rgb(mixs([255,255,255],col,.3),(1-fg));ctx.lineWidth=Math.max(1.2,.28*a[2]);quad(a,b,c,e);ctx.stroke();neonOff();
   if(isA){const S2=TH-.25,a2=pj(-S2,-S2,z),b2=pj(S2,-S2,z),c2=pj(S2,S2,z),e2=pj(-S2,S2,z);ctx.strokeStyle=rgb(col,(1-fg)*(.5+.4*Math.sin(time*8)));ctx.lineWidth=Math.max(1.5,.22*a2[2]);quad(a2,b2,c2,e2);ctx.stroke()}
   ctx.lineJoin='miter';
 }
@@ -432,17 +443,17 @@ function drawBlock(j,k,off){
   const fg=fogF(camZ-zc),nx=NORM[k][0],ny=NORM[k][1],tx=TAN[k][0],ty=TAN[k][1],W2=3.5,Hh=2.2;
   const pt=(lat,h,z)=>pj(nx*(TH-h)+tx*lat,ny*(TH-h)+ty*lat,z);
   const A=pt(-W2,0,z0),B=pt(W2,0,z0),C=pt(W2,Hh,z0),Dd=pt(-W2,Hh,z0),E=pt(-W2,0,z1),Fp=pt(W2,0,z1),G=pt(W2,Hh,z1),Hp=pt(-W2,Hh,z1);
-  const dark=rgb(mix(OB.dk,fogC,fg)),mid=rgb(mix(OB.md,fogC,fg));
+  const dark=rgb(mixs(OB.dk,fogC,fg)),mid=rgb(mixs(OB.md,fogC,fg));
   ctx.fillStyle=dark;quad(A,Dd,Hp,E);ctx.fill();quad(B,C,G,Fp);ctx.fill();
   ctx.fillStyle=mid;quad(Dd,C,G,Hp);ctx.fill();
-  ctx.fillStyle=rgb(mix(OB.fr,fogC,fg));quad(A,B,C,Dd);ctx.fill();
-  ctx.save();quad(A,B,C,Dd);ctx.clip();ctx.strokeStyle=rgb(mix(OB.st,fogC,fg),.9);ctx.lineWidth=Math.max(1.5,.28*A[2]);ctx.beginPath();
+  ctx.fillStyle=rgb(mixs(OB.fr,fogC,fg));quad(A,B,C,Dd);ctx.fill();
+  ctx.save();quad(A,B,C,Dd);ctx.clip();ctx.strokeStyle=rgb(mixs(OB.st,fogC,fg),.9);ctx.lineWidth=Math.max(1.5,.28*A[2]);ctx.beginPath();
   const x0=Math.min(A[0],Dd[0]),x1=Math.max(B[0],C[0]),yT=Math.min(C[1],Dd[1])-4,yB=Math.max(A[1],B[1])+4,hgt=yB-yT;
   for(let x=x0-hgt;x<x1;x+=Math.max(10,hgt*.5)){ctx.moveTo(x,yB);ctx.lineTo(x+hgt,yT)}
   ctx.stroke();ctx.restore();
   if(camZ-zc<110)neon(OB.rs,14);ctx.strokeStyle=rgb(OB.rim,1-fg);ctx.lineWidth=Math.max(1.2,.07*A[2]);quad(A,B,C,Dd);ctx.stroke();quad(Dd,C,G,Hp);ctx.stroke();neonOff();
   if(fg<.5){ctx.globalCompositeOperation='lighter';ctx.strokeStyle=rgb(OB.rim,(1-fg)*(.22+.14*Math.sin(time*6)));ctx.lineWidth=Math.max(3,.22*A[2]);quad(A,B,C,Dd);ctx.stroke();quad(Dd,C,G,Hp);ctx.stroke();ctx.globalCompositeOperation='source-over'}
-  ctx.fillStyle=rgb(mix(OB.spk,fogC,fg)); // spikes along the top edge
+  ctx.fillStyle=rgb(mixs(OB.spk,fogC,fg)); // spikes along the top edge
   for(const lat of[-2.6,-.9,.9,2.6]){const s1=pt(lat-.7,Hh,z0),s2=pt(lat+.7,Hh,z0),ap=pt(lat,Hh+.9,zc);ctx.beginPath();ctx.moveTo(s1[0],s1[1]);ctx.lineTo(s2[0],s2[1]);ctx.lineTo(ap[0],ap[1]);ctx.closePath();ctx.fill()}
 }
 const glowCache={};
@@ -484,12 +495,13 @@ function drawCar(){
 }
 
 /* ---- particles ---- */
+const freeP=[]; // PERF-POOL: recycled particle objects
 function burst(x,y,z,n,sp,col){
   for(let i=0;i<n;i++){const a=Math.random()*6.283,r=Math.random();
-    parts.push({x,y,z,px:x,py:y,pz:z,vx:Math.cos(a)*sp*r,vy:Math.sin(a)*sp*r,vz:(Math.random()-.5)*sp*1.6+v*.25,
-      l:0,m:.45+Math.random()*.75,c:col,w:.5+Math.random()*1.1,gx:(Math.random()-.5)*3,gy:(Math.random()-.5)*3})}
-  if(parts.length>600)parts.splice(0,parts.length-600)}
-function stepParts(dt){for(let i=parts.length-1;i>=0;i--){const p=parts[i];p.l+=dt;if(p.l>p.m){parts.splice(i,1);continue}
+    const p=freeP.pop()||{};p.x=x;p.y=y;p.z=z;p.px=x;p.py=y;p.pz=z;p.vx=Math.cos(a)*sp*r;p.vy=Math.sin(a)*sp*r;p.vz=(Math.random()-.5)*sp*1.6+v*.25;
+    p.l=0;p.m=.45+Math.random()*.75;p.c=col;p.w=.5+Math.random()*1.1;p.gx=(Math.random()-.5)*3;p.gy=(Math.random()-.5)*3;parts.push(p)}
+  if(parts.length>600){const ex=parts.splice(0,parts.length-600);for(const q of ex)freeP.push(q)}}
+function stepParts(dt){for(let i=parts.length-1;i>=0;i--){const p=parts[i];p.l+=dt;if(p.l>p.m){const last=parts.pop();if(last!==p)parts[i]=last;freeP.push(p);continue}
   p.px=p.x;p.py=p.y;p.pz=p.z;const dr=Math.exp(-2.2*dt);p.vx=p.vx*dr+p.gx*dt;p.vy=p.vy*dr+p.gy*dt;p.vz*=dr;
   p.x+=p.vx*dt;p.y+=p.vy*dt;p.z-=p.vz*dt}}
 function drawParts(){ctx.globalCompositeOperation='lighter';ctx.lineCap='round';
@@ -775,13 +787,14 @@ function dangerUpdate(){
   }
   if(txt!==dangerTxt){dangerTxt=txt;const e=$('#danger');e.textContent=txt;e.className=txt?(lock?'on lock':'on'):''}
 }
+const setT=(e,t)=>{if(e._t!==t){e._t=t;e.textContent=t}};
 function hud(){
   dangerUpdate();
-  el.time.textContent=fmt(elapsed);el.speed.textContent=Math.round(v*7);
-  el.fill.style.width=Math.min(100,D/(N*L)*100)+'%';
-  dispScore+=(flux()-dispScore)*.25;el.score.textContent=fmtN(dispScore);
-  el.orbs.textContent='◆ '+got.size+' / '+totalOrbs+'  ·  FLUX ×'+Math.min(6,1+.1*chain).toFixed(1)+(burstT>0?'  ·  2× BURST '+burstT.toFixed(1)+'s':'');
-  el.cmp.setAttribute('transform','rotate('+(camT*180/Math.PI).toFixed(1)+')');
+  setT(el.time,fmt(elapsed));setT(el.speed,String(Math.round(v*7)));
+  {const w=Math.min(100,D/(N*L)*100).toFixed(1)+'%';if(el.fill._w!==w){el.fill._w=w;el.fill.style.width=w}}
+  dispScore+=(flux()-dispScore)*.25;setT(el.score,fmtN(dispScore));
+  setT(el.orbs,'◆ '+got.size+' / '+totalOrbs+'  ·  FLUX ×'+Math.min(6,1+.1*chain).toFixed(1)+(burstT>0?'  ·  2× BURST '+burstT.toFixed(1)+'s':''));
+  {const t='rotate('+(camT*180/Math.PI).toFixed(1)+')';if(el.cmp._t!==t){el.cmp._t=t;el.cmp.setAttribute('transform',t)}}
 }
 
 /* ============================ UI / INPUT ============================ */
@@ -1101,11 +1114,19 @@ renderVault();
 document.addEventListener('visibilitychange',()=>{if(document.hidden)walletFlush()});
 
 /* ============================ MAIN LOOP ============================ */
+/* PERF-ADAPT: if the phone can't hold ~45 fps for a few seconds, lower the canvas resolution (never raised again this session) */
+let slowN=0;
+function adaptQ(dt){
+  if(location.hash.includes('test')||state==='paused'||state==='menu'||document.hidden)return;
+  if(dt>.024){if(++slowN>150&&DPRCAP>1&&DPR>1){DPRCAP=Math.max(1,DPR-.5);slowN=0;resize()}}else if(slowN>0)slowN--;
+}
 let last=0;
 function frame(t){
   const dt=Math.min(.05,Math.max(0,(t-last)/1000));last=t;
   if(state!=='paused')step(dt*(tutMode?tutTick(dt):guideTick(dt)));
-  engineUpdate();hud();render();
+  engineUpdate();
+  if(state!=='paused'||dirtyR){hud();render();dirtyR=false}
+  adaptQ(dt);
   requestAnimationFrame(frame);
 }
 placeOnFace(track[3].safe);D=3*L;
