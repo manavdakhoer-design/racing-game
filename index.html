@@ -187,6 +187,7 @@
       <div><b>Hazards</b> Spiked barriers · electrified plates · anchors force your gravity</div>
     </div>
     <div class="seg" id="diffs"><button data-d="0">CHILL</button><button data-d="1">NORMAL</button><button data-d="2">HYPER</button></div>
+    <div class="seg" id="qual" role="group" aria-label="Graphics quality"><button data-q="auto">AUTO</button><button data-q="0">LOW</button><button data-q="1">MEDIUM</button><button data-q="2">HIGH</button></div>
     <button class="btn" id="go">ENTER THE CUBE</button><button class="btn alt" id="vaultbtn">◆ VAULT</button><button class="btn alt" id="tutbtn">▶ TUTORIAL</button>
 
     <div class="small" id="bestline"></div>
@@ -324,6 +325,9 @@ const parts=[];
 /* ============================ CANVAS / PROJECTION ============================ */
 const cv=$('#gl'), ctx=cv.getContext('2d');
 let W=1,HH=1,DPR=1,F=600,CX=0,CY=0;
+/* PERF-B2: quality levels. 0 LOW · 1 MEDIUM · 2 HIGH. A level sets canvas resolution cap, neon glow, particle budget and draw distance. */
+const QLV=[{dpr:1,glow:0,part:150,seg:9,dist:200},{dpr:1.5,glow:.5,part:350,seg:12,dist:260},{dpr:2,glow:1,part:600,seg:15,dist:330}];
+let qLev=2,QG=1,PCAP=600,PQ=1,DRAWD=330,DRAWJ=15;
 let DPRCAP=2,dirtyR=true;
 function resize(){dirtyR=true;DPR=Math.min(window.devicePixelRatio||1,DPRCAP);W=innerWidth;HH=innerHeight;cv.width=Math.round(W*DPR);cv.height=Math.round(HH*DPR);F=Math.min(HH*.7,W*.9);CX=W/2;CY=HH*.43}
 addEventListener('resize',resize);resize();
@@ -377,7 +381,7 @@ function quad(a,b,c,d){ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1
 const BSC=[0,0,0];
 function drawRow(j,r){
   const z0=-(j*L+r*RL),z1=z0-RL,d0=camZ-z0,d1=camZ-z1;
-  if(d1<NEAR||d0>330)return;
+  if(d1<NEAR||d0>DRAWD)return;
   const mid=(d0+d1)/2,fg=fogF(mid),fin=(j===N&&r<2),par=(((j*8+r)&1)===0);
   let lw=0;
   for(let k=0;k<4;k++){
@@ -418,10 +422,10 @@ function drawRow(j,r){
   ctx.lineCap='butt';
 }
 const GLOW=true;
-function neon(col,blur){if(GLOW){ctx.shadowBlur=blur*GK;ctx.shadowColor=col}}
-function neonOff(){if(GLOW){ctx.shadowBlur=0;ctx.shadowColor='transparent'}}
+function neon(col,blur){if(GLOW&&QG>0){ctx.shadowBlur=blur*GK*QG;ctx.shadowColor=col}}
+function neonOff(){if(GLOW&&QG>0){ctx.shadowBlur=0;ctx.shadowColor='transparent'}}
 function drawGate(j){
-  const z=-(j*L),d=camZ-z; if(d<NEAR+.3||d>330)return;
+  const z=-(j*L),d=camZ-z; if(d<NEAR+.3||d>DRAWD)return;
   const fg=fogF(d),S=TH+.55,a=pj(-S,-S,z),b=pj(S,-S,z),c=pj(S,S,z),e=pj(-S,S,z);
   const isA=j<N&&track[j]&&track[j].anchor;
   const col=j===N?[255,215,90]:CPS.includes(j)?[90,255,150]:isA?FRGB[track[j].safe]:accC;
@@ -432,14 +436,14 @@ function drawGate(j){
   ctx.lineJoin='miter';
 }
 function drawEdge(j,k,o,y){
-  const z=-(j*L+o),d=camZ-z; if(d<NEAR+.3||d>330)return;
+  const z=-(j*L+o),d=camZ-z; if(d<NEAR+.3||d>DRAWD)return;
   const fg=fogF(d),nx=NORM[k][0]*TH,ny=NORM[k][1]*TH,tx=TAN[k][0]*TH,ty=TAN[k][1]*TH;
   const a=pj(nx-tx,ny-ty,z),b=pj(nx+tx,ny+ty,z);
   ctx.strokeStyle=rgb(y?[255,200,50]:[255,70,90],(1-fg)*.35);ctx.lineWidth=Math.max(3,.7*a[2]);ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke();
   if(d<110)neon(y?'rgb(255,200,50)':'rgb(255,70,90)',15);ctx.strokeStyle=rgb(y?[255,245,170]:[255,150,150],(1-fg));ctx.lineWidth=Math.max(1.4,.2*a[2]);ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke();neonOff();
 }
 function drawBlock(j,k,off){
-  const zc=-(j*L+10+off),z0=zc+1,z1=zc-1; if(camZ-z0<NEAR+.2||camZ-zc>330)return;
+  const zc=-(j*L+10+off),z0=zc+1,z1=zc-1; if(camZ-z0<NEAR+.2||camZ-zc>DRAWD)return;
   const fg=fogF(camZ-zc),nx=NORM[k][0],ny=NORM[k][1],tx=TAN[k][0],ty=TAN[k][1],W2=3.5,Hh=2.2;
   const pt=(lat,h,z)=>pj(nx*(TH-h)+tx*lat,ny*(TH-h)+ty*lat,z);
   const A=pt(-W2,0,z0),B=pt(W2,0,z0),C=pt(W2,Hh,z0),Dd=pt(-W2,Hh,z0),E=pt(-W2,0,z1),Fp=pt(W2,0,z1),G=pt(W2,Hh,z1),Hp=pt(-W2,Hh,z1);
@@ -459,7 +463,7 @@ function drawBlock(j,k,off){
 const glowCache={};
 function sprite(col,size){const key=col+size;if(glowCache[key])return glowCache[key];const c=document.createElement('canvas');c.width=c.height=size;const g=c.getContext('2d'),r=g.createRadialGradient(size/2,size/2,0,size/2,size/2,size/2);r.addColorStop(0,col.replace('A','1'));r.addColorStop(.25,col.replace('A','.55'));r.addColorStop(1,col.replace('A','0'));g.fillStyle=r;g.fillRect(0,0,size,size);return glowCache[key]=c}
 function drawOrb(o,z){
-  const d=camZ-z; if(d<NEAR+1||d>330)return;
+  const d=camZ-z; if(d<NEAR+1||d>DRAWD)return;
   const q=pj(o.x,o.y,z),fg=fogF(d),pulse=1+.12*Math.sin(time*6+o.o),r=.62*q[2]*pulse,col=o.tr?'rgba(255,120,230,A)':'rgba(255,214,102,A)';
   ctx.globalCompositeOperation='lighter';ctx.globalAlpha=1-fg;
   ctx.drawImage(sprite(col,96),q[0]-r*3,q[1]-r*3,r*6,r*6);
@@ -497,10 +501,11 @@ function drawCar(){
 /* ---- particles ---- */
 const freeP=[]; // PERF-POOL: recycled particle objects
 function burst(x,y,z,n,sp,col){
+  n=n*PQ<1?1:Math.round(n*PQ);
   for(let i=0;i<n;i++){const a=Math.random()*6.283,r=Math.random();
     const p=freeP.pop()||{};p.x=x;p.y=y;p.z=z;p.px=x;p.py=y;p.pz=z;p.vx=Math.cos(a)*sp*r;p.vy=Math.sin(a)*sp*r;p.vz=(Math.random()-.5)*sp*1.6+v*.25;
     p.l=0;p.m=.45+Math.random()*.75;p.c=col;p.w=.5+Math.random()*1.1;p.gx=(Math.random()-.5)*3;p.gy=(Math.random()-.5)*3;parts.push(p)}
-  if(parts.length>600){const ex=parts.splice(0,parts.length-600);for(const q of ex)freeP.push(q)}}
+  if(parts.length>PCAP){const ex=parts.splice(0,parts.length-PCAP);for(const q of ex)freeP.push(q)}}
 function stepParts(dt){for(let i=parts.length-1;i>=0;i--){const p=parts[i];p.l+=dt;if(p.l>p.m){const last=parts.pop();if(last!==p)parts[i]=last;freeP.push(p);continue}
   p.px=p.x;p.py=p.y;p.pz=p.z;const dr=Math.exp(-2.2*dt);p.vx=p.vx*dr+p.gx*dt;p.vy=p.vy*dr+p.gy*dt;p.vz*=dr;
   p.x+=p.vx*dt;p.y+=p.vy*dt;p.z-=p.vz*dt}}
@@ -534,7 +539,7 @@ function render(){
   drawBackground();
   // gather items
   items.length=0;const cur=Math.floor(D/L);
-  for(let j=cur-1;j<=cur+15&&j<=N+2;j++){
+  for(let j=cur-1;j<=cur+DRAWJ&&j<=N+2;j++){
     for(let r=0;r<8;r++)items.push({t:0,j,r,z:-(j*L+r*RL+RL/2)});
     if(j>=0&&j<=N&&(j%5===0||(j<N&&track[j].anchor)))items.push({t:1,j,z:-(j*L)});
     if(j>=0&&j<N){
@@ -584,7 +589,7 @@ function engineUpdate(){if(AC&&!musicOn){musicOn=true;musicLoop()}if(!AC)return;
 
 /* ============================ GAME LOGIC ============================ */
 function faceTheta(k){return k*Math.PI/2}
-function placeOnFace(k){face=k;theta=faceTheta(k);camT=theta;px=NORM[k][0]*(TH-CAR_H);py=NORM[k][1]*(TH-CAR_H);transit=null;queue=null}
+function placeOnFace(k){prevOK=false;face=k;theta=faceTheta(k);camT=theta;px=NORM[k][0]*(TH-CAR_H);py=NORM[k][1]*(TH-CAR_H);transit=null;queue=null}
 function reset(seg){
   D=seg*L;v=seg?tSpeed(D)*.9:8;placeOnFace(track[seg].safe);fallT=fallD=crashT=finT=0;carVisible=true;parts.length=0;
   chain=0;burstT=0;boost=0;zapT=0;
@@ -1114,24 +1119,71 @@ renderVault();
 document.addEventListener('visibilitychange',()=>{if(document.hidden)walletFlush()});
 
 /* ============================ MAIN LOOP ============================ */
-/* PERF-ADAPT: if the phone can't hold ~45 fps for a few seconds, lower the canvas resolution (never raised again this session) */
-let slowN=0;
-function adaptQ(dt){
-  if(location.hash.includes('test')||state==='paused'||state==='menu'||document.hidden)return;
-  if(dt>.024){if(++slowN>150&&DPRCAP>1&&DPR>1){DPRCAP=Math.max(1,DPR-.5);slowN=0;resize()}}else if(slowN>0)slowN--;
+function applyQ(l){
+  qLev=l=Math.max(0,Math.min(2,l|0));const q=QLV[l];
+  DPRCAP=q.dpr;QG=q.glow;PCAP=q.part;PQ=q.part/600;DRAWD=q.dist;DRAWJ=q.seg;
+  if(parts.length>PCAP)parts.length=PCAP;
+  resize();
 }
+/* auto scaling: watches the average frame time; if the phone cannot hold ~42 fps for 2.5 s it drops one level (never raised again in a session) */
+let qMode='auto',emaF=1/60,emaW=0,slowT=0,qCool=3;
+/* PERF-B3: saved graphics setting (AUTO / LOW / MEDIUM / HIGH) */
+const QNAME=['LOW','MED','HIGH'];
+function updQ(){document.querySelectorAll('#qual button').forEach(b=>{const v=b.dataset.q;b.classList.toggle('on',v===qMode||(qMode!=='auto'&&+v===qLev&&v!=='auto'));if(v==='auto')b.textContent=qMode==='auto'?'AUTO · '+QNAME[qLev]:'AUTO'})}
+function setQ(v){
+  qMode=v==='auto'?'auto':'manual';
+  if(v==='auto'){qLev=2;applyQ(2);emaF=1/60;slowT=0;qCool=3;try{localStorage.removeItem('wso_qa')}catch(e){}}else applyQ(+v);
+  try{localStorage.setItem('wso_q',String(v))}catch(e){}
+  updQ();
+}
+(function(){let v='auto';try{const r=localStorage.getItem('wso_q');if(r==='auto'||r==='0'||r==='1'||r==='2')v=r}catch(e){}
+  document.querySelectorAll('#qual button').forEach(b=>b.addEventListener('click',()=>setQ(b.dataset.q)));
+  if(v==='auto'){qMode='auto';let a=2;try{const r=localStorage.getItem('wso_qa');if(r==='0'||r==='1')a=+r}catch(e){}if(a<2)applyQ(a);updQ()}else{qMode='manual';applyQ(+v);updQ()}})();
+function qualityTick(raw,work){
+  if(raw>.25||document.hidden)return;
+  emaF+=(raw-emaF)*.06;emaW+=(work-emaW)*.06;
+  if(qMode!=='auto'||TESTM||state==='paused'||state==='menu'||qLev===0)return;
+  if(qCool>0){qCool-=raw;return}
+  const lock30=Math.abs(emaF-1/30)<.003&&emaW<.012;       // display capped at 30 Hz and the game is not working hard: not "slow"
+  if(emaF>.0238&&!lock30)slowT+=raw;else slowT=Math.max(0,slowT-raw*2);
+  if(slowT>2.5){slowT=0;qCool=3;applyQ(qLev-1);try{localStorage.setItem('wso_qa',String(qLev))}catch(e){}updQ()}
+}
+/* PERF-B1: fixed-timestep simulation. The world always advances in 1/120 s steps, so physics, time bonus and score do not depend on frame rate.
+   Rendering interpolates between the last two steps so 30/60/144 Hz screens all look smooth. */
+const H=1/120;let acc=0,prevOK=false,pD=0,ppx=0,ppy=0,pcam=0;
+function advance(dt,stopAtEnd){
+  acc+=dt;let n=0;
+  while(acc>=H-1e-9&&n<24){
+    pD=D;ppx=px;ppy=py;pcam=camT;prevOK=true;
+    step(H);acc-=H;n++;
+    if(stopAtEnd&&(state==='finished'||state==='crashed')){acc=0;return n}
+  }
+  if(acc<0)acc=0;if(n>=24)acc=0;   // spiral guard: after a very long stall, drop the backlog instead of racing to catch up
+  return n;
+}
+function renderI(a){
+  if(!prevOK||a<=0||a>=1){render();return}
+  const sD=D,sx=px,sy=py,sc=camT;
+  D=pD+(D-pD)*a;px=ppx+(px-ppx)*a;py=ppy+(py-ppy)*a;camT=pcam+(camT-pcam)*a;
+  render();D=sD;px=sx;py=sy;camT=sc;
+}
+/* PERF-B0: #test-only frame-time recorder (no effect on normal play) */
+const TESTM=location.hash.includes('test'),FTR=[];
 let last=0;
 function frame(t){
-  const dt=Math.min(.05,Math.max(0,(t-last)/1000));last=t;
-  if(state!=='paused')step(dt*(tutMode?tutTick(dt):guideTick(dt)));
+  if(TESTM){FTR.push((t-last)/1000);if(FTR.length>600)FTR.shift()}
+  const raw=(t-last)/1000,dt=Math.min(.1,Math.max(0,raw));last=t;
+  if(state!=='paused')advance(dt*(tutMode?tutTick(dt):guideTick(dt)));
+  else acc=0;
   engineUpdate();
-  if(state!=='paused'||dirtyR){hud();render();dirtyR=false}
-  adaptQ(dt);
+  const w0=performance.now();
+  if(state!=='paused'||dirtyR){hud();renderI(acc/H);dirtyR=false}
+  qualityTick(raw,(performance.now()-w0)/1000);
   requestAnimationFrame(frame);
 }
 placeOnFace(track[3].safe);D=3*L;
 if(location.hash.includes('test')){window.__wso={step,render,begin:s=>{begin(s||0);state='run';$('#count').classList.remove('on')},bot:b=>{bot=b},look:x=>{botLook=x},
-  tutTick,tutOn:x=>{tutMode=x},tutS:()=>({i:tutI,n:TL.length,cur:tutCur&&tutCur.ti,k:tutCur&&tutCur.k,to:tutCur&&tutCur.to,scale:tutScale}),snap:()=>({state,D,face,elapsed,orbs:got.size,total:totalOrbs,deaths,shifts,cp:cpSeg,score:flux(),chain,boost,eff:effi(),burst:burstT,sc:Object.assign({},sc)}),setD:d=>{D=d},track,np:()=>parts.length,sk:()=>shake,setSk:x=>{shake=x},emit:burst,sp:stepParts,L:()=>L}}
+  advance:(dt,stop)=>advance(dt,stop),q:l=>{qMode='manual';applyQ(l);updQ()},qs:()=>({qMode,qLev,DPRCAP,QG,PCAP,DRAWD,DRAWJ}),perf:()=>{const a=FTR.slice(1).sort((x,y)=>x-y),n=a.length;return n?{n,avgMs:+(a.reduce((q,x)=>q+x,0)/n*1000).toFixed(2),p95Ms:+(a[Math.floor(n*.95)]*1000).toFixed(2),maxMs:+(a[n-1]*1000).toFixed(2)}:null},tutTick,tutOn:x=>{tutMode=x},tutS:()=>({i:tutI,n:TL.length,cur:tutCur&&tutCur.ti,k:tutCur&&tutCur.k,to:tutCur&&tutCur.to,scale:tutScale}),snap:()=>({state,D,face,elapsed,orbs:got.size,total:totalOrbs,deaths,shifts,cp:cpSeg,score:flux(),chain,boost,eff:effi(),burst:burstT,sc:Object.assign({},sc)}),setD:d=>{D=d},track,np:()=>parts.length,sk:()=>shake,setSk:x=>{shake=x},emit:burst,sp:stepParts,L:()=>L}}
 requestAnimationFrame(t=>{last=t;requestAnimationFrame(frame)});
 })();
 </script>
