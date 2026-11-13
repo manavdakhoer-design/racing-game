@@ -140,6 +140,8 @@
   #tcard:not(.act) .tk,#tcard.act .ts{display:none}
   .tglow{outline:3px solid #ffd45e;outline-offset:3px;animation:gglow .7s ease-in-out infinite alternate}
   @keyframes gglow{to{outline-offset:8px;outline-color:#fff}} @keyframes gtap{0%,100%{transform:translateY(-3px)}50%{transform:translateY(3px)}}
+  #rtoast{position:fixed;left:50%;top:calc(max(14px,env(safe-area-inset-top)) + 64px);transform:translateX(-50%);z-index:40;padding:10px 18px;border-radius:12px;background:#0a1226f2;border:1px solid #ffd45e;color:#fff;font-weight:900;letter-spacing:.08em;font-size:clamp(13px,2.6vh,16px);box-shadow:0 8px 24px #000a;opacity:0;pointer-events:none;transition:opacity .15s;white-space:nowrap}
+  #rtoast.on{opacity:1}
   body.tut #hint,body.tut #pops{display:none}
   #tcard .kb{opacity:.8}
   @media (pointer:coarse){ #tcard .kb{display:none} #tcard{top:calc(max(14px,env(safe-area-inset-top)) + 170px)} }
@@ -169,6 +171,7 @@
     <div id="flash"></div>
     <div id="tcard"><div class="tp"></div><div class="tt"></div><div class="tx"></div><div class="tk"></div><div class="ts">TAP TO SKIP</div></div>
   </div>
+  <div id="rtoast" role="status" aria-live="polite"></div>
   <div id="count"></div>
   <button id="mute" aria-label="Toggle sound">🔊</button>
   <button id="pbtn" aria-label="Pause">❚❚</button>
@@ -602,7 +605,7 @@ function startCount(){
   document.body.classList.add('playing');['menu','pause','crash','finish','tdone'].forEach(i=>$('#'+i).classList.remove('on'));
   demo=false;state='count';countT=0;lastPhase=-1;
 }
-function begin(seg){walletFlush();showHint();audioInit();if(AC&&AC.state==='suspended')AC.resume();useTrack(tutMode);reset(seg);if(tutMode)tutReset();document.body.classList.toggle('tut',tutMode);$('#pquit').textContent=tutMode?'RESTART TUTORIAL':'RESTART RUN';startCount()}
+function begin(seg){walletFlush();showHint();audioInit();if(AC&&AC.state==='suspended')AC.resume();useTrack(tutMode);reset(seg);if(tutMode)tutReset();document.body.classList.toggle('tut',tutMode);restartAt=0;$('#rtoast').classList.remove('on');$('#pquit').textContent=tutMode?'RESTART TUTORIAL':'RESTART RUN';startCount()}
 const anchorLock=()=>{if(demo||state!=='run')return false;for(const j of ANCH){if(D>=j*L-2&&D<j*L+9)return true}return false};
 function requestShift(rel){
   if(!demo&&state!=='run')return;
@@ -810,7 +813,17 @@ function pauseGame(){if(demo||(state!=='run'&&state!=='count'))return;$('#pause'
 function resumeGame(){if(state!=='paused')return;state=$('#pause')._prev||'run';$('#pause').classList.remove('on')}
 function toMenu(){tutMode=false;useTrack(false);tutHide();document.body.classList.remove('tut');$('#pquit').textContent='RESTART RUN';renderVault();['pause','crash','finish','tdone'].forEach(i=>$('#'+i).classList.remove('on'));$('#menu').classList.add('on');document.body.classList.remove('playing');$('#count').classList.remove('on');demo=true;state='menu';reset(0);D=3*L;placeOnFace(track[3].safe)}
 $('#go').onclick=()=>{tutMode=false;begin(0)};$('#again').onclick=()=>{tutMode=false;begin(0)};$('#restart1').onclick=()=>begin(0);
-$('#retry').onclick=()=>begin(cpSeg);$('#resume').onclick=resumeGame;$('#pquit').onclick=()=>begin(0);$('#chome').onclick=$('#phome').onclick=$('#fhome').onclick=toMenu;
+$('#retry').onclick=()=>begin(cpSeg);$('#resume').onclick=resumeGame;$('#pquit').onclick=()=>tryRestart('Tap again to restart');$('#chome').onclick=$('#phome').onclick=$('#fhome').onclick=toMenu;
+/* RESTART-GUARD: during a live run (also while paused mid-run) a restart needs a second press within 1.5 s */
+let restartAt=0,rtTO=0;
+const liveRun=()=>!demo&&(state==='run'||(state==='paused'&&$('#pause')._prev==='run'));
+function tryRestart(msg){
+  const go=()=>{restartAt=0;clearTimeout(rtTO);$('#rtoast').classList.remove('on');$('#pause').classList.remove('on');begin(0)};
+  if(!liveRun()){go();return}
+  const now=performance.now();
+  if(restartAt&&now-restartAt<1500){go();return}
+  restartAt=now;const t=$('#rtoast');t.textContent=msg;t.classList.add('on');clearTimeout(rtTO);rtTO=setTimeout(()=>{t.classList.remove('on');restartAt=0},1500);
+}
 $('#mute').textContent=muted?'🔇':'🔊';
 $('#mute').onclick=()=>{muted=!muted;$('#mute').textContent=muted?'🔇':'🔊';try{localStorage.setItem('wso_mute',muted?'1':'0')}catch(e){}};
 const tb=(id,r)=>{$(id).addEventListener('pointerdown',e=>{e.preventDefault();requestShift(r)})};tb('#tl',-1);tb('#tr',1);tb('#tf',2);
@@ -821,7 +834,7 @@ addEventListener('keydown',e=>{
   else if(k==='ArrowUp'||k==='w'||k==='W'||k===' '||k==='ArrowDown'||k==='s'||k==='S'){e.preventDefault();if(state==='menu'&&k===' ')begin(0);else requestShift(2)}
   else if(k==='p'||k==='P'||k==='Escape'){state==='paused'?resumeGame():pauseGame()}
   else if(k==='m'||k==='M'){$('#mute').click()}
-  else if((k==='r'||k==='R')&&!demo&&state!=='menu'){$('#pause').classList.remove('on');begin(0)}
+  else if((k==='r'||k==='R')&&!demo&&state!=='menu'){tryRestart('Press R again to restart')}
   else if(k==='Enter'){if($('#menu').classList.contains('on'))begin(0);else if($('#crash').classList.contains('on'))$('#retry').click();else if($('#finish').classList.contains('on'))begin(0)}
 });
 let tx0,ty0;const stage=$('#stage');
