@@ -281,7 +281,7 @@
       <div class="eyebrow" id="creason">STRUCTURAL FAILURE</div><h2 style="color:#ff6a70">WRECKED</h2>
     <p class="tag" id="chint">Find the wall that's safe, and shift before it hits.</p>
     <div class="stats" style="margin-top:0"><div>SCORE<strong id="cscore">0</strong></div></div>
-    <button class="btn" id="retry">RETRY</button><button class="btn alt" id="restart1">RESTART FROM SECTOR 1</button><button class="btn alt" id="chome">HOME</button>
+    <button class="btn" id="retry">RETRY</button><button class="btn alt" id="restart1">RESTART FROM SECTOR 1</button><button class="btn alt" id="cshare">⇪ SHARE</button><button class="btn alt" id="chome">HOME</button>
   </div></section>
 
   <section class="overlay" id="finish"><div class="panel">
@@ -755,6 +755,7 @@ function crash(reason){walletFlush();if(tutMode){tutRewind(reason);return}
   if(state==='crashed')return;buzz([60,40,120]);state='crashed';crashT=0;carVisible=false;deaths++;shake=1;
   glitch(420);burst(px,py,-D,60,9,[255,180,90]);burst(px,py,-D,30,6,[255,70,90]);sfx.crash();
   $('#cscore').textContent=fmtN(flux());
+  lastCrash=crashInfo();setTimeout(()=>{prepShare(lastCrash).catch(()=>{})},300);   // SHARE-CRASH
   const why={fall:['LOST IN THE VOID','The floor ended. Shift gravity onto a wall before the gap.'],zap:['ELECTROCUTED','Electrified plates zap you the moment you touch them. Shift away before you land on one.'],wall:['STRUCTURAL FAILURE','That spiked barrier was in your way. Flip gravity onto a clear face first.']}[reason]||['WRECKED',''];
   $('#creason').textContent=why[0];$('#chint').textContent=why[1];
   const cp=cpSeg>0;$('#retry').textContent=cp?'RETRY FROM SECTOR '+(CPS.indexOf(cpSeg)+2)+'  (+3s)':'RETRY';$('#restart1').style.display=cp?'':'none';
@@ -974,9 +975,10 @@ const RANKC={S:'#ffd166',A:'#37e6ff',B:'#ff4fd8',C:'#b9c6e2'},DIFFC=['#7dffb0','
 const rankOf=sc=>sc>=RANK_S?'S':sc>=RANK_A?'A':sc>=RANK_B?'B':'C';
 const todayStr=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
 const shareInfo=(score,rank,dif,time,kind)=>({score:Math.round(score),rank,diff:DNAME[dif],dc:DIFFC[dif],time:time>0?fmt(time):'',date:todayStr(),kind});
-let lastRun=null;
+let lastRun=null,lastCrash=null;
+const crashInfo=()=>{const o=shareInfo(flux(),'',diff,elapsed,'crash');o.sec=Math.min(3,Math.floor(D/L/30)+1);o.prog=Math.max(0,Math.min(99,Math.floor(D/(N*L)*100)));return o};
 function drawShareCard(o){
-  const S=1080,c=document.createElement('canvas');c.width=c.height=S;const g=c.getContext('2d'),F=SHARE_FONT,rc=RANKC[o.rank]||'#fff';
+  const S=1080,c=document.createElement('canvas');c.width=c.height=S;const g=c.getContext('2d'),F=SHARE_FONT,rc=o.kind==='crash'?'#ff6a70':(RANKC[o.rank]||'#fff');
   const font=(w,px,it)=>(it?'italic ':'')+w+' '+px+'px '+F;
   const sp=(t,x,y,gap)=>{let w=-gap;for(const ch of t)w+=g.measureText(ch).width+gap;let cx=x-w/2;g.textAlign='left';for(const ch of t){g.fillText(ch,cx,y);cx+=g.measureText(ch).width+gap}};
   const fit=(t,wt,px,max,it)=>{g.font=font(wt,px,it);const w=g.measureText(t).width;if(w>max)g.font=font(wt,Math.floor(px*max/w),it)};
@@ -993,8 +995,10 @@ function drawShareCard(o){
   g.textAlign='center';fit('WEIGHT-SHIFT',900,116,940,true);g.fillStyle='#8a2bd8';g.fillText('WEIGHT-SHIFT',S/2+5,198+5);g.fillStyle='#fff';g.fillText('WEIGHT-SHIFT',S/2,198);
   fit('ODYSSEY',900,116,940,true);g.fillStyle='#e0405a';g.fillText('ODYSSEY',S/2+5,312+5);g.fillStyle='#ffb347';g.fillText('ODYSSEY',S/2,312);
   rr(130,360,820,470,34);g.fillStyle='rgba(6,9,26,.8)';g.fill();g.strokeStyle='rgba(255,255,255,.2)';g.lineWidth=2;g.stroke();
-  g.fillStyle='#9fb2d4';g.font=font(800,28);sp(o.kind==='best'?'HIGH SCORE':'CUBE CLEARED',S/2,415,8);
-  g.textAlign='center';g.shadowColor=rc;g.shadowBlur=46;g.fillStyle=rc;g.font=font(900,300,true);g.fillText(o.rank,330,655);g.shadowBlur=0;
+  g.fillStyle='#9fb2d4';g.font=font(800,28);sp(o.kind==='best'?'HIGH SCORE':o.kind==='crash'?'WRECKED IN SECTOR '+o.sec:'CUBE CLEARED',S/2,415,8);
+  g.textAlign='center';g.shadowColor=rc;g.shadowBlur=46;g.fillStyle=rc;
+  if(o.kind==='crash'){fit(o.prog+'%',900,210,330,true);g.fillText(o.prog+'%',330,610);g.shadowBlur=0;g.fillStyle='#9fb2d4';g.font=font(800,26);sp('OF THE CUBE',330,660,6)}
+  else{g.font=font(900,300,true);g.fillText(o.rank,330,655);g.shadowBlur=0}
   g.fillStyle='#9fb2d4';g.font=font(800,26);sp('FLUX SCORE',700,520,6);
   g.textAlign='center';g.fillStyle='#fff';fit(fmtN(o.score),900,140,430);g.fillText(fmtN(o.score),700,640);
   const pills=[[o.diff,o.dc]];if(o.time)pills.push(['TIME '+o.time,'#cfdaf1']);
@@ -1007,7 +1011,7 @@ function drawShareCard(o){
 const cardBlob=o=>new Promise((res,rej)=>{try{drawShareCard(o).toBlob(b=>b?res(b):rej(new Error('toBlob failed')),'image/png')}catch(e){rej(e)}});
 let shareCache=null;
 function prepShare(o){const k=JSON.stringify(o);if(shareCache&&shareCache.k===k)return shareCache.p;const p=cardBlob(o);shareCache={k,p};p.catch(()=>{if(shareCache&&shareCache.p===p)shareCache=null});return p}
-const shareText=o=>'Weight-Shift Odyssey · Rank '+o.rank+' · '+fmtN(o.score)+' pts · '+o.diff+(o.time?' · '+o.time:'')+' · '+o.date+'\n'+SHARE_URL;
+const shareText=o=>'Weight-Shift Odyssey · '+(o.kind==='crash'?'Wrecked in sector '+o.sec+' ('+o.prog+'% of the cube)':'Rank '+o.rank)+' · '+fmtN(o.score)+' pts · '+o.diff+(o.time?' · '+o.time:'')+' · '+o.date+'\n'+SHARE_URL;
 /* SHARE-B3: native wrapper. Uses @capacitor/share (+ @capacitor/filesystem for the image) when running inside the app; returns null when it can't, so the web path takes over. */
 const Native={
   plugins(){const C=window.Capacitor;if(!C||typeof C.isNativePlatform!=='function'||!C.isNativePlatform())return null;const P=C.Plugins||{};return P.Share?P:null},
@@ -1044,6 +1048,7 @@ async function doShare(o,btn){
   try{const r=await shareResult(o);const m={'saved+copied':'Image saved · text copied','saved':'Image saved','copied':'Score text copied','failed':'Sharing is not available here'}[r];if(m)stoast(m)}
   catch(e){stoast('Sharing is not available here')}
   btn.disabled=false}
+$('#cshare').onclick=()=>doShare(lastCrash,$('#cshare'));
 $('#fshare').onclick=()=>doShare(lastRun,$('#fshare'));
 $('#mshare').onclick=()=>{const b=load();if(b&&b.s>0)doShare(shareInfo(b.s,rankOf(b.s),diff,b.t,'best'),$('#mshare'))};
 /* A11Y-B1..B4: settings screen */
@@ -1449,7 +1454,7 @@ function frame(t){
   requestAnimationFrame(frame);
 }
 placeOnFace(track[3].safe);D=3*L;
-if(location.hash.includes('test')){window.__wso={share:{drawShareCard,cardBlob,shareResult,shareInfo,shareText,Native,getLast:()=>lastRun},a11y:{A11,FM,fmSample,set:a11ySet,apply:a11yApply,open:openSettings,close:closeSettings},step,render,begin:s=>{begin(s||0);state='run';$('#count').classList.remove('on')},bot:b=>{bot=b},look:x=>{botLook=x},
+if(location.hash.includes('test')){window.__wso={share:{drawShareCard,cardBlob,shareResult,shareInfo,shareText,Native,getLast:()=>lastRun,getCrash:()=>lastCrash,crashInfo},a11y:{A11,FM,fmSample,set:a11ySet,apply:a11yApply,open:openSettings,close:closeSettings},step,render,begin:s=>{begin(s||0);state='run';$('#count').classList.remove('on')},bot:b=>{bot=b},look:x=>{botLook=x},
   advance:(dt,stop)=>advance(dt,stop),q:l=>{qMode='manual';applyQ(l);updQ()},qs:()=>({qMode,qLev,DPRCAP,QG,PCAP,DRAWD,DRAWJ}),perf:()=>{const a=FTR.slice(1).sort((x,y)=>x-y),n=a.length;return n?{n,avgMs:+(a.reduce((q,x)=>q+x,0)/n*1000).toFixed(2),p95Ms:+(a[Math.floor(n*.95)]*1000).toFixed(2),maxMs:+(a[n-1]*1000).toFixed(2)}:null},tutTick,tutOn:x=>{tutMode=x},tutS:()=>({i:tutI,n:TL.length,cur:tutCur&&tutCur.ti,k:tutCur&&tutCur.k,to:tutCur&&tutCur.to,scale:tutScale}),snap:()=>({state,D,face,elapsed,orbs:got.size,total:totalOrbs,deaths,shifts,cp:cpSeg,score:flux(),chain,boost,eff:effi(),burst:burstT,sc:Object.assign({},sc)}),setD:d=>{D=d},track,np:()=>parts.length,sk:()=>shake,setSk:x=>{shake=x},emit:burst,sp:stepParts,L:()=>L}}
 requestAnimationFrame(t=>{last=t;requestAnimationFrame(frame)});
 })();
