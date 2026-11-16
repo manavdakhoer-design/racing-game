@@ -201,6 +201,11 @@
   .vnm small{display:block;margin-top:2px;line-height:1.3}
   .fnew{color:#ffd166;font-weight:800;font-size:12px;letter-spacing:.08em;margin:-8px 0 14px;line-height:1.4} .fnew:empty{display:none}
   #crash .fnew{margin:0 0 14px}
+  /* DAILY-CSS */
+  #daily{place-items:start center} #daily .panel{margin:auto}
+  .dcard{display:grid;grid-template-columns:auto 1fr;gap:8px 14px;text-align:left;padding:12px 14px;border-radius:14px;background:#ffffff0c;margin:12px 0 10px;align-items:baseline}
+  .dcard .dk{font-size:10px;letter-spacing:.16em;font-weight:800;color:#9fb2d4} .dcard .dv{font-weight:800;font-size:14px;font-variant-numeric:tabular-nums;text-align:right;letter-spacing:.04em}
+  #dline{color:#ffd166;font-weight:800}
   #simbadge{position:fixed;left:8px;top:8px;z-index:60;padding:4px 8px;border-radius:8px;background:#000c;color:#ffe27a;font:800 11px/1.3 ui-monospace,Menlo,monospace;letter-spacing:.06em;pointer-events:none;display:none}
   #simbadge.on{display:block}
 </style>
@@ -256,7 +261,7 @@
     </div>
     <div class="seg" id="diffs"><button data-d="0">CHILL</button><button data-d="1">NORMAL</button><button data-d="2">HYPER</button></div>
     <div class="seg" id="qual" role="group" aria-label="Graphics quality"><button data-q="auto">AUTO</button><button data-q="0">LOW</button><button data-q="1">MEDIUM</button><button data-q="2">HIGH</button></div>
-    <button class="btn" id="go">ENTER THE CUBE</button><button class="btn alt" id="vaultbtn">◆ VAULT</button><button class="btn alt" id="invbtn">🎨 INVENTORY</button><button class="btn alt" id="tutbtn">▶ TUTORIAL</button><button class="btn alt" id="setbtn">⚙ SETTINGS</button>
+    <button class="btn" id="go">ENTER THE CUBE</button><button class="btn alt" id="dailybtn">📅 DAILY CHALLENGE</button><button class="btn alt" id="vaultbtn">◆ VAULT</button><button class="btn alt" id="invbtn">🎨 INVENTORY</button><button class="btn alt" id="tutbtn">▶ TUTORIAL</button><button class="btn alt" id="setbtn">⚙ SETTINGS</button>
 
     <div class="small" id="dline"></div>
     <div class="small" id="bestline"></div>
@@ -275,6 +280,13 @@
     <p class="tag">Gravity is on hold. Take a breath.</p>
     <button class="btn" id="resume">RESUME</button><button class="btn alt" id="pquit">RESTART RUN</button><button class="btn alt" id="pset">⚙ SETTINGS</button><button class="btn alt" id="phome">HOME</button>
   </div></section>
+  <section class="overlay" id="daily" aria-label="Daily challenge"><div class="panel">
+    <div class="eyebrow">TODAY'S CHALLENGE</div><h2 id="dtitle">DAILY</h2>
+    <div class="dcard"><div class="dk">DATE</div><div class="dv" id="ddate">—</div><div class="dk">TRACK CODE</div><div class="dv" id="dcode">—</div><div class="dk">NEXT CHALLENGE IN</div><div class="dv" id="dcd">--:--:--</div><div class="dk">YOUR RESULT</div><div class="dv" id="dres">—</div></div>
+    <p class="tag" id="dnote" style="margin:6px auto 14px;font-size:12px"></p>
+    <button class="btn" id="dgo">START SCORED ATTEMPT</button><button class="btn alt" id="dprac">PRACTISE (UNSCORED)</button><button class="btn alt" id="dback">BACK</button>
+  </div></section>
+
   <section class="overlay" id="inv" aria-label="Inventory"><div class="panel">
     <div class="eyebrow">COSMETICS · UNLOCKED BY PLAYING</div><h2>INVENTORY</h2>
     <p class="tag" style="margin:6px auto 12px;font-size:12px">Looks only. Nothing here changes handling, hitboxes or score.</p>
@@ -368,9 +380,11 @@ const tSpeed=D=>tutMode?TUT_V:(22+16*Math.min(1,D/(N*L*.85)))*SPD[diff]*(diff===
 // hazard types per face per segment: 0 clear · 1 gap · 2 wall · 3 chasm (whole segment missing)
 function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 const track=[]; let totalOrbs=0;
-const ANCH=[12,20,47,64,80]; let shortest=N*L;
-(function genTrack(){
-  const R=mulberry(20241014), M=N+4, safe=new Array(M).fill(0), tight=new Array(M).fill(false);
+const ANCH0=[12,20,47,64,80],ANCH=ANCH0.slice(); let shortest=N*L;
+/* DAILY-B1: the track generator is a pure function of its seed (mulberry32 only; Math.random is never used), so every device builds the same track. */
+function genTrackData(seed){
+  const track=[];let totalOrbs=0,shortest=N*L;
+  const R=mulberry(seed), M=N+4, safe=new Array(M).fill(0), tight=new Array(M).fill(false);
   let k=0;
   for(let j=0;j<M;j++){
     if(j<4||j>=N-3){safe[j]=k;continue}
@@ -379,7 +393,7 @@ const ANCH=[12,20,47,64,80]; let shortest=N*L;
     else if(j>=41&&j<=43){}
     else if(j>=54&&j<=57){k=(k+(j%2===0?1:3))%4;tight[j]=true}      // slalom
     else if(j>=70&&j<=73){k=(k+2)%4;tight[j]=true}                  // double flips
-    else if(ANCH.includes(j)){k=(k+(R()<.5?1:3))%4}                  // gravity anchor: mandatory path change
+    else if(ANCH0.includes(j)){k=(k+(R()<.5?1:3))%4}                  // gravity anchor: mandatory path change
     else if(R()<.58){const r=R();k=(k+(r<.4?1:r<.8?3:2))%4}
     safe[j]=k;
   }
@@ -396,7 +410,7 @@ const ANCH=[12,20,47,64,80]; let shortest=N*L;
       }
       hz.push({t,off});
     }
-    track.push({safe:safe[j],hz,orbs:[],anchor:ANCH.includes(j)});
+    track.push({safe:safe[j],hz,orbs:[],anchor:ANCH0.includes(j)});
   }
   const rr=TH-1.9,m=(TH-CAR_H)/2;
   for(let j=3;j<N-1;j++){
@@ -406,7 +420,9 @@ const ANCH=[12,20,47,64,80]; let shortest=N*L;
     totalOrbs+=o.length;
   }
   for(let j=0;j<N-1;j++){if(safe[j+1]!==safe[j])shortest+=((safe[j+1]-safe[j]+4)%4===2)?8.8:6.223}
-})();
+  return{t:track,a:ANCH0.slice(),c:[30,60],n:totalOrbs,sh:shortest,seed:seed>>>0};
+}
+{const g=genTrackData(20241014);for(const x of g.t)track.push(x);totalOrbs=g.n;shortest=g.sh}
 
 /* ============================ STATE ============================ */
 let state='menu', demo=true, time=0, D=0, v=24, elapsed=0, shifts=0, deaths=0;
@@ -745,10 +761,10 @@ function reset(seg){
     for(const st of[anchorHit,anchorWarn])for(const j of[...st])if(j>=seg)st.delete(j)}
 }
 function startCount(){
-  document.body.classList.add('playing');['menu','pause','crash','finish','tdone','settings','inv'].forEach(i=>$('#'+i).classList.remove('on'));
+  document.body.classList.add('playing');['menu','pause','crash','finish','tdone','settings','inv','daily'].forEach(i=>$('#'+i).classList.remove('on'));
   demo=false;state='count';countT=0;lastPhase=-1;
 }
-function begin(seg){walletFlush();showHint();audioInit();if(AC&&AC.state==='suspended')AC.resume();useTrack(tutMode);reset(seg);if(tutMode)tutReset();document.body.classList.toggle('tut',tutMode);restartAt=0;$('#rtoast').classList.remove('on');$('#pquit').textContent=tutMode?'RESTART TUTORIAL':'RESTART RUN';startCount()}
+function begin(seg){walletFlush();showHint();audioInit();if(AC&&AC.state==='suspended')AC.resume();useTrack(tutMode?'tut':dailyMode?'daily':'std');reset(seg);if(tutMode)tutReset();document.body.classList.toggle('tut',tutMode);restartAt=0;$('#rtoast').classList.remove('on');$('#pquit').textContent=tutMode?'RESTART TUTORIAL':'RESTART RUN';{const dd=dailyMode&&!tutMode;$('#slabel').textContent=dd?'DAILY #'+dailyInfo.n+(dailyMode==='scored'?' · SCORED':' · PRACTICE'):'FLUX SCORE';$('#pquit').style.display=dailyMode==='scored'&&!tutMode?'none':''}startCount()}
 const anchorLock=()=>{if(demo||state!=='run')return false;for(const j of ANCH){if(D>=j*L-2&&D<j*L+9)return true}return false};
 function requestShift(rel){
   if(!demo&&state!=='run')return;
@@ -787,8 +803,11 @@ function crash(reason){walletFlush();if(tutMode){tutRewind(reason);return}
   if(state==='crashed')return;buzz([60,40,120]);state='crashed';crashT=0;carVisible=false;deaths++;shake=1;
   glitch(420);burst(px,py,-D,60,9,[255,180,90]);burst(px,py,-D,30,6,[255,70,90]);sfx.crash();
   $('#cscore').textContent=fmtN(flux());
-  {const r=cosRunEnd({fin:false,chain:sc.maxChain});$('#cnew').textContent=cosNewText(r)}
-  lastCrash=crashInfo();setTimeout(()=>{prepShare(lastCrash).catch(()=>{})},300);   // SHARE-CRASH
+  const wasDaily=dailyMode==='scored'&&!tutMode,dn=wasDaily?dailyInfo.n:0;
+  lastCrash=crashInfo();lastCrash.dn=dn;if(dn)lastCrash.date=dailyInfo.date;
+  if(wasDaily)dailyEnd(false,flux(),'',lastCrash.prog);
+  {const r=cosRunEnd({fin:false,chain:sc.maxChain});$('#cnew').textContent=[cosNewText(r),wasDaily?'DAILY #'+dn+' · attempt used (score '+fmtN(flux())+' · '+lastCrash.prog+'%). More runs are practice.':''].filter(Boolean).join('   ')}
+  setTimeout(()=>{prepShare(lastCrash).catch(()=>{})},300);   // SHARE-CRASH
   const why={fall:['LOST IN THE VOID','The floor ended. Shift gravity onto a wall before the gap.'],zap:['ELECTROCUTED','Electrified plates zap you the moment you touch them. Shift away before you land on one.'],wall:['STRUCTURAL FAILURE','That spiked barrier was in your way. Flip gravity onto a clear face first.']}[reason]||['WRECKED',''];
   $('#creason').textContent=why[0];$('#chint').textContent=why[1];
   const cp=cpSeg>0;$('#retry').textContent=cp?'RETRY FROM SECTOR '+(CPS.indexOf(cpSeg)+2)+'  (+3s)':'RETRY';$('#restart1').style.display=cp?'':'none';
@@ -802,10 +821,14 @@ function finish(){
     +row('Air-time',fmtN(sc.air))+row('Orbs ×'+sc.orbN,fmtN(sc.orb))+row('Anchors · vault · sectors',fmtN(sc.anchor+sc.vault+sc.sector))+(sc.pen?row('Checkpoint retries','−'+fmtN(sc.pen),1):'')
     +row('Flux Score',fmtN(fl))+row('Efficiency ×'+ef.toFixed(2)+' ('+Math.round(ef*100)+'% of shortest path)','→ '+fmtN(fl*ef))+row('Time bonus',fmtN(tb));
   const rank=final>=RANK_S?'S':final>=RANK_A?'A':final>=RANK_B?'B':'C';
-  lastRun=shareInfo(final,rank,diff,elapsed,'finish');setTimeout(()=>{prepShare(lastRun).catch(()=>{})},400);
-  {const r=cosRunEnd({fin:true,rank,orbs:got.size,chain:sc.maxChain,sling:sc.slingN,near:sc.nearN});$('#fnew').textContent=cosNewText(r)}   // SHARE: pre-render the card so the tap can share instantly
+  const wasDaily=dailyMode==='scored'&&!tutMode,dn=wasDaily?dailyInfo.n:0;
+  lastRun=shareInfo(final,rank,diff,elapsed,'finish');if(dn){lastRun.dn=dn;lastRun.date=dailyInfo.date}
+  if(wasDaily)dailyEnd(true,final,rank,100);
+  setTimeout(()=>{prepShare(lastRun).catch(()=>{})},400);
+  {const r=cosRunEnd({fin:true,rank,orbs:got.size,chain:sc.maxChain,sling:sc.slingN,near:sc.nearN,dailyScored:wasDaily});$('#fnew').textContent=cosNewText(r)}   // SHARE: pre-render the card so the tap can share instantly
   $('#rank').textContent=rank;$('#rank').style.color={S:'#ffd166',A:'#37e6ff',B:'#ff4fd8',C:'#b9c6e2'}[rank];
   $('#ftime').textContent=fmt(elapsed);$('#forbs').textContent=got.size+' / '+totalOrbs;$('#fshift').textContent=shifts;
+  if(dailyMode){$('#frec').textContent='';$('#fbest').textContent='DAILY #'+dailyInfo.n+(wasDaily?' · SCORED RESULT SAVED':' · PRACTICE (not scored)');return}   // daily runs never touch the normal records
   const before=recordsOf(loadRuns(),load()),mark={};for(const k in before)mark[k]=final>before[k];
   const best=load(),nb={t:best&&best.t>0?Math.min(best.t,elapsed):elapsed,o:Math.max(best&&best.o||0,got.size),s:Math.max(best&&best.s||0,final)};
   const newHi=!best||final>(best.s||0);save(nb);saveRun(final,elapsed);renderRecs($('#frec'),null,mark);
@@ -925,13 +948,15 @@ function pickups(){
 const todayStr=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
 const yesterdayStr=()=>{const d=new Date();d.setDate(d.getDate()-1);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
 const Save=(()=>{
-  const KEY='wso_save',V=1,FMT=1;
+  const KEY='wso_save',V=2,FMT=1;
   const int=(x,max)=>{x=Math.floor(+x);return Number.isFinite(x)&&x>=0?Math.min(x,max||1e9):0};
   const dstr=x=>typeof x==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(x)?x:'';
   const idok=x=>typeof x==='string'&&/^[a-z0-9]{1,12}$/.test(x);
-  const def=()=>({v:V,own:{},eq:{trail:'',skin:'s1'},seen:{},st:{fin:0,rk:{S:0,A:0,B:0,C:0},best:0,chain:0,fs:0,bfs:0,dl:'',dn:0,bdn:0,dc:0,dd:''}});
-  function migrate(o){ // future formats: bump V and upgrade here (while(o.v<V){...})
-    if(!o||typeof o!=='object')return null;const v=+o.v;if(!Number.isFinite(v)||v<1)o.v=1;return o}
+  const def=()=>({v:V,own:{},eq:{trail:'',skin:'s1'},seen:{},st:{fin:0,rk:{S:0,A:0,B:0,C:0},best:0,chain:0,fs:0,bfs:0,dl:'',dn:0,bdn:0,dc:0,dd:''},dy:null,dh:[]});
+  function migrate(o){ // v1 -> v2 adds the daily-challenge result (dy) and history (dh). Later formats: add steps here.
+    if(!o||typeof o!=='object')return null;let v=+o.v;if(!Number.isFinite(v)||v<1)v=1;
+    if(v<2){if(!('dy'in o))o.dy=null;if(!Array.isArray(o.dh))o.dh=[];v=2}
+    o.v=v;return o}
   function sanitize(o){
     const d=def();o=migrate(o);if(!o)return d;
     if(o.own&&typeof o.own==='object')for(const k in o.own)if(idok(k)&&o.own[k])d.own[k]=1;
@@ -941,6 +966,8 @@ const Save=(()=>{
     for(const k of['S','A','B','C'])d.st.rk[k]=int(r[k],1e6);
     d.st.fin=int(t.fin,1e6);d.st.best=Math.min(4,int(t.best));d.st.chain=int(t.chain,1e4);d.st.fs=int(t.fs,1e6);d.st.bfs=int(t.bfs,1e6);
     d.st.dn=int(t.dn,1e5);d.st.bdn=int(t.bdn,1e5);d.st.dc=int(t.dc,1e5);d.st.dl=dstr(t.dl);d.st.dd=dstr(t.dd);
+    const dyOk=x=>{if(!x||typeof x!=='object'||!dstr(x.d))return null;return{d:x.d,att:x.att?1:0,fin:x.fin?1:0,s:int(x.s,1e7),r:typeof x.r==='string'&&/^[SABC]$/.test(x.r)?x.r:'',t:Math.min(9999,Math.max(0,+x.t||0)),p:Math.min(100,int(x.p)),g:int(x.g,99)}};
+    d.dy=dyOk(o.dy);d.dh=(Array.isArray(o.dh)?o.dh:[]).map(dyOk).filter(Boolean).slice(-30);
     return d}
   function read(){try{const raw=localStorage.getItem(KEY);return sanitize(raw?JSON.parse(raw):null)}catch(e){return def()}}
   function write(doc){try{localStorage.setItem(KEY,JSON.stringify(doc));return true}catch(e){return false}}
@@ -1046,19 +1073,57 @@ const CARP=()=>{const k=cosSkin();return k.pal?skinPal(k):CAR};
 const orbC=()=>{if(tutMode)return ORB0;const k=cosSkin();return k.orb||ORB0};
 function ruleProg(r){const st=CS.st;switch(r.t){case'rank':return[st.best,RI[r.r]];case'chain':return[st.chain,r.n];case'fstreak':return[st.bfs,r.n];case'days':return[st.bdn,r.n];case'daily':return[st.dc,r.n];case'orbs':return[Math.min(wallet,r.n),r.n];default:return null}}
 function ruleMet(r){if(r.t==='free')return true;const p=ruleProg(r);return !!p&&p[0]>=p[1]}
-function ruleText(r){switch(r.t){case'free':return'Unlocked from the start';case'rank':return'Finish a run with rank '+r.r+(r.r==='S'?'':' or better');case'chain':return'Chain '+r.n+' clean shifts in one run';case'fstreak':return'Finish '+r.n+' runs in a row (a crash resets it)';case'days':return'Finish a run on '+r.n+' days in a row';case'daily':return'Complete '+r.n+' daily challenges';case'orbs':return'Hold '+r.n+' ◆ orbs';default:return''}}
+function ruleText(r){switch(r.t){case'free':return'Unlocked from the start';case'rank':return'Finish a run with rank '+r.r+(r.r==='S'?'':' or better');case'chain':return'Chain '+r.n+' clean shifts in one run';case'fstreak':return'Finish '+r.n+' runs in a row (a crash resets it)';case'days':return'Finish a run on '+r.n+' days in a row';case'daily':return'Finish the Daily Challenge on '+r.n+' days';case'orbs':return'Hold '+r.n+' ◆ orbs';default:return''}}
 function ruleProgText(r){const p=ruleProg(r);if(!p)return'';if(r.t==='rank')return' · best: '+(RLBL[p[0]]||'none');return' · '+p[0]+'/'+p[1]}
-/* daily challenge: one objective per calendar day, picked deterministically from the date; finishing a run that meets it counts once per day */
-const DAILY=[
- {txt:'Finish a run',f:r=>true},
- {txt:'Collect 70+ orbs in one run',f:r=>r.orbs>=70},
- {txt:'Chain 20 clean shifts',f:r=>r.chain>=20},
- {txt:'Finish with rank A or better',f:r=>RI[r.rank]>=3},
- {txt:'Land 3 slingshots',f:r=>r.sling>=3},
- {txt:'Make 3 near misses',f:r=>r.near>=3}];
-const dayNo=()=>{const d=new Date();return Math.floor((Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())-Date.UTC(2026,0,1))/864e5)+1};
-const dailyOf=()=>DAILY[Math.floor(hr(dayNo()*7919)*DAILY.length)%DAILY.length];
-function updDaily(){const e=$('#dline');if(!e)return;e.textContent='DAILY #'+dayNo()+' · '+dailyOf().txt+' · '+(CS.st.dd===todayStr()?'✓ DONE':'○ not yet')}
+/* DAILY-B1/B2: Daily Challenge. Same track for everyone for a UTC date. GEN_V names the generator version: if the generator ever changes, bump it so old and new builds never share a leaderboard day. */
+const GEN_V=1;
+const utcDate=()=>new Date().toISOString().slice(0,10);
+const dayNoOf=d=>Math.floor((Date.parse(d+'T00:00:00Z')-Date.UTC(2026,0,1))/864e5)+1;
+const fnv=str=>{let h=2166136261;for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0};
+const dailySeed=(date,k)=>fnv('WSO-DAILY|g'+GEN_V+'|'+date+(k?'|r'+k:''));
+/* DAILY-B3: structural validity check (pure integer logic, so every device rerolls identically). The bot sweep in the test harness is what proves beatability; this guards the shape. */
+const VT={minT:44,maxT:66,maxRun:12,maxFlips:16,minOrbs:100,maxOrbs:190};   // fairness bounds calibrated on 90 raw seeds (see test notes): T 43-66, longest shift run 5-21, flips 6-16
+function trackStats(g){let T=0,run=0,maxRun=0,flips=0,bad=0;
+  for(let j=0;j<N;j++){const sf=g.t[j].safe;if(g.t[j].hz[sf].t!==0)bad++;
+    if(j<N-1&&g.t[j+1].safe!==sf){T++;run++;if(run>maxRun)maxRun=run;if((g.t[j+1].safe-sf+4)%4===2)flips++}else run=0}
+  return{T,maxRun,flips,bad,orbs:g.n}}
+function validTrack(g){if(!g||g.t.length!==N)return false;const q=trackStats(g);
+  return q.bad===0&&q.T>=VT.minT&&q.T<=VT.maxT&&q.maxRun<=VT.maxRun&&q.flips<=VT.maxFlips&&g.n>=VT.minOrbs&&g.n<=VT.maxOrbs}
+const dailyCache={};
+function dailyBuild(date){
+  if(dailyCache[date])return dailyCache[date];
+  let out=null;
+  for(let k=0;k<32&&!out;k++){const seed=dailySeed(date,k),g=genTrackData(seed);if(validTrack(g))out={date,n:dayNoOf(date),seed,rerolls:k,g}}
+  if(!out)out={date,n:dayNoOf(date),seed:20241014,rerolls:32,g:genTrackData(20241014)};   // unreachable in practice: fall back to the standard (known beatable) track
+  out.code=out.seed.toString(16).toUpperCase().padStart(8,'0').replace(/(.{4})(.{4})/,'$1-$2');
+  return dailyCache[date]=out}
+let dailyMode='',DAILYT=null,dailyInfo=null,savedDiff=null;
+const dyToday=()=>CS.dy&&CS.dy.d===utcDate()?CS.dy:null;
+function prepDaily(date,scored){const b=dailyBuild(date);DAILYT=b.g;dailyInfo=b;dailyMode=scored?'scored':'practice';if(savedDiff===null)savedDiff=diff;diff=1}   // daily speed is fixed at NORMAL for everyone
+function leaveDaily(){dailyMode='';dailyInfo=null;if(savedDiff!==null){const d=savedDiff;savedDiff=null;setDiff(d)}}
+/* DAILY-B2: one scored attempt per UTC day. The attempt is consumed the moment the run starts (quitting or crashing uses it up); later runs on the same track are unscored practice. */
+function startDaily(practice){
+  const date=utcDate(),scored=!practice&&!dyToday();
+  if(scored){CS.dy={d:date,att:1,fin:0,s:0,r:'',t:0,p:0,g:GEN_V};Save.write(CS)}
+  prepDaily(date,scored);tutMode=false;begin(0)}
+function dailyEnd(fin,score,rank,prog){
+  if(dailyMode!=='scored'||!CS.dy)return false;
+  const e=CS.dy;e.fin=fin?1:0;e.s=Math.round(score);e.r=fin?rank:'';e.t=fin?+elapsed.toFixed(2):0;e.p=fin?100:prog;
+  CS.dh.push(Object.assign({},e));CS.dh=CS.dh.slice(-30);Save.write(CS);dailyMode='practice';updDaily();return true}
+const nextUTC=()=>{const n=new Date();return Date.UTC(n.getUTCFullYear(),n.getUTCMonth(),n.getUTCDate()+1)-Date.now()};
+const hms=ms=>{const t=Math.max(0,Math.floor(ms/1000));return[Math.floor(t/3600),Math.floor(t%3600/60),t%60].map(n=>String(n).padStart(2,'0')).join(':')};
+function dailyResultText(){const e=dyToday();if(!e)return'Not played yet';
+  return e.fin?'Rank '+e.r+' · '+fmtN(e.s)+' · '+fmt(e.t):(e.s||e.p)?'Attempt used · wrecked at '+e.p+'% · '+fmtN(e.s):'Attempt used · did not finish'}
+function fillDaily(){
+  const b=dailyBuild(utcDate()),e=dyToday();
+  $('#dtitle').textContent='DAILY #'+b.n;$('#ddate').textContent=b.date+' · UTC';$('#dcode').textContent=b.code;
+  $('#dcd').textContent=hms(nextUTC());$('#dres').textContent=dailyResultText();
+  $('#dgo').style.display=e?'none':'';$('#dnote').textContent=e?'Your scored attempt for today is used. You can still practise this exact track; practice runs are not scored.':'One scored attempt per day. Starting it uses it up, even if you crash or quit. No restarts. Everyone gets the same track at NORMAL speed.'}
+function updDaily(){
+  const e=dyToday(),n=dayNoOf(utcDate()),l=$('#dline');
+  if(l)l.textContent='DAILY #'+n+' · '+(e?(e.fin?'✓ '+e.r+' '+fmtN(e.s):'attempt used'):'1 scored attempt ready')+' · next in '+hms(nextUTC());
+  const o=$('#daily');if(o&&o.classList.contains('on'))fillDaily()}
+setInterval(()=>{if(!document.hidden)updDaily()},1000);
 const uq=[];let uBusy=false;
 function uNote(t){uq.push(t);if(!uBusy)uNext()}
 function uNext(){const e=$('#utoast');if(!uq.length){uBusy=false;return}uBusy=true;e.textContent=uq.shift();e.classList.add('on');setTimeout(()=>{e.classList.remove('on');setTimeout(uNext,250)},2800)}
@@ -1073,7 +1138,7 @@ function cosRunEnd(r,force){
   if(st.dl!==today){st.dn=st.dl===yesterdayStr()?st.dn+1:1;st.dl=today;st.bdn=Math.max(st.bdn,st.dn)}
   st.chain=Math.max(st.chain,r.chain|0);
   if(r.fin){st.fin++;st.rk[r.rank]++;st.best=Math.max(st.best,RI[r.rank]);st.fs++;st.bfs=Math.max(st.bfs,st.fs);
-    if(st.dd!==today&&dailyOf().f(r)){st.dd=today;st.dc++;daily=true;uNote('✓ DAILY CHALLENGE COMPLETE')}}
+    if(r.dailyScored&&st.dd!==utcDate()){st.dd=utcDate();st.dc++;daily=true;uNote('✓ DAILY CHALLENGE COMPLETE')}}
   else st.fs=0;
   Save.write(CS);const un=cosCheck();updDaily();return{un,daily}}
 const cosNewText=r=>{const a=[];if(r.daily)a.push('✓ DAILY CHALLENGE COMPLETE');if(r.un.length)a.push('🔓 UNLOCKED: '+r.un.map(c=>c.name).join(' · '));return a.join('   ')};
@@ -1137,13 +1202,14 @@ function showHint(){if(hintShown||demo)return;hintShown=true;try{localStorage.se
 $('#pbtn').onclick=()=>{state==='paused'?resumeGame():pauseGame()};
 function pauseGame(){if(demo||(state!=='run'&&state!=='count'))return;$('#pause')._prev=state;state='paused';$('#pause').classList.add('on')}
 function resumeGame(){if(state!=='paused')return;state=$('#pause')._prev||'run';$('#pause').classList.remove('on')}
-function toMenu(){tutMode=false;useTrack(false);tutHide();document.body.classList.remove('tut');$('#pquit').textContent='RESTART RUN';renderVault();updDaily();updInvBadge();cosCheck();['pause','crash','finish','tdone'].forEach(i=>$('#'+i).classList.remove('on'));$('#menu').classList.add('on');document.body.classList.remove('playing');$('#count').classList.remove('on');demo=true;state='menu';reset(0);D=3*L;placeOnFace(track[3].safe)}
-$('#go').onclick=()=>{tutMode=false;begin(0)};$('#again').onclick=()=>{tutMode=false;begin(0)};$('#restart1').onclick=()=>begin(0);
+function toMenu(){leaveDaily();tutMode=false;useTrack(false);tutHide();document.body.classList.remove('tut');$('#pquit').textContent='RESTART RUN';renderVault();updDaily();updInvBadge();cosCheck();['pause','crash','finish','tdone'].forEach(i=>$('#'+i).classList.remove('on'));$('#menu').classList.add('on');document.body.classList.remove('playing');$('#count').classList.remove('on');demo=true;state='menu';reset(0);D=3*L;placeOnFace(track[3].safe)}
+$('#go').onclick=()=>{leaveDaily();tutMode=false;begin(0)};$('#again').onclick=()=>{tutMode=false;begin(0)};$('#restart1').onclick=()=>begin(0);
 $('#retry').onclick=()=>begin(cpSeg);$('#resume').onclick=resumeGame;$('#pquit').onclick=()=>tryRestart('Tap again to restart');$('#chome').onclick=$('#phome').onclick=$('#fhome').onclick=toMenu;
 /* RESTART-GUARD: during a live run (also while paused mid-run) a restart needs a second press within 1.5 s */
 let restartAt=0,rtTO=0;
 const liveRun=()=>!demo&&(state==='run'||(state==='paused'&&$('#pause')._prev==='run'));
 function tryRestart(msg){
+  if(dailyMode==='scored'&&!tutMode&&liveRun()){const t=$('#rtoast');t.textContent='No restarts in the scored daily attempt';t.classList.add('on');clearTimeout(rtTO);rtTO=setTimeout(()=>t.classList.remove('on'),1800);return}
   const go=()=>{restartAt=0;clearTimeout(rtTO);$('#rtoast').classList.remove('on');$('#pause').classList.remove('on');begin(0)};
   if(!liveRun()){go();return}
   const now=performance.now();
@@ -1197,7 +1263,7 @@ function drawShareCard(o){
   g.textAlign='center';fit('WEIGHT-SHIFT',900,116,940,true);g.fillStyle='#8a2bd8';g.fillText('WEIGHT-SHIFT',S/2+5,198+5);g.fillStyle='#fff';g.fillText('WEIGHT-SHIFT',S/2,198);
   fit('ODYSSEY',900,116,940,true);g.fillStyle='#e0405a';g.fillText('ODYSSEY',S/2+5,312+5);g.fillStyle='#ffb347';g.fillText('ODYSSEY',S/2,312);
   rr(130,360,820,470,34);g.fillStyle='rgba(6,9,26,.8)';g.fill();g.strokeStyle='rgba(255,255,255,.2)';g.lineWidth=2;g.stroke();
-  g.fillStyle='#9fb2d4';g.font=font(800,28);sp(o.kind==='best'?'HIGH SCORE':o.kind==='crash'?'WRECKED IN SECTOR '+o.sec:'CUBE CLEARED',S/2,415,8);
+  {const lab=o.kind==='best'?'HIGH SCORE':o.kind==='crash'?(o.dn?'DAILY #'+o.dn+' · ':'')+'WRECKED IN SECTOR '+o.sec:o.dn?'DAILY CHALLENGE #'+o.dn:'CUBE CLEARED',lg=lab.length>26;g.fillStyle='#9fb2d4';g.font=font(800,lg?24:28);sp(lab,S/2,415,lg?5:8)}
   g.textAlign='center';g.shadowColor=rc;g.shadowBlur=46;g.fillStyle=rc;
   if(o.kind==='crash'){fit(o.prog+'%',900,210,330,true);g.fillText(o.prog+'%',330,610);g.shadowBlur=0;g.fillStyle='#9fb2d4';g.font=font(800,26);sp('OF THE CUBE',330,660,6)}
   else{g.font=font(900,300,true);g.fillText(o.rank,330,655);g.shadowBlur=0}
@@ -1213,7 +1279,7 @@ function drawShareCard(o){
 const cardBlob=o=>new Promise((res,rej)=>{try{drawShareCard(o).toBlob(b=>b?res(b):rej(new Error('toBlob failed')),'image/png')}catch(e){rej(e)}});
 let shareCache=null;
 function prepShare(o){const k=JSON.stringify(o);if(shareCache&&shareCache.k===k)return shareCache.p;const p=cardBlob(o);shareCache={k,p};p.catch(()=>{if(shareCache&&shareCache.p===p)shareCache=null});return p}
-const shareText=o=>'Weight-Shift Odyssey · '+(o.kind==='crash'?'Wrecked in sector '+o.sec+' ('+o.prog+'% of the cube)':'Rank '+o.rank)+' · '+fmtN(o.score)+' pts · '+o.diff+(o.time?' · '+o.time:'')+' · '+o.date+'\n'+SHARE_URL;
+const shareText=o=>'Weight-Shift Odyssey · '+(o.dn?'Daily #'+o.dn+' · ':'')+(o.kind==='crash'?'Wrecked in sector '+o.sec+' ('+o.prog+'% of the cube)':'Rank '+o.rank)+' · '+fmtN(o.score)+' pts · '+o.diff+(o.time?' · '+o.time:'')+' · '+o.date+'\n'+SHARE_URL;
 /* SHARE-B3: native wrapper. Uses @capacitor/share (+ @capacitor/filesystem for the image) when running inside the app; returns null when it can't, so the web path takes over. */
 const Native={
   plugins(){const C=window.Capacitor;if(!C||typeof C.isNativePlatform!=='function'||!C.isNativePlatform())return null;const P=C.Plugins||{};return P.Share?P:null},
@@ -1304,6 +1370,10 @@ $('#s-file').onchange=async e=>{const f=e.target.files&&e.target.files[0];e.targ
   if(!chk){stoast('That file is not a Weight-Shift Odyssey backup');return}
   if(!confirm('Replace ALL progress on this device with this backup?'))return;
   const r=Save.importText(text);if(!r.ok){stoast(r.err);return}stoast('Backup restored · reloading…');setTimeout(()=>location.reload(),900)};
+$('#dailybtn').onclick=()=>{$('#menu').classList.remove('on');$('#daily').classList.add('on');fillDaily()};
+$('#dback').onclick=()=>{$('#daily').classList.remove('on');$('#menu').classList.add('on')};
+$('#dgo').onclick=()=>{if(confirm("Start today's scored attempt? You only get one, and quitting or crashing uses it up."))startDaily(false)};
+$('#dprac').onclick=()=>startDaily(true);
 updInvBadge();updDaily();
 /* A11Y-B1..B4: settings screen */
 const SIMN=['','DEUTAN','PROTAN','TRITAN','MONO'];
@@ -1352,13 +1422,13 @@ $('#setbtn').onclick=()=>openSettings('menu');$('#pset').onclick=()=>openSetting
 a11yApply();
 /* TUTORIAL-MODE */
 let tutMode=false;
-$('#tutbtn').onclick=()=>{tutMode=true;begin(0)};
+$('#tutbtn').onclick=()=>{leaveDaily();tutMode=true;begin(0)};
 
 /* TUTORIAL-COURSE */
 const TUT_V=14;
 let tutI=0,tutCur=null,tutScale=1,tutT=0,tutBtn=null,tutLastAct=-1,tutLoaded=false,TUT0=null;
-function snapTrack(){return{t:track.map(t=>({safe:t.safe,hz:t.hz.map(h=>({t:h.t,off:h.off})),orbs:t.orbs.map(o=>Object.assign({},o)),anchor:t.anchor})),a:ANCH.slice(),c:CPS.slice(),n:totalOrbs}}
-function loadTrack(q){track.length=0;for(const t of q.t)track.push({safe:t.safe,hz:t.hz.map(h=>({t:h.t,off:h.off})),orbs:t.orbs.map(o=>Object.assign({},o)),anchor:t.anchor});ANCH.length=0;ANCH.push(...q.a);CPS.length=0;CPS.push(...q.c);totalOrbs=q.n}
+function snapTrack(){return{t:track.map(t=>({safe:t.safe,hz:t.hz.map(h=>({t:h.t,off:h.off})),orbs:t.orbs.map(o=>Object.assign({},o)),anchor:t.anchor})),a:ANCH.slice(),c:CPS.slice(),n:totalOrbs,sh:shortest}}
+function loadTrack(q){track.length=0;for(const t of q.t)track.push({safe:t.safe,hz:t.hz.map(h=>({t:h.t,off:h.off})),orbs:t.orbs.map(o=>Object.assign({},o)),anchor:t.anchor});ANCH.length=0;ANCH.push(...q.a);CPS.length=0;CPS.push(...q.c);totalOrbs=q.n;if(q.sh)shortest=q.sh}
 const RAND0=snapTrack();
 function buildTut(){
   const safe=new Array(N).fill(0),fill=(a,b,f)=>{for(let j=a;j<=b;j++)safe[j]=f};
@@ -1372,7 +1442,8 @@ function buildTut(){
     n+=o.length}
   return{t,a:[76],c:[],n}
 }
-function useTrack(tut){if(tut===tutLoaded)return;if(tut){if(!TUT0)TUT0=buildTut();loadTrack(TUT0)}else loadTrack(RAND0);tutLoaded=tut}
+let curTrk='std';
+function useTrack(m){m=m===true?'tut':m===false?'std':m;if(m==='daily'){loadTrack(DAILYT);curTrk=m;return}if(m===curTrk)return;if(m==='tut'){if(!TUT0)TUT0=buildTut();loadTrack(TUT0)}else loadTrack(RAND0);curTrk=m}
 // k:'i' info card (slow-mo for dur seconds) · k:'a' act card (slow-mo until you reach face "to")
 const TL=[
  {k:'i',trig:8,dur:7,ti:'WELCOME',tx:'A guided 3-minute course. Time slows down at every lesson, and nothing here counts: no crashes, no saved score, no Vault orbs. Gravity is your steering. Let\'s go!'},
@@ -1709,7 +1780,7 @@ function frame(t){
   requestAnimationFrame(frame);
 }
 placeOnFace(track[3].safe);D=3*L;
-if(location.hash.includes('test')){window.__wso={cos:{COS,Save,getCS:()=>CS,runEnd:cosRunEnd,check:cosCheck,equip:cosEquip,dailyOf,dayNo,exportText:()=>Save.exportText(),importText:t=>Save.importText(t),drawTrail,renderInv,openInv,closeInv,setWallet:n=>{wallet=n}},share:{drawShareCard,cardBlob,shareResult,shareInfo,shareText,Native,getLast:()=>lastRun,getCrash:()=>lastCrash,crashInfo},a11y:{A11,FM,fmSample,set:a11ySet,apply:a11yApply,open:openSettings,close:closeSettings},step,render,begin:s=>{begin(s||0);state='run';$('#count').classList.remove('on')},bot:b=>{bot=b},look:x=>{botLook=x},
+if(location.hash.includes('test')){window.__wso={daily:{build:dailyBuild,genTrackData,validTrack,trackStats,dailySeed,VT,setup:prepDaily,useSeed:sd=>{DAILYT=genTrackData(sd);dailyInfo={n:0,date:'test',seed:sd};dailyMode='practice';if(savedDiff===null)savedDiff=diff;diff=1},leave:leaveDaily,start:startDaily,get:()=>({dailyMode,dy:CS.dy,dh:CS.dh}),utcDate,dayNoOf},cos:{COS,Save,getCS:()=>CS,runEnd:cosRunEnd,check:cosCheck,equip:cosEquip,dayNo:()=>dayNoOf(utcDate()),exportText:()=>Save.exportText(),importText:t=>Save.importText(t),drawTrail,renderInv,openInv,closeInv,setWallet:n=>{wallet=n}},share:{drawShareCard,cardBlob,shareResult,shareInfo,shareText,Native,getLast:()=>lastRun,getCrash:()=>lastCrash,crashInfo},a11y:{A11,FM,fmSample,set:a11ySet,apply:a11yApply,open:openSettings,close:closeSettings},step,render,begin:s=>{begin(s||0);state='run';$('#count').classList.remove('on')},bot:b=>{bot=b},look:x=>{botLook=x},
   advance:(dt,stop)=>advance(dt,stop),q:l=>{qMode='manual';applyQ(l);updQ()},qs:()=>({qMode,qLev,DPRCAP,QG,PCAP,DRAWD,DRAWJ}),perf:()=>{const a=FTR.slice(1).sort((x,y)=>x-y),n=a.length;return n?{n,avgMs:+(a.reduce((q,x)=>q+x,0)/n*1000).toFixed(2),p95Ms:+(a[Math.floor(n*.95)]*1000).toFixed(2),maxMs:+(a[n-1]*1000).toFixed(2)}:null},tutTick,tutOn:x=>{tutMode=x},tutS:()=>({i:tutI,n:TL.length,cur:tutCur&&tutCur.ti,k:tutCur&&tutCur.k,to:tutCur&&tutCur.to,scale:tutScale}),snap:()=>({state,D,face,elapsed,orbs:got.size,total:totalOrbs,deaths,shifts,cp:cpSeg,score:flux(),chain,boost,eff:effi(),burst:burstT,sc:Object.assign({},sc)}),setD:d=>{D=d},track,np:()=>parts.length,sk:()=>shake,setSk:x=>{shake=x},emit:burst,sp:stepParts,L:()=>L}}
 requestAnimationFrame(t=>{last=t;requestAnimationFrame(frame)});
 })();
