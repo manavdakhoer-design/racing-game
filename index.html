@@ -201,6 +201,10 @@
   .vnm small{display:block;margin-top:2px;line-height:1.3}
   .fnew{color:#ffd166;font-weight:800;font-size:12px;letter-spacing:.08em;margin:-8px 0 14px;line-height:1.4} .fnew:empty{display:none}
   #crash .fnew{margin:0 0 14px}
+  /* GHOST-CSS */
+  #ghg{position:absolute;left:16px;top:calc(max(14px,env(safe-area-inset-top)) + 64px);font:800 12px/1.2 Orbitron,Inter,system-ui,sans-serif;letter-spacing:.1em;color:#cfe0ff;text-shadow:0 1px 6px #000;white-space:nowrap;pointer-events:none}
+  #ghg[data-a="1"]{color:#7dffb0} #ghg[data-a="0"]{color:#ffb86b}
+  .fnew.rep{opacity:.8;font-size:12px}
   /* DAILY-CSS */
   #daily{place-items:start center} #daily .panel{margin:auto}
   .dcard{display:grid;grid-template-columns:auto 1fr;gap:8px 14px;text-align:left;padding:12px 14px;border-radius:14px;background:#ffffff0c;margin:12px 0 10px;align-items:baseline}
@@ -236,7 +240,7 @@
     <div id="touch"><button id="tl" aria-label="Gravity to left wall">⟲</button><button id="tf" aria-label="Flip gravity">⇅</button><button id="tr" aria-label="Gravity to right wall">⟳</button></div>
     <div id="danger"></div>
     <div id="pops"></div>
-    <div id="flash"></div>
+    <div id="flash"></div><div id="ghg" aria-live="off"></div>
     <div id="tcard"><div class="tp"></div><div class="tt"></div><div class="tx"></div><div class="tk"></div><div class="ts">TAP TO SKIP</div></div>
   </div>
   <div id="rtoast" role="status" aria-live="polite"></div>
@@ -261,7 +265,7 @@
     </div>
     <div class="seg" id="diffs"><button data-d="0">CHILL</button><button data-d="1">NORMAL</button><button data-d="2">HYPER</button></div>
     <div class="seg" id="qual" role="group" aria-label="Graphics quality"><button data-q="auto">AUTO</button><button data-q="0">LOW</button><button data-q="1">MEDIUM</button><button data-q="2">HIGH</button></div>
-    <button class="btn" id="go">ENTER THE CUBE</button><button class="btn alt" id="dailybtn">📅 DAILY CHALLENGE</button><button class="btn alt" id="vaultbtn">◆ VAULT</button><button class="btn alt" id="invbtn">🎨 INVENTORY</button><button class="btn alt" id="tutbtn">▶ TUTORIAL</button><button class="btn alt" id="setbtn">⚙ SETTINGS</button>
+    <button class="btn" id="go">ENTER THE CUBE</button><button class="btn alt" id="dailybtn">📅 DAILY CHALLENGE</button><button class="btn alt" id="ghostbtn">👻 GHOST</button><button class="btn alt" id="vaultbtn">◆ VAULT</button><button class="btn alt" id="invbtn">🎨 INVENTORY</button><button class="btn alt" id="tutbtn">▶ TUTORIAL</button><button class="btn alt" id="setbtn">⚙ SETTINGS</button>
 
     <div class="small" id="dline"></div>
     <div class="small" id="bestline"></div>
@@ -278,11 +282,12 @@
   <section class="overlay" id="pause"><div class="panel">
     <div class="eyebrow">SYSTEMS HOLDING</div><h2>PAUSED</h2>
     <p class="tag">Gravity is on hold. Take a breath.</p>
-    <button class="btn" id="resume">RESUME</button><button class="btn alt" id="pquit">RESTART RUN</button><button class="btn alt" id="pset">⚙ SETTINGS</button><button class="btn alt" id="phome">HOME</button>
+    <button class="btn" id="resume">RESUME</button><button class="btn alt" id="pquit">RESTART RUN</button><button class="btn alt" id="pghost">👻 SHOW / HIDE GHOST</button><button class="btn alt" id="pset">⚙ SETTINGS</button><button class="btn alt" id="phome">HOME</button>
   </div></section>
   <section class="overlay" id="daily" aria-label="Daily challenge"><div class="panel">
     <div class="eyebrow">TODAY'S CHALLENGE</div><h2 id="dtitle">DAILY</h2>
     <div class="dcard"><div class="dk">DATE</div><div class="dv" id="ddate">—</div><div class="dk">TRACK CODE</div><div class="dv" id="dcode">—</div><div class="dk">NEXT CHALLENGE IN</div><div class="dv" id="dcd">--:--:--</div><div class="dk">YOUR RESULT</div><div class="dv" id="dres">—</div></div>
+    <p class="tag" id="dlead" style="margin:4px auto 2px;font-size:12px;color:#ffd166"></p>
     <p class="tag" id="dnote" style="margin:6px auto 14px;font-size:12px"></p>
     <button class="btn" id="dgo">START SCORED ATTEMPT</button><button class="btn alt" id="dprac">PRACTISE (UNSCORED)</button><button class="btn alt" id="dback">BACK</button>
   </div></section>
@@ -328,7 +333,7 @@
     <div class="brk" id="fbreak"></div>
     <div class="stats"><div>TIME<strong id="ftime">0:00.00</strong></div><div>ORBS<strong id="forbs">0</strong></div><div>SHIFTS<strong id="fshift">0</strong></div></div>
     <div class="best" id="fbest"></div>
-    <div class="fnew" id="fnew"></div>
+    <div class="fnew" id="fnew"></div><div class="fnew rep" id="frep"></div><button class="btn alt" id="fsubmit" style="display:none">SUBMIT TO DAILY LEADERBOARD</button>
     <div class="rec" id="frec"></div>
     <button class="btn" id="again">RACE AGAIN</button><button class="btn alt" id="fshare">⇪ SHARE SCORE</button><button class="btn alt" id="fhome">HOME</button>
   </div></section>
@@ -343,7 +348,8 @@
 <script>
 (()=>{
 'use strict';
-const $=s=>document.querySelector(s);
+var QS=null;   // GHOST-B2: quiet-simulation flag (no DOM/audio/save side effects)
+const $=s=>QS?DUM:document.querySelector(s);
 /* A11Y-B1: accessibility state. rm defaults to the device's prefers-reduced-motion until the player sets it; everything but sim is saved. */
 const A11={rm:false,cb:false,hc:false,txt:0,sim:0,fm:false};
 let rmExplicit=false;const mqRM=window.matchMedia?matchMedia('(prefers-reduced-motion: reduce)'):null;
@@ -437,9 +443,9 @@ const fm=()=>Math.min(6,1+.1*chain)*(burstT>0?2:1);
 const flux=()=>Math.round(sc.clean+sc.near+sc.sling+sc.air+sc.orb+sc.anchor+sc.vault+sc.sector-sc.pen);
 const effi=()=>Math.max(.4,Math.min(1,shortest/(N*L+sc.lat)));
 const fmtN=n=>Number.isFinite(+n)?Math.round(+n).toLocaleString('en-US'):'0';
-let glitchTO=0;function glitch(ms){if(A11.rm)return;const c=$('#gl');c.classList.add('glitch');clearTimeout(glitchTO);glitchTO=setTimeout(()=>c.classList.remove('glitch'),ms||260)}
-let lastShiftT=-9;
-function pop(txt,col){const c=$('#pops');if(!c)return;const d=document.createElement('div');d.className='pp';d.textContent=txt;d.style.color=col||'#fff';c.appendChild(d);while(c.children.length>3)c.removeChild(c.firstChild);setTimeout(()=>d.remove(),1300)}
+let glitchTO=0;function glitch(ms){if(QS||A11.rm)return;const c=$('#gl');c.classList.add('glitch');clearTimeout(glitchTO);glitchTO=setTimeout(()=>c.classList.remove('glitch'),ms||260)}
+
+function pop(txt,col){if(QS)return;const c=$('#pops');if(!c)return;const d=document.createElement('div');d.className='pp';d.textContent=txt;d.style.color=col||'#fff';c.appendChild(d);while(c.children.length>3)c.removeChild(c.firstChild);setTimeout(()=>d.remove(),1300)}
 function award(cat,base,label,col){const pts=Math.round(base*fm());sc[cat]+=pts;pop(label+'  +'+fmtN(pts),col);return pts}
 const parts=[];
 
@@ -661,7 +667,7 @@ function drawCar(){
 
 /* ---- particles ---- */
 const freeP=[]; // PERF-POOL: recycled particle objects
-function burst(x,y,z,n,sp,col){
+function burst(x,y,z,n,sp,col){if(QS)return;
   {const qq=PQ*(A11.rm?.4:1);n=n*qq<1?1:Math.round(n*qq)}
   for(let i=0;i<n;i++){const a=Math.random()*6.283,r=Math.random();
     const p=freeP.pop()||{};p.x=x;p.y=y;p.z=z;p.px=x;p.py=y;p.pz=z;p.vx=Math.cos(a)*sp*r;p.vy=Math.sin(a)*sp*r;p.vz=(Math.random()-.5)*sp*1.6+v*.25;
@@ -716,11 +722,11 @@ function render(){
       tr.orbs.forEach((o,i)=>{if(!got.has(j+':'+i))items.push({t:4,o,z:-(j*L+o.o)})});
     }
   }
-  items.push({t:5,z:-D});
+  items.push({t:5,z:-D});GP=ghostPose();if(GP)items.push({t:6,z:-GP.d});
   items.sort((a,b)=>a.z-b.z);
   for(const it of items){
     if(it.t===0)drawRow(it.j,it.r);else if(it.t===1)drawGate(it.j);else if(it.t===2)drawBlock(it.j,it.k,it.off);
-    else if(it.t===3)drawEdge(it.j,it.k,it.o,it.y);else if(it.t===4)drawOrb(it.o,it.z);else drawCar();
+    else if(it.t===3)drawEdge(it.j,it.k,it.o,it.y);else if(it.t===4)drawOrb(it.o,it.z);else if(it.t===6)drawGhost();else drawCar();
   }
   drawTrail();drawParts();if(!A11.rm)drawStreaks();
   ctx.setTransform(DPR,0,0,DPR,0,0);
@@ -731,8 +737,8 @@ let AC=null,master,eng,engG,nbuf,muted=false;try{muted=localStorage.getItem('wso
 function audioInit(){if(AC)return;try{AC=new(window.AudioContext||window.webkitAudioContext)();master=AC.createGain();master.gain.value=.55;master.connect(AC.destination);
   eng=AC.createOscillator();eng.type='sawtooth';const f=AC.createBiquadFilter();f.type='lowpass';f.frequency.value=420;engG=AC.createGain();engG.gain.value=0;eng.connect(f);f.connect(engG);engG.connect(master);eng.start();
   nbuf=AC.createBuffer(1,AC.sampleRate,AC.sampleRate);const d=nbuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1}catch(e){AC=null}}
-function tone(f,dur,type,vol,slide){if(!AC||muted)return;const o=AC.createOscillator(),g=AC.createGain(),t=AC.currentTime;o.type=type||'sine';o.frequency.setValueAtTime(f,t);if(slide)o.frequency.exponentialRampToValueAtTime(Math.max(30,f*slide),t+dur);g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.001,t+dur);o.connect(g);g.connect(master);o.start(t);o.stop(t+dur+.02)}
-function noise(dur,vol,f0,f1){if(!AC||muted)return;const s=AC.createBufferSource(),b=AC.createBiquadFilter(),g=AC.createGain(),t=AC.currentTime;s.buffer=nbuf;b.type='bandpass';b.frequency.setValueAtTime(f0,t);b.frequency.exponentialRampToValueAtTime(f1,t+dur);g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.001,t+dur);s.connect(b);b.connect(g);g.connect(master);s.start(t);s.stop(t+dur+.02)}
+function tone(f,dur,type,vol,slide){if(QS||!AC||muted)return;const o=AC.createOscillator(),g=AC.createGain(),t=AC.currentTime;o.type=type||'sine';o.frequency.setValueAtTime(f,t);if(slide)o.frequency.exponentialRampToValueAtTime(Math.max(30,f*slide),t+dur);g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.001,t+dur);o.connect(g);g.connect(master);o.start(t);o.stop(t+dur+.02)}
+function noise(dur,vol,f0,f1){if(QS||!AC||muted)return;const s=AC.createBufferSource(),b=AC.createBiquadFilter(),g=AC.createGain(),t=AC.currentTime;s.buffer=nbuf;b.type='bandpass';b.frequency.setValueAtTime(f0,t);b.frequency.exponentialRampToValueAtTime(f1,t+dur);g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.001,t+dur);s.connect(b);b.connect(g);g.connect(master);s.start(t);s.stop(t+dur+.02)}
 const sfx={shift:()=>{noise(.28,.35,400,2400);tone(180,.2,'triangle',.12,2.2)},orb:tr=>{tone(tr?988:784,.12,'sine',.22);setTimeout(()=>tone(tr?1319:1175,.16,'sine',.2),70)},crash:()=>{noise(.7,.6,1800,80);tone(90,.5,'sawtooth',.3,.3)},cp:()=>{[660,880,1100].forEach((f,i)=>setTimeout(()=>tone(f,.2,'triangle',.2),i*90))},fin:()=>{[523,659,784,1047,1319].forEach((f,i)=>setTimeout(()=>tone(f,.32,'triangle',.22),i*110))},zap:()=>{noise(.4,.5,3200,300);tone(320,.3,'sawtooth',.18,.4)},tick:n=>tone(n?880:440,.14,'square',.12)};
 let mStep=0,musicOn=false;
 const MROOT=[110,87.31,130.81,98],MINT=[1,1.2,1.5,2,2.4,3],MPAT=[0,2,4,2,5,4,2,1];
@@ -764,27 +770,29 @@ function startCount(){
   document.body.classList.add('playing');['menu','pause','crash','finish','tdone','settings','inv','daily'].forEach(i=>$('#'+i).classList.remove('on'));
   demo=false;state='count';countT=0;lastPhase=-1;
 }
-function begin(seg){walletFlush();showHint();audioInit();if(AC&&AC.state==='suspended')AC.resume();useTrack(tutMode?'tut':dailyMode?'daily':'std');reset(seg);if(tutMode)tutReset();document.body.classList.toggle('tut',tutMode);restartAt=0;$('#rtoast').classList.remove('on');$('#pquit').textContent=tutMode?'RESTART TUTORIAL':'RESTART RUN';{const dd=dailyMode&&!tutMode;$('#slabel').textContent=dd?'DAILY #'+dailyInfo.n+(dailyMode==='scored'?' · SCORED':' · PRACTICE'):'FLUX SCORE';$('#pquit').style.display=dailyMode==='scored'&&!tutMode?'none':''}startCount()}
+function begin(seg){ghostPrep(seg);walletFlush();showHint();audioInit();if(AC&&AC.state==='suspended')AC.resume();useTrack(tutMode?'tut':dailyMode?'daily':'std');reset(seg);repStart(seg);if(tutMode)tutReset();document.body.classList.toggle('tut',tutMode);restartAt=0;$('#rtoast').classList.remove('on');$('#pquit').textContent=tutMode?'RESTART TUTORIAL':'RESTART RUN';{const dd=dailyMode&&!tutMode;$('#slabel').textContent=dd?'DAILY #'+dailyInfo.n+(dailyMode==='scored'?' · SCORED':' · PRACTICE'):'FLUX SCORE';$('#pquit').style.display=dailyMode==='scored'&&!tutMode?'none':''}startCount()}
 const anchorLock=()=>{if(demo||state!=='run')return false;for(const j of ANCH){if(D>=j*L-2&&D<j*L+9)return true}return false};
-function requestShift(rel){
+function shiftNow(rel){   // applied inside a tick (GHOST-B0); recorded by tick number
   if(!demo&&state!=='run')return;
   if(anchorLock())return;
-  if(!demo&&time-lastShiftT<.05)return;
+  if(!demo&&simTick-lastShiftK<6)return;
+  if(rec&&!demo&&!QS)rec.ev.push([simTick,rel]);
   if(transit){queue=rel;return}
-  lastShiftT=time;
+  lastShiftK=simTick;
   doShift(rel);
 }
+function requestShift(rel){if(demo){shiftNow(rel);return}if(state!=='run')return;inputQ.push(rel)}
 function nearMissAhead(){ // distance to the nearest hazard ahead on the face we're about to leave
   const cur=Math.floor(D/L);let best=99;
   for(let j=Math.max(0,cur);j<=Math.min(N-1,cur+1);j++){const h=track[j].hz[face];if(!h.t)continue;
     const st=h.t===2?j*L+10+h.off:(h.t===1||h.t===4)?j*L+5.8:j*L+.8,ahead=st-D;if(ahead>0&&ahead<best)best=ahead}
   return best}
 let pulseT=-9;   // A11Y-B1: the shift pulse is rate-limited (2/s normal, ~1/s reduced) so quick slaloms cannot strobe the screen
-function pulseGo(k1){if(time-pulseT<(A11.rm?1.1:.5))return;pulseT=time;const p=$('#pulse');p.style.setProperty('--pc',FHEX[k1]);p.classList.remove('go');void p.offsetWidth;p.classList.add('go')}
+function pulseGo(k1){if(QS)return;if(time-pulseT<(A11.rm?1.1:.5))return;pulseT=time;const p=$('#pulse');p.style.setProperty('--pc',FHEX[k1]);p.classList.remove('go');void p.offsetWidth;p.classList.add('go')}
 function doShift(rel,forced){
   const k1=((face+rel)%4+4)%4;
   if(!demo&&state==='run'&&!forced&&nearMissAhead()<11){award('near',50,'NEAR MISS','#7dffb0');sc.nearN++;burstT=BURST;flashMsg('NEAR MISS · 2× BURST','#7dffb0');buzz([15,30,15]);glitch(200);sfx.orb(true)}
-  const x1=NORM[k1][0]*(TH-CAR_H),y1=NORM[k1][1]*(TH-CAR_H);sc.lat+=Math.hypot(x1-px,y1-py);
+  const x1=NORM[k1][0]*(TH-CAR_H),y1=NORM[k1][1]*(TH-CAR_H);sc.lat+=Math.sqrt((x1-px)*(x1-px)+(y1-py)*(y1-py));
   buzz(12);transit={t:0,k0:face,k1,th0:theta,th1:theta+rel*Math.PI/2,x0:px,y0:py,x1,y1,forced:!!forced};
   if(!forced)shifts++;fovPunch=1;shake=Math.max(shake,.35);
   if(!demo){sfx.shift();burst(px,py,-D,10,5,FRGB[k1]);pulseGo(k1)}
@@ -797,24 +805,28 @@ function anchors(){
     if(!anchorHit.has(j)&&D>=z+9&&!transit){anchorHit.add(j);if(face===want){sc.anchor+=30;pop('ANCHOR LOCKED  +30',FHEX[want]);sfx.cp()}}
   }
 }
-function buzz(p){try{if(!demo&&navigator.vibrate)navigator.vibrate(p)}catch(e){}}
+function buzz(p){try{if(!QS&&!demo&&navigator.vibrate)navigator.vibrate(p)}catch(e){}}
 function flashMsg(t,col){const f=$('#flash');f.textContent=t;f.style.color=col||'#fff';f.classList.remove('pop');void f.offsetWidth;f.classList.add('pop')}
-function crash(reason){walletFlush();if(tutMode){tutRewind(reason);return}
+function crash(reason){if(QS){if(state==='crashed')return;state='crashed';crashT=0;carVisible=false;QS.r={fin:0,score:flux(),ms:Math.round(elapsed*1000),ticks:simTick,orbs:got.size,prog:Math.max(0,Math.min(99,Math.floor(D/(N*L)*100)))};return}
+  walletFlush();if(tutMode){tutRewind(reason);return}
   if(state==='crashed')return;buzz([60,40,120]);state='crashed';crashT=0;carVisible=false;deaths++;shake=1;
   glitch(420);burst(px,py,-D,60,9,[255,180,90]);burst(px,py,-D,30,6,[255,70,90]);sfx.crash();
   $('#cscore').textContent=fmtN(flux());
   const wasDaily=dailyMode==='scored'&&!tutMode,dn=wasDaily?dailyInfo.n:0;
   lastCrash=crashInfo();lastCrash.dn=dn;if(dn)lastCrash.date=dailyInfo.date;
   if(wasDaily)dailyEnd(false,flux(),'',lastCrash.prog);
+  repEnd(false,flux());
   {const r=cosRunEnd({fin:false,chain:sc.maxChain});$('#cnew').textContent=[cosNewText(r),wasDaily?'DAILY #'+dn+' · attempt used (score '+fmtN(flux())+' · '+lastCrash.prog+'%). More runs are practice.':''].filter(Boolean).join('   ')}
   setTimeout(()=>{prepShare(lastCrash).catch(()=>{})},300);   // SHARE-CRASH
   const why={fall:['LOST IN THE VOID','The floor ended. Shift gravity onto a wall before the gap.'],zap:['ELECTROCUTED','Electrified plates zap you the moment you touch them. Shift away before you land on one.'],wall:['STRUCTURAL FAILURE','That spiked barrier was in your way. Flip gravity onto a clear face first.']}[reason]||['WRECKED',''];
   $('#creason').textContent=why[0];$('#chint').textContent=why[1];
   const cp=cpSeg>0;$('#retry').textContent=cp?'RETRY FROM SECTOR '+(CPS.indexOf(cpSeg)+2)+'  (+3s)':'RETRY';$('#restart1').style.display=cp?'':'none';
 }
+function calcFinal(){const fl=flux(),ef=effi(),tb=Math.max(0,Math.round((90-elapsed)*15));return{fl,ef,tb,final:tb+Math.round(fl*ef)}}
 function finish(){
+  if(QS){state='finished';finT=0;QS.r={fin:1,score:calcFinal().final,ms:Math.round(elapsed*1000),ticks:simTick,orbs:got.size,prog:100};return}
   state='finished';finT=0;sfx.fin();flashMsg('FINISH!','#ffd166');
-  const fl=flux(),ef=effi(),tb=Math.max(0,Math.round((90-elapsed)*15)),final=tb+Math.round(fl*ef);dispScore=fl;
+  const cf=calcFinal(),fl=cf.fl,ef=cf.ef,tb=cf.tb,final=cf.final;dispScore=fl;
   const row=(a,b,neg)=>`<div${neg?' class="neg"':''}><span>${a}</span><b>${b}</b></div>`;
   $('#fscore').textContent=fmtN(final);
   $('#fbreak').innerHTML=row('Clean shifts ×'+sc.cleanN+' · best chain '+sc.maxChain,fmtN(sc.clean))+row('Near misses ×'+sc.nearN,fmtN(sc.near))+row('Slingshots ×'+sc.slingN,fmtN(sc.sling))
@@ -824,6 +836,7 @@ function finish(){
   const wasDaily=dailyMode==='scored'&&!tutMode,dn=wasDaily?dailyInfo.n:0;
   lastRun=shareInfo(final,rank,diff,elapsed,'finish');if(dn){lastRun.dn=dn;lastRun.date=dailyInfo.date}
   if(wasDaily)dailyEnd(true,final,rank,100);
+  {const ri=repEnd(true,final),gs=ri?gStore():'';$('#frep').textContent=ri?'REPLAY '+ri.bytes+' bytes ('+ri.chars+' chars, '+ri.events+' inputs)'+(gs?' · '+gs:''):'';$('#fsubmit').style.display=ri&&wasDaily&&GH_API?'':'none';$('#fsubmit').disabled=false;$('#fsubmit').textContent='SUBMIT TO DAILY LEADERBOARD'}   // GHOST-B1/B3
   setTimeout(()=>{prepShare(lastRun).catch(()=>{})},400);
   {const r=cosRunEnd({fin:true,rank,orbs:got.size,chain:sc.maxChain,sling:sc.slingN,near:sc.nearN,dailyScored:wasDaily});$('#fnew').textContent=cosNewText(r)}   // SHARE: pre-render the card so the tap can share instantly
   $('#rank').textContent=rank;$('#rank').style.color={S:'#ffd166',A:'#37e6ff',B:'#ff4fd8',C:'#b9c6e2'}[rank];
@@ -856,26 +869,26 @@ const fmt=t=>{const m=Math.floor(t/60),s=t-m*60;return m+':'+(s<10?'0':'')+s.toF
 function botThink(){
   if(transit||(!demo&&state!=='run'))return;
   const look=D+v*botLook+2,j=Math.max(0,Math.min(N-1,Math.floor(look/L))),want=track[j].safe;
-  if(want!==face){const d=(want-face+4)%4;requestShift(d===1?1:d===3?-1:2)}
+  if(want!==face){const d=(want-face+4)%4;shiftNow(d===1?1:d===3?-1:2)}
 }
 
 function step(dt){
-  time+=dt;trailTick(dt);
+  simTick++;time+=dt;trailTick(dt);
   fovPunch=Math.max(0,fovPunch-dt*4);shake=Math.max(0,shake-dt*2.2);
   if(demo){ // attract mode: scripted perfect run, no collisions
-    v+=(26-v)*(1-Math.exp(-dt*2));D+=v*dt;if(D>26*L){D=3*L;placeOnFace(track[3].safe)}botThink();motion(dt);stepParts(dt);return;
+    v+=(26-v)*(1-xe(2));D+=v*dt;if(D>26*L){D=3*L;placeOnFace(track[3].safe)}botThink();motion(dt);stepParts(dt);return;
   }
   if(state==='count'){
     countT+=dt;const ph=Math.floor(countT/.8);
     if(ph!==lastPhase&&ph<=3){lastPhase=ph;const c=$('#count');c.classList.add('on');c.innerHTML='<span>'+(ph<3?3-ph:'GO')+'</span>';sfx.tick(ph===3)}
     if(countT>=3.2){state='run';$('#count').classList.remove('on');const si=Math.min(2,Math.floor(D/(30*L)));flashMsg('SECTOR '+(si+1)+' · '+SECN[si],'#9fe8ff')}
-    if(countT>=2.4){v+=(tSpeed(D)-v)*(1-Math.exp(-dt*3));D+=v*dt*.0}
+    if(countT>=2.4){v+=(tSpeed(D)-v)*(1-xe(3));D+=v*dt*.0}
     motion(dt);stepParts(dt);return;
   }
   if(state==='run'){
-    burstT=Math.max(0,burstT-dt);boost*=Math.exp(-dt*.9);
-    v+=(tSpeed(D)+boost-v)*(1-Math.exp(-dt*2.5));D+=v*dt;elapsed+=dt;
-    anchors();
+    burstT=Math.max(0,burstT-dt);boost*=xe(.9);
+    v+=(tSpeed(D)+boost-v)*(1-xe(2.5));D+=v*dt;elapsed+=dt;
+    anchors();drainIn();
     if(bot)botThink();
     motion(dt);collide(dt);pickups();
     const sg=Math.floor(D/L);
@@ -885,9 +898,9 @@ function step(dt){
   }else if(state==='falling'){
     D+=v*dt;fallT+=dt;fallD+=dt*dt*40+dt*3;motion(dt,true);if(fallT>.55)crash('fall');
   }else if(state==='crashed'){
-    v*=Math.exp(-dt*2.5);D+=v*dt;crashT+=dt;if(crashT>.95)$('#crash').classList.add('on');
+    v*=xe(2.5);D+=v*dt;crashT+=dt;if(crashT>.95)$('#crash').classList.add('on');
   }else if(state==='finished'){
-    v*=Math.exp(-dt*1.7);D=Math.min(D+v*dt,N*L+44);finT+=dt;motion(dt);if(finT>1.5)$(tutMode?'#tdone':'#finish').classList.add('on');
+    v*=xe(1.7);D=Math.min(D+v*dt,N*L+44);finT+=dt;motion(dt);if(finT>1.5)$(tutMode?'#tdone':'#finish').classList.add('on');
   }
   stepParts(dt);
 }
@@ -902,7 +915,7 @@ function motion(dt,noTransit){
       if(!demo&&state==='run'&&!wasForced){award('clean',10,'CLEAN SHIFT','#9fe8ff');chain++;sc.cleanN++;sc.maxChain=Math.max(sc.maxChain,chain)}
       if(queue!==null){const q=queue;queue=null;if((demo||state==='run')&&!anchorLock())doShift(q)}}
   }
-  camT+=(theta-camT)*(1-Math.exp(-dt*9));
+  camT+=(theta-camT)*(1-xe(9));
 }
 function collide(dt){
   const cur=Math.floor(D/L);let zapping=false;
@@ -935,12 +948,152 @@ function pickups(){
       const key=j+':'+i;if(got.has(key))return;
       const dz=D-(j*L+o.o);if(Math.abs(dz)>2.6)return;
       const dx=px-o.x,dy=py-o.y;
-      if(dx*dx+dy*dy+dz*dz<2.7*2.7){got.add(key);if(!bot&&!tutMode)walletAdd(1);sfx.orb(o.tr);burst(o.x,o.y,-(j*L+o.o),14,5,o.tr?[255,120,230]:orbC().b);
+      if(dx*dx+dy*dy+dz*dz<2.7*2.7){got.add(key);if(!bot&&!tutMode&&!QS)walletAdd(1);sfx.orb(o.tr);burst(o.x,o.y,-(j*L+o.o),14,5,o.tr?[255,120,230]:orbC().b);
         if(o.tr){sc.slingN++;award('sling',100,'SLINGSHOT','#ff9cec');boost=Math.max(boost,diff===2?5:9);fovPunch=1;flashMsg('SLINGSHOT!','#ff9cec')}
         else{sc.orbN++;award('orb',10,'ORB','#ffd166')}
       }
     });
   }
+}
+
+/* ============================ GHOST REPLAYS ============================ */
+/* GHOST-B0: deterministic simulation. Replays are exact only if the sim is bit-for-bit repeatable, so: (1) the world advances in fixed 1/120 s ticks (PERF-B1), (2) exp() in the sim is dexp(), built from + - * / only (IEEE-exact on every engine; Math.exp is not), hypot() is sqrt(), (3) inputs are buffered and applied at one fixed point inside a tick, timed by integer tick counts (no clock), (4) nothing in the sim reads Math.random, Date or performance.now. */
+function dexp(x){let k=0;while(x<-.0625){x*=.5;k++}let t=1,s=1;for(let i=1;i<14;i++){t=t*x/i;s+=t}while(k--)s*=s;return s}
+const XEC={};const xe=k=>XEC[k]!==undefined?XEC[k]:(XEC[k]=dexp(-H*k));
+const DUM={classList:{add(){},remove(){},toggle(){},contains(){return false}},style:{setProperty(){}},children:[],appendChild(){},removeChild(){},setAttribute(){},addEventListener(){},offsetWidth:0,firstChild:null,textContent:'',innerHTML:'',value:''};
+function drainIn(){
+  if(RP){while(RP.i<RP.ev.length&&RP.ev[RP.i][0]<=simTick){const e=RP.ev[RP.i++];if(e[0]===simTick)shiftNow(e[1])}return}
+  while(inputQ.length)shiftNow(inputQ.shift())
+}
+/* GHOST-B1: replay file = header + delta-encoded input events, base64url. Layout (bytes): 'W','G', fmt, simV, genV, flags(diff:2 | daily:1 | finished:1), seed u32, then varints ticks, score, ms, orbs, nEvents, then the event tick deltas as varints, then the event codes packed 4 per byte (0:-1 1:+1 2:flip), then a 16-bit checksum. */
+const REP_FMT=1,SIM_V=1,REP_MAXB=9000;
+const B64='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+function b64e(a){let s='';for(let i=0;i<a.length;i+=3){const n=(a[i]<<16)|((a[i+1]||0)<<8)|(a[i+2]||0);s+=B64[(n>>18)&63]+B64[(n>>12)&63]+(i+1<a.length?B64[(n>>6)&63]:'')+(i+2<a.length?B64[n&63]:'')}return s}
+function b64d(s){if(typeof s!=='string'||s.length>Math.ceil(REP_MAXB*4/3)+4||/[^A-Za-z0-9_-]/.test(s)||s.length%4===1)return null;const o=[];let n=0,bits=0;for(let i=0;i<s.length;i++){n=(n<<6)|B64.indexOf(s[i]);bits+=6;if(bits>=8){bits-=8;o.push((n>>bits)&255);n&=(1<<bits)-1}}return Uint8Array.from(o)}
+const crc16=(a,n)=>{let h=0x811c9dc5;for(let i=0;i<n;i++)h=Math.imul(h^a[i],16777619);return(h^(h>>>16))&0xffff};
+function encRep(r){
+  const b=[0x57,0x47,REP_FMT,SIM_V,r.gv&255,(r.diff&3)|(r.mode?4:0)|(r.fin?8:0)];
+  for(let i=3;i>=0;i--)b.push((r.seed>>>(i*8))&255);
+  const vi=v=>{v=Math.max(0,Math.floor(v));while(v>127){b.push((v%128)|128);v=Math.floor(v/128)}b.push(v)};
+  vi(r.ticks);vi(r.score);vi(r.ms);vi(r.orbs);vi(r.ev.length);
+  let p=0;for(const[t]of r.ev){vi(t-p);p=t}
+  for(let k=0;k<r.ev.length;k+=4){let x=0;for(let m=0;m<4&&k+m<r.ev.length;m++){const rel=r.ev[k+m][1];x|=(rel===-1?0:rel===1?1:2)<<(m*2)}b.push(x)}
+  const c=crc16(b,b.length);b.push(c>>8,c&255);return b64e(b)
+}
+function decRep(s){
+  const a=b64d(s);if(!a||a.length<16||a.length>REP_MAXB)return{ok:false,err:'format'};
+  if(crc16(a,a.length-2)!==((a[a.length-2]<<8)|a[a.length-1]))return{ok:false,err:'corrupt'};
+  if(a[0]!==0x57||a[1]!==0x47)return{ok:false,err:'format'};
+  if(a[2]!==REP_FMT||a[3]!==SIM_V||a[4]!==(GEN_V&255))return{ok:false,err:'version'};
+  const f=a[5];if(f>>4||(f&3)>2)return{ok:false,err:'format'};
+  const r={gv:a[4],diff:f&3,mode:(f>>2)&1,fin:(f>>3)&1,seed:((a[6]<<24)|(a[7]<<16)|(a[8]<<8)|a[9])>>>0,ev:[]};
+  let i=10;const end=a.length-2;let bad=false;
+  const vi=()=>{let v=0,m=1;for(let k=0;k<6;k++){if(i>=end){bad=true;return 0}const x=a[i++];v+=(x&127)*m;if(x<128)return v;m*=128}bad=true;return 0};
+  r.ticks=vi();r.score=vi();r.ms=vi();r.orbs=vi();const n=vi();
+  if(bad||r.ticks<1||r.ticks>60000||r.score>1e7||r.ms>1e6||r.orbs>400||n>5000)return{ok:false,err:'format'};
+  const ts=[];let t=0;for(let k=0;k<n;k++){t+=vi();if(bad||t<1||t>r.ticks)return{ok:false,err:'format'};ts.push(t)}
+  for(let k=0;k<n;k++){if(i+(k>>2)>=end)return{ok:false,err:'format'};const code=(a[i+(k>>2)]>>((k&3)*2))&3;if(code>2)return{ok:false,err:'format'};r.ev.push([ts[k],code===0?-1:code===1?1:2])}
+  i+=Math.ceil(n/4);
+  if(i!==end)return{ok:false,err:'format'};
+  return{ok:true,r}
+}
+/* GHOST-B2: run a replay in quiet mode (QS: no DOM, audio, particles or saving). Used by the ghost, the leaderboard server and the tests, so all three agree. */
+let simTick=0,lastShiftK=-99,RP=null,rec=null,lastRep=null,lastRepInfo=null;const inputQ=[];
+function runRep(r,opt){
+  opt=opt||{};const sv={diff,demo,state,bot,tutMode,dailyMode,oldT:DAILYT,pt:curTrk,bl:botLook};
+  QS={r:null};RP={ev:r.ev,i:0};
+  let tr=null;
+  try{
+    tutMode=false;bot=!!opt.bot;if(opt.bot)botLook=.16;demo=false;diff=r.diff;
+    if(r.mode){DAILYT=genTrackData(r.seed);useTrack('daily')}else useTrack('std');
+    reset(0);state='count';countT=0;lastPhase=-1;simTick=0;lastShiftK=-99;inputQ.length=0;
+    if(opt.trace){const n=r.ticks+2;tr={D:new Float64Array(n),X:new Float32Array(n),Y:new Float32Array(n),T:new Float32Array(n),n:0,fin:!!r.fin}}
+    for(let t=0;t<r.ticks+2&&!QS.r;t++){
+      step(H);
+      if(tr){let cx=px,cy=py,th=theta;if(state==='falling'){cx+=NORM[face][0]*fallD;cy+=NORM[face][1]*fallD;th+=fallT*5}tr.D[t]=D;tr.X[t]=cx;tr.Y[t]=cy;tr.T[t]=th;tr.n=t+1}
+    }
+    const q=QS.r;if(!q)return{ok:false,err:'noend'};
+    const bad=[];for(const k of['score','ms','ticks','orbs'])if(q[k]!==r[k])bad.push(k);if(!!q.fin!==!!r.fin)bad.push('fin');
+    return{ok:!bad.length,err:bad.length?'mismatch:'+bad.join(','):'',res:q,trace:tr}
+  }finally{QS=null;RP=null;diff=sv.diff;demo=sv.demo;state=sv.state;bot=sv.bot;botLook=sv.bl;tutMode=sv.tutMode;dailyMode=sv.dailyMode;if(r.mode)DAILYT=sv.oldT;
+    curTrk='';useTrack(sv.pt==='daily'&&!DAILYT?'std':sv.pt||'std');   // put the menu's track back
+    if(sv.demo){placeOnFace(track[3].safe);D=3*L;v=24;chain=0;boost=0;carVisible=true}}
+}
+/* GHOST-B6 / DAILY-B3: the built-in bot plays the candidate daily track from the real start (countdown included). Deterministic, so every device rerolls the same way. */
+function botBeats(seed){const x=runRep({mode:1,diff:1,seed,ticks:30000,ev:[],fin:0,score:0,ms:0,orbs:0},{bot:true});return !!(x.res&&x.res.fin)}
+function repStart(seg){simTick=0;lastShiftK=-99;inputQ.length=0;lastRep=null;lastRepInfo=null;rec=(!tutMode)?{ev:[],dirty:seg>0}:null}
+function repEnd(fin,score){
+  if(!rec||rec.dirty||tutMode){lastRep=null;return null}
+  const r={gv:GEN_V,mode:dailyMode?1:0,diff,seed:dailyMode?DAILYT.seed:0,fin:fin?1:0,ticks:simTick,score:Math.max(0,Math.round(score)),ms:Math.round(elapsed*1000),orbs:got.size,ev:rec.ev};
+  lastRep=encRep(r);lastRepInfo={bytes:b64d(lastRep).length,chars:lastRep.length,events:r.ev.length,ticks:r.ticks};return lastRepInfo
+}
+/* GHOST-B3: personal-best ghost, stored locally per mode (normal: per difficulty; daily: per UTC date). */
+const gKey=()=>dailyMode?'wso_g_d'+dailyInfo.date.replace(/-/g,''):'wso_g_s'+diff;
+function gStore(){
+  if(!lastRep||tutMode)return'';
+  const d=decRep(lastRep);if(!d.ok||!d.r.fin)return'';
+  const k=gKey();let old=null;try{old=localStorage.getItem(k)}catch(e){}
+  const o=old?decRep(old):null;if(o&&o.ok&&o.r.score>=d.r.score)return'PB ghost kept';
+  try{localStorage.setItem(k,lastRep);
+    if(dailyMode){const ks=[];for(let i=0;i<localStorage.length;i++){const q=localStorage.key(i);if(/^wso_g_d\d{8}$/.test(q))ks.push(q)}ks.sort();while(ks.length>3)localStorage.removeItem(ks.shift())}
+  }catch(e){return''}
+  return o&&o.ok?'NEW PB GHOST SAVED':'PB GHOST SAVED'
+}
+function gPB(){try{const s=localStorage.getItem(gKey());if(!s)return null;const d=decRep(s);if(!d.ok||!d.r.fin)return null;return{rep:s,r:d.r,label:'PB'}}catch(e){return null}}
+/* GHOST-B4: leaderboard leader's ghost for the daily challenge. GH_API is empty until a backend exists (see server/README). */
+let GH_API='',LEADER=null;
+async function apiJ(path,opt){const c=new AbortController(),t=setTimeout(()=>c.abort(),6000);try{const r=await fetch(GH_API+path,Object.assign({signal:c.signal},opt||{}));if(!r.ok)return null;return await r.json()}catch(e){return null}finally{clearTimeout(t)}}
+const cleanName=s=>typeof s==='string'?s.replace(/[^A-Za-z0-9 _-]/g,'').slice(0,16):'';
+async function leaderLoad(){
+  LEADER=null;const el=$('#dlead');if(!GH_API){el.textContent='';return}
+  const b=dailyBuild(utcDate());el.textContent='Leader: loading…';
+  const j=await apiJ('/leader?day='+b.date+'&gv='+GEN_V);
+  if(!j||typeof j.rep!=='string'){el.textContent='Leader: none yet';return}
+  const d=decRep(j.rep);
+  if(!d.ok||!d.r.mode||!d.r.fin||d.r.seed!==b.seed){el.textContent=d.err==='version'?'Leader ghost is from another game version':'Leader: unavailable';return}
+  LEADER={date:b.date,name:cleanName(j.name)||'Leader',score:d.r.score,rep:j.rep,r:d.r};
+  el.textContent='Leader: '+LEADER.name+' · '+fmtN(LEADER.score)+' — race their ghost'}
+function pidGet(){let p='';try{p=localStorage.getItem('wso_pid')||''}catch(e){}if(!/^[0-9a-f]{16}$/.test(p)){p=Array.from(crypto.getRandomValues(new Uint8Array(8)),x=>x.toString(16).padStart(2,'0')).join('');try{localStorage.setItem('wso_pid',p)}catch(e){}}return p}
+async function submitDaily(){
+  if(!GH_API||!lastRep||!lastRepInfo)return{ok:false,error:'offline'};
+  const pid=pidGet(),name=(()=>{try{return cleanName(localStorage.getItem('wso_name')||'')}catch(e){return''}})()||'Racer-'+pid.slice(0,4);
+  const j=await apiJ('/submit',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({day:lastRun&&lastRun.date||'',gv:GEN_V,pid,name,rep:lastRep})});
+  return j||{ok:false,error:'network'}}
+/* GHOST-B5 (client side of the toggle) */
+let gmode='pb',ghostVis=true,GH=null,GP=null,gA=1;
+try{const g=localStorage.getItem('wso_gmode');if(g==='off'||g==='pb'||g==='lead')gmode=g}catch(e){}
+const GHP=()=>GHP._||(GHP._=carPalette('#b9d0ff','#7fb2ff'));
+function ghostLbl(){return '👻 GHOST: '+(gmode==='off'?'OFF':gmode==='pb'?'MY BEST':'DAILY LEADER')}
+function ghostCycle(){const o=GH_API?['off','pb','lead']:['off','pb'];gmode=o[(o.indexOf(gmode)+1)%o.length];try{localStorage.setItem('wso_gmode',gmode)}catch(e){}$('#ghostbtn').textContent=ghostLbl()}
+function ghostPrep(seg){
+  GH=null;GP=null;if(seg!==0||tutMode||gmode==='off')return;
+  let s=null;
+  if(gmode==='lead'&&dailyMode&&LEADER&&LEADER.date===dailyInfo.date&&LEADER.r.seed===DAILYT.seed)s={r:LEADER.r,label:'#1 '+LEADER.name};
+  if(!s)s=gPB();if(!s)return;
+  const r=s.r;if(r.diff!==diff||(dailyMode?(!r.mode||r.seed!==DAILYT.seed):r.mode))return;
+  try{const x=runRep(r,{trace:true});if(x.ok&&x.trace){GH=x.trace;GH.label=s.label;GH.score=r.score;GH.ms=r.ms}}catch(e){GH=null}
+}
+function ghostPose(){
+  if(!GH||!ghostVis||GH.n<2||state==='menu')return null;
+  const f=Math.max(0,simTick-1+gA);if(f>GH.n-1)return null;
+  const i=Math.floor(f),j=Math.min(GH.n-1,i+1),u=f-i;
+  const gd=GH.D[i]+(GH.D[j]-GH.D[i])*u;if(gd-D<-5||gd-D>DRAWJ*L)return null;
+  return{d:gd,x:GH.X[i]+(GH.X[j]-GH.X[i])*u,y:GH.Y[i]+(GH.Y[j]-GH.Y[i])*u,t:GH.T[i]+(GH.T[j]-GH.T[i])*u}
+}
+function drawGhost(){
+  const g=GP;if(!g)return;const q=pj(g.x,g.y,-g.d),s=q[2];
+  ctx.save();ctx.globalAlpha=.38;ctx.translate(q[0],q[1]);ctx.rotate(camT-g.t);ctx.scale(s,-s);
+  carBody(ctx,GHP(),1,true,null);ctx.restore()}
+let ghT='';
+function ghostHud(){
+  const e=$('#ghg');let t='';
+  if(GH&&ghostVis&&state==='run'){
+    const n=GH.n;let lo=0,hi=n-1;
+    if(GH.D[hi]<D){t=GH.label+' · '+(GH.fin?'GHOST FINISHED':'GHOST CRASHED')}
+    else{while(lo<hi){const m=(lo+hi)>>1;if(GH.D[m]>=D)hi=m;else lo=m+1}
+      const gap=(lo-simTick)/120;t=GH.label+' · '+(gap>=0?'AHEAD ':'BEHIND ')+Math.abs(gap).toFixed(2)+'s';e.dataset.a=gap>=0?'1':'0'}
+  }
+  if(t!==ghT){ghT=t;e.textContent=t}
 }
 
 /* ============================ COSMETICS ============================ */
@@ -1076,7 +1229,7 @@ function ruleMet(r){if(r.t==='free')return true;const p=ruleProg(r);return !!p&&
 function ruleText(r){switch(r.t){case'free':return'Unlocked from the start';case'rank':return'Finish a run with rank '+r.r+(r.r==='S'?'':' or better');case'chain':return'Chain '+r.n+' clean shifts in one run';case'fstreak':return'Finish '+r.n+' runs in a row (a crash resets it)';case'days':return'Finish a run on '+r.n+' days in a row';case'daily':return'Finish the Daily Challenge on '+r.n+' days';case'orbs':return'Hold '+r.n+' ◆ orbs';default:return''}}
 function ruleProgText(r){const p=ruleProg(r);if(!p)return'';if(r.t==='rank')return' · best: '+(RLBL[p[0]]||'none');return' · '+p[0]+'/'+p[1]}
 /* DAILY-B1/B2: Daily Challenge. Same track for everyone for a UTC date. GEN_V names the generator version: if the generator ever changes, bump it so old and new builds never share a leaderboard day. */
-const GEN_V=1;
+const GEN_V=2;
 const utcDate=()=>new Date().toISOString().slice(0,10);
 const dayNoOf=d=>Math.floor((Date.parse(d+'T00:00:00Z')-Date.UTC(2026,0,1))/864e5)+1;
 const fnv=str=>{let h=2166136261;for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0};
@@ -1093,7 +1246,7 @@ const dailyCache={};
 function dailyBuild(date){
   if(dailyCache[date])return dailyCache[date];
   let out=null;
-  for(let k=0;k<32&&!out;k++){const seed=dailySeed(date,k),g=genTrackData(seed);if(validTrack(g))out={date,n:dayNoOf(date),seed,rerolls:k,g}}
+  for(let k=0;k<32&&!out;k++){const seed=dailySeed(date,k),g=genTrackData(seed);if(validTrack(g)&&botBeats(seed))out={date,n:dayNoOf(date),seed,rerolls:k,g}}
   if(!out)out={date,n:dayNoOf(date),seed:20241014,rerolls:32,g:genTrackData(20241014)};   // unreachable in practice: fall back to the standard (known beatable) track
   out.code=out.seed.toString(16).toUpperCase().padStart(8,'0').replace(/(.{4})(.{4})/,'$1-$2');
   return dailyCache[date]=out}
@@ -1219,8 +1372,11 @@ function tryRestart(msg){
 $('#mute').textContent=muted?'🔇':'🔊';
 $('#mute').onclick=()=>{muted=!muted;$('#mute').textContent=muted?'🔇':'🔊';try{localStorage.setItem('wso_mute',muted?'1':'0')}catch(e){}};
 const tb=(id,r)=>{$(id).addEventListener('pointerdown',e=>{e.preventDefault();requestShift(r)})};tb('#tl',-1);tb('#tr',1);tb('#tf',2);
+$('#ghostbtn').textContent=ghostLbl();$('#ghostbtn').onclick=ghostCycle;
+$('#pghost').onclick=()=>{ghostVis=!ghostVis;$('#pghost').textContent=ghostVis?'👻 HIDE GHOST':'👻 SHOW GHOST'};$('#pghost').textContent='👻 HIDE GHOST';
+$('#fsubmit').onclick=async()=>{const b=$('#fsubmit');b.disabled=true;b.textContent='SUBMITTING…';const j=await submitDaily();b.textContent=j&&j.ok?'SUBMITTED · RANK #'+j.rank:'NOT ACCEPTED: '+(j&&j.error||'error')};
 addEventListener('keydown',e=>{
-  if(e.repeat)return;const k=e.key;
+  if(e.repeat)return;const k=e.key;if(k==='g'||k==='G'){ghostVis=!ghostVis;return}
   if($('#settings').classList.contains('on')){if(k==='Escape')closeSettings();return}
   if(k==='ArrowLeft'||k==='a'||k==='A'){e.preventDefault();requestShift(-1)}
   else if(k==='ArrowRight'||k==='d'||k==='D'){e.preventDefault();requestShift(1)}
@@ -1370,7 +1526,7 @@ $('#s-file').onchange=async e=>{const f=e.target.files&&e.target.files[0];e.targ
   if(!chk){stoast('That file is not a Weight-Shift Odyssey backup');return}
   if(!confirm('Replace ALL progress on this device with this backup?'))return;
   const r=Save.importText(text);if(!r.ok){stoast(r.err);return}stoast('Backup restored · reloading…');setTimeout(()=>location.reload(),900)};
-$('#dailybtn').onclick=()=>{$('#menu').classList.remove('on');$('#daily').classList.add('on');fillDaily()};
+$('#dailybtn').onclick=()=>{$('#menu').classList.remove('on');$('#daily').classList.add('on');fillDaily();leaderLoad()};
 $('#dback').onclick=()=>{$('#daily').classList.remove('on');$('#menu').classList.add('on')};
 $('#dgo').onclick=()=>{if(confirm("Start today's scored attempt? You only get one, and quitting or crashing uses it up."))startDaily(false)};
 $('#dprac').onclick=()=>startDaily(true);
@@ -1761,8 +1917,8 @@ function advance(dt,stopAtEnd){
 function renderI(a){
   if(!prevOK||a<=0||a>=1){render();return}
   const sD=D,sx=px,sy=py,sc=camT;
-  D=pD+(D-pD)*a;px=ppx+(px-ppx)*a;py=ppy+(py-ppy)*a;camT=pcam+(camT-pcam)*a;
-  render();D=sD;px=sx;py=sy;camT=sc;
+  D=pD+(D-pD)*a;px=ppx+(px-ppx)*a;py=ppy+(py-ppy)*a;camT=pcam+(camT-pcam)*a;gA=a;
+  render();gA=1;D=sD;px=sx;py=sy;camT=sc;
 }
 /* PERF-B0: #test-only frame-time recorder (no effect on normal play) */
 const TESTM=location.hash.includes('test'),FTR=[];
@@ -1774,13 +1930,13 @@ function frame(t){
   else acc=0;
   engineUpdate();
   const w0=performance.now();
-  if(state!=='paused'||dirtyR){hud();renderI(acc/H);dirtyR=false}
+  if(state!=='paused'||dirtyR){hud();renderI(acc/H);ghostHud();dirtyR=false}
   if(A11.fm){fmSample(t/1000);badgeUpdate()}
   qualityTick(raw,(performance.now()-w0)/1000);
   requestAnimationFrame(frame);
 }
 placeOnFace(track[3].safe);D=3*L;
-if(location.hash.includes('test')){window.__wso={daily:{build:dailyBuild,genTrackData,validTrack,trackStats,dailySeed,VT,setup:prepDaily,useSeed:sd=>{DAILYT=genTrackData(sd);dailyInfo={n:0,date:'test',seed:sd};dailyMode='practice';if(savedDiff===null)savedDiff=diff;diff=1},leave:leaveDaily,start:startDaily,get:()=>({dailyMode,dy:CS.dy,dh:CS.dh}),utcDate,dayNoOf},cos:{COS,Save,getCS:()=>CS,runEnd:cosRunEnd,check:cosCheck,equip:cosEquip,dayNo:()=>dayNoOf(utcDate()),exportText:()=>Save.exportText(),importText:t=>Save.importText(t),drawTrail,renderInv,openInv,closeInv,setWallet:n=>{wallet=n}},share:{drawShareCard,cardBlob,shareResult,shareInfo,shareText,Native,getLast:()=>lastRun,getCrash:()=>lastCrash,crashInfo},a11y:{A11,FM,fmSample,set:a11ySet,apply:a11yApply,open:openSettings,close:closeSettings},step,render,begin:s=>{begin(s||0);state='run';$('#count').classList.remove('on')},bot:b=>{bot=b},look:x=>{botLook=x},
+if(location.hash.includes('test')){window.__wso={beginReal:s=>begin(s||0),rep:{enc:encRep,dec:decRep,run:runRep,SIM_V,REP_FMT,dexp,last:()=>({rep:lastRep,info:lastRepInfo}),setApi:u=>{GH_API=u},leader:leaderLoad,getLeader:()=>LEADER,submit:submitDaily,gh:()=>GH&&{n:GH.n,label:GH.label,score:GH.score},gmode:m=>{gmode=m},cycle:ghostCycle,pose:ghostPose,hud:ghostHud,gstore:gStore,gkey:gKey,state:()=>({simTick,rec:rec&&{n:rec.ev.length,dirty:rec.dirty}})},daily:{genV:()=>GEN_V,build:dailyBuild,genTrackData,validTrack,trackStats,dailySeed,VT,setup:prepDaily,useSeed:sd=>{DAILYT=genTrackData(sd);dailyInfo={n:0,date:'test',seed:sd};dailyMode='practice';if(savedDiff===null)savedDiff=diff;diff=1},leave:leaveDaily,start:startDaily,get:()=>({dailyMode,dy:CS.dy,dh:CS.dh}),utcDate,dayNoOf},cos:{COS,Save,getCS:()=>CS,runEnd:cosRunEnd,check:cosCheck,equip:cosEquip,dayNo:()=>dayNoOf(utcDate()),exportText:()=>Save.exportText(),importText:t=>Save.importText(t),drawTrail,renderInv,openInv,closeInv,setWallet:n=>{wallet=n}},share:{drawShareCard,cardBlob,shareResult,shareInfo,shareText,Native,getLast:()=>lastRun,getCrash:()=>lastCrash,crashInfo},a11y:{A11,FM,fmSample,set:a11ySet,apply:a11yApply,open:openSettings,close:closeSettings},step,render,begin:s=>{begin(s||0);state='run';$('#count').classList.remove('on')},bot:b=>{bot=b},look:x=>{botLook=x},
   advance:(dt,stop)=>advance(dt,stop),q:l=>{qMode='manual';applyQ(l);updQ()},qs:()=>({qMode,qLev,DPRCAP,QG,PCAP,DRAWD,DRAWJ}),perf:()=>{const a=FTR.slice(1).sort((x,y)=>x-y),n=a.length;return n?{n,avgMs:+(a.reduce((q,x)=>q+x,0)/n*1000).toFixed(2),p95Ms:+(a[Math.floor(n*.95)]*1000).toFixed(2),maxMs:+(a[n-1]*1000).toFixed(2)}:null},tutTick,tutOn:x=>{tutMode=x},tutS:()=>({i:tutI,n:TL.length,cur:tutCur&&tutCur.ti,k:tutCur&&tutCur.k,to:tutCur&&tutCur.to,scale:tutScale}),snap:()=>({state,D,face,elapsed,orbs:got.size,total:totalOrbs,deaths,shifts,cp:cpSeg,score:flux(),chain,boost,eff:effi(),burst:burstT,sc:Object.assign({},sc)}),setD:d=>{D=d},track,np:()=>parts.length,sk:()=>shake,setSk:x=>{shake=x},emit:burst,sp:stepParts,L:()=>L}}
 requestAnimationFrame(t=>{last=t;requestAnimationFrame(frame)});
 })();
