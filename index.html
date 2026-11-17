@@ -265,7 +265,7 @@
     </div>
     <div class="seg" id="diffs"><button data-d="0">CHILL</button><button data-d="1">NORMAL</button><button data-d="2">HYPER</button></div>
     <div class="seg" id="qual" role="group" aria-label="Graphics quality"><button data-q="auto">AUTO</button><button data-q="0">LOW</button><button data-q="1">MEDIUM</button><button data-q="2">HIGH</button></div>
-    <button class="btn" id="go">ENTER THE CUBE</button><button class="btn alt" id="dailybtn">📅 DAILY CHALLENGE</button><button class="btn alt" id="ghostbtn">👻 GHOST</button><button class="btn alt" id="vaultbtn">◆ VAULT</button><button class="btn alt" id="invbtn">🎨 INVENTORY</button><button class="btn alt" id="tutbtn">▶ TUTORIAL</button><button class="btn alt" id="setbtn">⚙ SETTINGS</button>
+    <button class="btn" id="go">ENTER THE CUBE</button><button class="btn alt" id="dailybtn">📅 DAILY CHALLENGE</button><button class="btn alt" id="pgsbtn" style="display:none">🎮 PLAY GAMES</button><button class="btn alt" id="ghostbtn">👻 GHOST</button><button class="btn alt" id="vaultbtn">◆ VAULT</button><button class="btn alt" id="invbtn">🎨 INVENTORY</button><button class="btn alt" id="tutbtn">▶ TUTORIAL</button><button class="btn alt" id="setbtn">⚙ SETTINGS</button>
 
     <div class="small" id="dline"></div>
     <div class="small" id="bestline"></div>
@@ -283,6 +283,12 @@
     <div class="eyebrow">SYSTEMS HOLDING</div><h2>PAUSED</h2>
     <p class="tag">Gravity is on hold. Take a breath.</p>
     <button class="btn" id="resume">RESUME</button><button class="btn alt" id="pquit">RESTART RUN</button><button class="btn alt" id="pghost">👻 SHOW / HIDE GHOST</button><button class="btn alt" id="pset">⚙ SETTINGS</button><button class="btn alt" id="phome">HOME</button>
+  </div></section>
+  <section class="overlay" id="pgs" aria-label="Google Play Games"><div class="panel">
+    <div class="eyebrow">GOOGLE PLAY GAMES</div><h2>PLAY GAMES</h2>
+    <p class="tag" id="pgsst" style="margin:8px auto 14px;font-size:12px"></p>
+    <button class="btn" id="pgslb">🏆 LEADERBOARD</button><button class="btn alt" id="pgslb2">🏆 ALL LEADERBOARDS</button><button class="btn alt" id="pgsach">🎖 ACHIEVEMENTS</button><button class="btn" id="pgsin" style="display:none">SIGN IN</button><button class="btn alt" id="pgsback">BACK</button>
+    <p class="tag" style="margin:10px auto 0;font-size:11px;opacity:.75">Your daily challenge ranking is separate and verified by the game's own server.</p>
   </div></section>
   <section class="overlay" id="daily" aria-label="Daily challenge"><div class="panel">
     <div class="eyebrow">TODAY'S CHALLENGE</div><h2 id="dtitle">DAILY</h2>
@@ -767,7 +773,7 @@ function reset(seg){
     for(const st of[anchorHit,anchorWarn])for(const j of[...st])if(j>=seg)st.delete(j)}
 }
 function startCount(){
-  document.body.classList.add('playing');['menu','pause','crash','finish','tdone','settings','inv','daily'].forEach(i=>$('#'+i).classList.remove('on'));
+  document.body.classList.add('playing');['menu','pause','crash','finish','tdone','settings','inv','daily','pgs'].forEach(i=>$('#'+i).classList.remove('on'));
   demo=false;state='count';countT=0;lastPhase=-1;
 }
 function begin(seg){ghostPrep(seg);walletFlush();showHint();audioInit();if(AC&&AC.state==='suspended')AC.resume();useTrack(tutMode?'tut':dailyMode?'daily':'std');reset(seg);repStart(seg);if(tutMode)tutReset();document.body.classList.toggle('tut',tutMode);restartAt=0;$('#rtoast').classList.remove('on');$('#pquit').textContent=tutMode?'RESTART TUTORIAL':'RESTART RUN';{const dd=dailyMode&&!tutMode;$('#slabel').textContent=dd?'DAILY #'+dailyInfo.n+(dailyMode==='scored'?' · SCORED':' · PRACTICE'):'FLUX SCORE';$('#pquit').style.display=dailyMode==='scored'&&!tutMode?'none':''}startCount()}
@@ -816,6 +822,7 @@ function crash(reason){if(QS){if(state==='crashed')return;state='crashed';crashT
   lastCrash=crashInfo();lastCrash.dn=dn;if(dn)lastCrash.date=dailyInfo.date;
   if(wasDaily)dailyEnd(false,flux(),'',lastCrash.prog);
   repEnd(false,flux());
+  pgsRunEnd({fin:false,chain:sc.maxChain,sling:sc.slingN,near:sc.nearN})   // PGS-B3
   {const r=cosRunEnd({fin:false,chain:sc.maxChain});$('#cnew').textContent=[cosNewText(r),wasDaily?'DAILY #'+dn+' · attempt used (score '+fmtN(flux())+' · '+lastCrash.prog+'%). More runs are practice.':''].filter(Boolean).join('   ')}
   setTimeout(()=>{prepShare(lastCrash).catch(()=>{})},300);   // SHARE-CRASH
   const why={fall:['LOST IN THE VOID','The floor ended. Shift gravity onto a wall before the gap.'],zap:['ELECTROCUTED','Electrified plates zap you the moment you touch them. Shift away before you land on one.'],wall:['STRUCTURAL FAILURE','That spiked barrier was in your way. Flip gravity onto a clear face first.']}[reason]||['WRECKED',''];
@@ -839,6 +846,7 @@ function finish(){
   {const ri=repEnd(true,final),gs=ri?gStore():'';$('#frep').textContent=ri?'REPLAY '+ri.bytes+' bytes ('+ri.chars+' chars, '+ri.events+' inputs)'+(gs?' · '+gs:''):'';$('#fsubmit').style.display=ri&&wasDaily&&GH_API?'':'none';$('#fsubmit').disabled=false;$('#fsubmit').textContent='SUBMIT TO DAILY LEADERBOARD'}   // GHOST-B1/B3
   setTimeout(()=>{prepShare(lastRun).catch(()=>{})},400);
   {const r=cosRunEnd({fin:true,rank,orbs:got.size,chain:sc.maxChain,sling:sc.slingN,near:sc.nearN,dailyScored:wasDaily});$('#fnew').textContent=cosNewText(r)}   // SHARE: pre-render the card so the tap can share instantly
+  pgsRunEnd({fin:true,rank,diff,score:final,deaths,pen:sc.pen,orbs:got.size,total:totalOrbs,chain:sc.maxChain,sling:sc.slingN,near:sc.nearN,daily:wasDaily,dc:CS.st.dc,norm:!dailyMode})   // PGS-B3
   $('#rank').textContent=rank;$('#rank').style.color={S:'#ffd166',A:'#37e6ff',B:'#ff4fd8',C:'#b9c6e2'}[rank];
   $('#ftime').textContent=fmt(elapsed);$('#forbs').textContent=got.size+' / '+totalOrbs;$('#fshift').textContent=shifts;
   if(dailyMode){$('#frec').textContent='';$('#fbest').textContent='DAILY #'+dailyInfo.n+(wasDaily?' · SCORED RESULT SAVED':' · PRACTICE (not scored)');return}   // daily runs never touch the normal records
@@ -955,6 +963,84 @@ function pickups(){
     });
   }
 }
+
+/* ============================ PLAY GAMES SERVICES (Android app only) ============================ */
+/* PGS-B3: ids. Paste the ids Play Console gives you (they look like CgkI...). An empty id is skipped silently, so the game works before they exist.
+   Rules: achievements unlock from finish()/crash() through ONE call, pgsRunEnd(); on the website (no Capacitor, no plugin) every call returns immediately. */
+const PGS_IDS={
+  ach:{first_finish:'',first_s:'',chain_20:'',hyper_finish:'',flawless:'',sling_10:'',near_5:'',all_orbs:'',daily_first:'',daily_7:''},
+  lb:{chill:'',normal:'',hyper:'',daily:''}};
+const PGS_Q='wso_pgs_q';
+const PGS=(()=>{
+  let T=8000,st='off',errm='';const done=new Set();let Q=[];
+  const cap=()=>{try{return window.Capacitor||null}catch(e){return null}};
+  function plug(){   // the plugin exists only inside the Android app; find it by its registered name (Capacitor lists native plugins in PluginHeaders)
+    const c=cap();if(!c||typeof c.isNativePlatform!=='function'||!c.isNativePlatform())return null;
+    try{if(typeof c.getPlatform==='function'&&c.getPlatform()!=='android')return null}catch(e){return null}
+    const P=c.Plugins||{};let n=['PlayGames','PlayGamesServices'].find(k=>{try{return !!P[k]}catch(e){return false}});
+    if(!n&&Array.isArray(c.PluginHeaders)){const h=c.PluginHeaders.find(h=>h&&/play.?games/i.test(h.name||''));if(h)n=h.name}
+    try{return n?P[n]||null:null}catch(e){return null}}
+  const call=(m,a)=>new Promise((res,rej)=>{const P=plug();if(!P||typeof P[m]!=='function')return rej(new Error('no '+m));
+    const t=setTimeout(()=>rej(new Error('timeout')),T);
+    Promise.resolve().then(()=>P[m](a)).then(v=>{clearTimeout(t);res(v)},e=>{clearTimeout(t);rej(e)})});
+  const okOf=r=>!!r&&(r.signedIn===true||r.isSignedIn===true||r.authenticated===true||r.isAuthenticated===true);
+  const aid=k=>(PGS_IDS.ach[k]||''),lid=k=>(PGS_IDS.lb[k]||'');
+  function qLoad(){try{const a=JSON.parse(localStorage.getItem(PGS_Q)||'[]');Q=(Array.isArray(a)?a:[]).filter(x=>Array.isArray(x)&&((x[0]==='a'&&x[1] in PGS_IDS.ach)||(x[0]==='s'&&x[1] in PGS_IDS.lb&&Number.isFinite(x[2])&&x[2]>0))).slice(0,60)}catch(e){Q=[]}}
+  function qSave(){try{Q.length?localStorage.setItem(PGS_Q,JSON.stringify(Q)):localStorage.removeItem(PGS_Q)}catch(e){}}
+  function qAdd(kind,key,score){
+    if(kind==='s'){const i=Q.findIndex(x=>x[0]==='s'&&x[1]===key);if(i>=0){if(Q[i][2]>=score)return;Q.splice(i,1)}}
+    else if(Q.some(x=>x[0]==='a'&&x[1]===key))return;
+    Q.push(kind==='s'?[kind,key,score]:[kind,key]);qSave()}
+  function qDel(kind,key){Q=Q.filter(x=>!(x[0]===kind&&x[1]===key));qSave()}
+  async function send(kind,key,score){
+    try{if(kind==='a')await call('unlockAchievement',{id:aid(key)});else await call('submitScore',{leaderboardId:lid(key),score});qDel(kind,key)}
+    catch(e){qAdd(kind,key,score)}}   // plugin/network trouble: keep it and retry after the next successful sign-in
+  function flush(){const q=Q.slice();for(const x of q){if(x[0]==='a'&&aid(x[1]))send('a',x[1]);else if(x[0]==='s'&&lid(x[1]))send('s',x[1],x[2])}}
+  function ui(){
+    const b=$('#pgsbtn');if(b)b.style.display=st==='off'?'none':'';
+    const s=$('#pgsst');if(!s)return;
+    s.textContent=st==='in'?'Signed in to Google Play Games.':st==='checking'?'Signing in…':'Not signed in. The game works normally; sign in to unlock achievements and use the leaderboard.';
+    const si=$('#pgsin');if(si)si.style.display=st==='out'?'':'none';
+    for(const id of['#pgslb','#pgslb2','#pgsach']){const e=$(id);if(e)e.disabled=st!=='in'}}
+  async function init(){
+    qLoad();const P=plug();if(!P){st='off';ui();return}
+    st='checking';ui();
+    try{
+      try{await call('initialize')}catch(e){}
+      let r=await call('signIn',{silent:true});let ok=okOf(r);
+      if(!ok){try{ok=okOf(await call('isSignedIn'))}catch(e){}}
+      st=ok?'in':'out'}
+    catch(e){errm=String(e&&e.message||e).slice(0,80);st='out'}   // graceful skip: no popup, no block, no retry loop
+    try{if(typeof P.addListener==='function')P.addListener('signInStateChanged',ev=>{const n=okOf(ev)?'in':'out';if(n!==st){st=n;if(st==='in')flush();ui()}})}catch(e){}
+    if(st==='in')flush();ui()}
+  async function signIn(){   // only from a tap
+    if(st==='off')return false;st='checking';ui();
+    try{const r=await call('signIn',{silent:false});st=okOf(r)?'in':'out';if(st!=='in'){try{st=okOf(await call('isSignedIn'))?'in':'out'}catch(e){}}}catch(e){errm=String(e&&e.message||e).slice(0,80);st='out'}
+    if(st==='in')flush();ui();return st==='in'}
+  function unlock(key){if(st==='off'||!aid(key)||done.has(key))return;done.add(key);if(st==='in')send('a',key);else qAdd('a',key)}
+  function submit(key,score){score=Math.round(score);if(st==='off'||!lid(key)||!(score>0))return;if(st==='in')send('s',key,score);else qAdd('s',key,score)}
+  async function show(m,a){if(st!=='in')return false;try{await call(m,a);return true}catch(e){errm=String(e&&e.message||e).slice(0,80);return false}}
+  /* PGS-B3: the ten achievements and when they unlock */
+  function runEnd(r){
+    if(st==='off')return;if(bot&&!TESTM)return;
+    if(r.fin){
+      unlock('first_finish');
+      if(r.rank==='S')unlock('first_s');                                  // first S rank
+      if(r.diff===2)unlock('hyper_finish');                               // finish on HYPER
+      if(!r.deaths&&!r.pen)unlock('flawless');                            // finish with no crash/retry
+      if(r.total>0&&r.orbs>=r.total)unlock('all_orbs');                   // every orb in one run
+      if(r.daily){unlock('daily_first');if(r.dc>=7)unlock('daily_7')}     // scored daily finishes (7 different days)
+    }
+    if(r.chain>=20)unlock('chain_20');                                    // 20 clean shifts in a row (counts even if the run ends in a crash)
+    if(r.sling>=10)unlock('sling_10');                                    // 10 slingshots in one run
+    if(r.near>=5)unlock('near_5');                                        // 5 near misses in one run
+    if(r.fin&&r.norm)submit(['chill','normal','hyper'][r.diff],r.score);  // PGS-B4: all-time boards per difficulty (normal mode only)
+  }
+  return{init,signIn,unlock,submit,runEnd,state:()=>st,err:()=>errm,queue:()=>Q.slice(),setTimeout:ms=>{T=ms},
+    showLB:()=>{const k=['chill','normal','hyper'][diff];return lid(k)?show('showLeaderboard',{leaderboardId:lid(k)}):show('showAllLeaderboards')},
+    showAll:()=>show('showAllLeaderboards'),showAch:()=>show('showAchievements'),ui}
+})();
+function pgsRunEnd(r){PGS.runEnd(r)}   // the one function the game calls; does nothing on the website
 
 /* ============================ GHOST REPLAYS ============================ */
 /* GHOST-B0: deterministic simulation. Replays are exact only if the sim is bit-for-bit repeatable, so: (1) the world advances in fixed 1/120 s ticks (PERF-B1), (2) exp() in the sim is dexp(), built from + - * / only (IEEE-exact on every engine; Math.exp is not), hypot() is sqrt(), (3) inputs are buffered and applied at one fixed point inside a tick, timed by integer tick counts (no clock), (4) nothing in the sim reads Math.random, Date or performance.now. */
@@ -1374,7 +1460,7 @@ $('#mute').onclick=()=>{muted=!muted;$('#mute').textContent=muted?'🔇':'🔊';
 const tb=(id,r)=>{$(id).addEventListener('pointerdown',e=>{e.preventDefault();requestShift(r)})};tb('#tl',-1);tb('#tr',1);tb('#tf',2);
 $('#ghostbtn').textContent=ghostLbl();$('#ghostbtn').onclick=ghostCycle;
 $('#pghost').onclick=()=>{ghostVis=!ghostVis;$('#pghost').textContent=ghostVis?'👻 HIDE GHOST':'👻 SHOW GHOST'};$('#pghost').textContent='👻 HIDE GHOST';
-$('#fsubmit').onclick=async()=>{const b=$('#fsubmit');b.disabled=true;b.textContent='SUBMITTING…';const j=await submitDaily();b.textContent=j&&j.ok?'SUBMITTED · RANK #'+j.rank:'NOT ACCEPTED: '+(j&&j.error||'error')};
+$('#fsubmit').onclick=async()=>{const b=$('#fsubmit');b.disabled=true;b.textContent='SUBMITTING…';const j=await submitDaily();b.textContent=j&&j.ok?'SUBMITTED · RANK #'+j.rank:'NOT ACCEPTED: '+(j&&j.error||'error');if(j&&j.ok)PGS.submit('daily',j.score)};   // PGS mirrors only server-verified daily scores
 addEventListener('keydown',e=>{
   if(e.repeat)return;const k=e.key;if(k==='g'||k==='G'){ghostVis=!ghostVis;return}
   if($('#settings').classList.contains('on')){if(k==='Escape')closeSettings();return}
@@ -1527,6 +1613,10 @@ $('#s-file').onchange=async e=>{const f=e.target.files&&e.target.files[0];e.targ
   if(!confirm('Replace ALL progress on this device with this backup?'))return;
   const r=Save.importText(text);if(!r.ok){stoast(r.err);return}stoast('Backup restored · reloading…');setTimeout(()=>location.reload(),900)};
 $('#dailybtn').onclick=()=>{$('#menu').classList.remove('on');$('#daily').classList.add('on');fillDaily();leaderLoad()};
+$('#pgsbtn').onclick=()=>{$('#menu').classList.remove('on');$('#pgs').classList.add('on');PGS.ui()};
+$('#pgsback').onclick=()=>{$('#pgs').classList.remove('on');$('#menu').classList.add('on')};
+$('#pgslb').onclick=()=>PGS.showLB();$('#pgslb2').onclick=()=>PGS.showAll();$('#pgsach').onclick=()=>PGS.showAch();
+$('#pgsin').onclick=async()=>{const b=$('#pgsin');b.disabled=true;await PGS.signIn();b.disabled=false};
 $('#dback').onclick=()=>{$('#daily').classList.remove('on');$('#menu').classList.add('on')};
 $('#dgo').onclick=()=>{if(confirm("Start today's scored attempt? You only get one, and quitting or crashing uses it up."))startDaily(false)};
 $('#dprac').onclick=()=>startDaily(true);
@@ -1936,8 +2026,9 @@ function frame(t){
   requestAnimationFrame(frame);
 }
 placeOnFace(track[3].safe);D=3*L;
-if(location.hash.includes('test')){window.__wso={beginReal:s=>begin(s||0),rep:{enc:encRep,dec:decRep,run:runRep,SIM_V,REP_FMT,dexp,last:()=>({rep:lastRep,info:lastRepInfo}),setApi:u=>{GH_API=u},leader:leaderLoad,getLeader:()=>LEADER,submit:submitDaily,gh:()=>GH&&{n:GH.n,label:GH.label,score:GH.score},gmode:m=>{gmode=m},cycle:ghostCycle,pose:ghostPose,hud:ghostHud,gstore:gStore,gkey:gKey,state:()=>({simTick,rec:rec&&{n:rec.ev.length,dirty:rec.dirty}})},daily:{genV:()=>GEN_V,build:dailyBuild,genTrackData,validTrack,trackStats,dailySeed,VT,setup:prepDaily,useSeed:sd=>{DAILYT=genTrackData(sd);dailyInfo={n:0,date:'test',seed:sd};dailyMode='practice';if(savedDiff===null)savedDiff=diff;diff=1},leave:leaveDaily,start:startDaily,get:()=>({dailyMode,dy:CS.dy,dh:CS.dh}),utcDate,dayNoOf},cos:{COS,Save,getCS:()=>CS,runEnd:cosRunEnd,check:cosCheck,equip:cosEquip,dayNo:()=>dayNoOf(utcDate()),exportText:()=>Save.exportText(),importText:t=>Save.importText(t),drawTrail,renderInv,openInv,closeInv,setWallet:n=>{wallet=n}},share:{drawShareCard,cardBlob,shareResult,shareInfo,shareText,Native,getLast:()=>lastRun,getCrash:()=>lastCrash,crashInfo},a11y:{A11,FM,fmSample,set:a11ySet,apply:a11yApply,open:openSettings,close:closeSettings},step,render,begin:s=>{begin(s||0);state='run';$('#count').classList.remove('on')},bot:b=>{bot=b},look:x=>{botLook=x},
+if(location.hash.includes('test')){window.__wso={pgs:PGS,pgsIds:PGS_IDS,beginReal:s=>begin(s||0),rep:{enc:encRep,dec:decRep,run:runRep,SIM_V,REP_FMT,dexp,last:()=>({rep:lastRep,info:lastRepInfo}),setApi:u=>{GH_API=u},leader:leaderLoad,getLeader:()=>LEADER,submit:submitDaily,gh:()=>GH&&{n:GH.n,label:GH.label,score:GH.score},gmode:m=>{gmode=m},cycle:ghostCycle,pose:ghostPose,hud:ghostHud,gstore:gStore,gkey:gKey,state:()=>({simTick,rec:rec&&{n:rec.ev.length,dirty:rec.dirty}})},daily:{genV:()=>GEN_V,build:dailyBuild,genTrackData,validTrack,trackStats,dailySeed,VT,setup:prepDaily,useSeed:sd=>{DAILYT=genTrackData(sd);dailyInfo={n:0,date:'test',seed:sd};dailyMode='practice';if(savedDiff===null)savedDiff=diff;diff=1},leave:leaveDaily,start:startDaily,get:()=>({dailyMode,dy:CS.dy,dh:CS.dh}),utcDate,dayNoOf},cos:{COS,Save,getCS:()=>CS,runEnd:cosRunEnd,check:cosCheck,equip:cosEquip,dayNo:()=>dayNoOf(utcDate()),exportText:()=>Save.exportText(),importText:t=>Save.importText(t),drawTrail,renderInv,openInv,closeInv,setWallet:n=>{wallet=n}},share:{drawShareCard,cardBlob,shareResult,shareInfo,shareText,Native,getLast:()=>lastRun,getCrash:()=>lastCrash,crashInfo},a11y:{A11,FM,fmSample,set:a11ySet,apply:a11yApply,open:openSettings,close:closeSettings},step,render,begin:s=>{begin(s||0);state='run';$('#count').classList.remove('on')},bot:b=>{bot=b},look:x=>{botLook=x},
   advance:(dt,stop)=>advance(dt,stop),q:l=>{qMode='manual';applyQ(l);updQ()},qs:()=>({qMode,qLev,DPRCAP,QG,PCAP,DRAWD,DRAWJ}),perf:()=>{const a=FTR.slice(1).sort((x,y)=>x-y),n=a.length;return n?{n,avgMs:+(a.reduce((q,x)=>q+x,0)/n*1000).toFixed(2),p95Ms:+(a[Math.floor(n*.95)]*1000).toFixed(2),maxMs:+(a[n-1]*1000).toFixed(2)}:null},tutTick,tutOn:x=>{tutMode=x},tutS:()=>({i:tutI,n:TL.length,cur:tutCur&&tutCur.ti,k:tutCur&&tutCur.k,to:tutCur&&tutCur.to,scale:tutScale}),snap:()=>({state,D,face,elapsed,orbs:got.size,total:totalOrbs,deaths,shifts,cp:cpSeg,score:flux(),chain,boost,eff:effi(),burst:burstT,sc:Object.assign({},sc)}),setD:d=>{D=d},track,np:()=>parts.length,sk:()=>shake,setSk:x=>{shake=x},emit:burst,sp:stepParts,L:()=>L}}
+setTimeout(()=>{PGS.init()},1200);   // PGS-B2: silent sign-in shortly after launch (never blocks the game)
 requestAnimationFrame(t=>{last=t;requestAnimationFrame(frame)});
 })();
 </script>
