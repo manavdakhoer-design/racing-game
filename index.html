@@ -215,6 +215,160 @@
 </style>
 </head>
 <body>
+<!-- LOAD-B1: loading overlay (markup + CSS). Separate script, self-contained; never touches game state. -->
+<style>
+#loader{position:fixed;inset:0;z-index:200;display:flex;flex-direction:column;align-items:center;overflow-y:auto;padding:max(14px,env(safe-area-inset-top)) 18px max(14px,env(safe-area-inset-bottom));background:#05060f;color:#f4f7ff;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;transition:opacity .28s;touch-action:manipulation;--ld-line:#37e6ff;--ld-glow:#37e6ff;--ld-card:#37e6ff66;--ld-acc:#ffb347;--ld-bar:linear-gradient(90deg,#37e6ff,#8df3ff)}
+#loader.out{opacity:0;pointer-events:none}
+#ldc{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none}
+#loader .ldz{position:relative;z-index:1;width:100%;max-width:520px;display:flex;flex-direction:column;align-items:center;flex:1 0 auto;min-height:0}
+#ldttl{margin-top:6px;font:800 12px/1 Orbitron,ui-sans-serif,system-ui,sans-serif;letter-spacing:.34em;color:var(--ld-line);text-align:center;text-shadow:0 0 14px var(--ld-glow)}
+#ldslot{flex:1 1 auto;min-height:96px;width:100%}
+#ldbar{width:min(78vw,420px);height:8px;border-radius:6px;background:#ffffff1c;overflow:hidden}
+#ldfill{height:100%;width:0;border-radius:6px;background:var(--ld-bar);box-shadow:0 0 14px var(--ld-glow)}
+#ldname{margin-top:9px;min-height:12px;font:700 11px/1 ui-sans-serif,system-ui,sans-serif;letter-spacing:.22em;text-transform:uppercase;color:#b9c6e2;text-align:center}
+#ldcard{margin-top:14px;width:100%;min-height:128px;display:flex;flex-direction:column;align-items:flex-start;gap:7px;padding:14px 16px;text-align:left;font:inherit;color:inherit;border:1px solid var(--ld-card);border-radius:16px;background:rgba(9,13,34,.8);box-shadow:0 0 26px -10px var(--ld-glow),0 8px 24px #0007;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);cursor:pointer}
+#ldcard:focus-visible,#ldgo:focus-visible{outline:2px solid #fff;outline-offset:3px}
+#ldcat{font:800 10px/1 ui-sans-serif,system-ui,sans-serif;letter-spacing:.24em;color:var(--ld-acc)}
+#ldq{font:700 16px/1.4 ui-sans-serif,system-ui,sans-serif;color:#f4f7ff}
+#ldhint{margin-top:auto;font:700 10px/1 ui-sans-serif,system-ui,sans-serif;letter-spacing:.18em;text-transform:uppercase;color:#9fb2d4}
+#ldcnt{margin-top:9px;font:700 10px/1 ui-sans-serif,system-ui,sans-serif;letter-spacing:.14em;color:#8190b3;text-align:center}
+#ldgo{margin:12px 0 4px;min-height:46px;padding:0 34px;border-radius:999px;font:800 14px/1 Orbitron,ui-sans-serif,system-ui,sans-serif;letter-spacing:.22em;color:#05060f;background:var(--ld-bar);box-shadow:0 0 22px -4px var(--ld-glow);opacity:0;transform:translateY(6px);pointer-events:none;transition:opacity .25s,transform .25s}
+#ldgo.on{opacity:1;transform:none;pointer-events:auto}
+#ldcard.flip{animation:ldflip .3s ease}
+@keyframes ldflip{0%{transform:rotateX(0)}50%{transform:rotateX(88deg)}100%{transform:rotateX(0)}}
+@media (prefers-reduced-motion:reduce){#loader,#ldgo{transition:none}#ldcard.flip{animation:none}}
+@media (max-height:480px){#ldttl{display:none}#ldslot{min-height:70px}#ldcard{min-height:92px;margin-top:8px;padding:10px 14px;gap:5px}#ldq{font-size:14px}#ldgo{min-height:40px;margin:8px 0 2px}}
+</style>
+<div id="loader" role="dialog" aria-modal="true" aria-label="Loading Weight-Shift Odyssey"><canvas id="ldc" aria-hidden="true"></canvas>
+<div class="ldz">
+<div id="ldttl">WEIGHT-SHIFT ODYSSEY</div>
+<div id="ldslot"></div>
+<div id="ldbar" role="progressbar" aria-label="Loading" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="ldfill"></div></div>
+<div id="ldname"></div>
+<button id="ldcard" type="button"><span id="ldcat"></span><span id="ldq"></span><span id="ldhint"></span></button>
+<div id="ldcnt"></div>
+<button id="ldgo" type="button" tabindex="-1">START</button>
+</div></div>
+<script>
+(function(){
+var L=document.getElementById('loader');if(!L)return;
+if(/test|noload/.test(location.hash)){L.parentNode.removeChild(L);return}   /* bots, screenshots and the replay verifier never see the loader */
+var dead=false,raf=0,LD={};
+try{
+/* LOAD-B2: safe-storage helper. Every read and write is wrapped, so private mode / blocked storage / bad JSON can never break the loader. */
+var SS=LD.ss={
+  get:function(k,d){try{var v=localStorage.getItem(k);return v===null?d:v}catch(e){return d}},
+  set:function(k,v){try{localStorage.setItem(k,String(v));return true}catch(e){return false}},
+  getJSON:function(k,d){try{var v=JSON.parse(localStorage.getItem(k));return v==null?d:v}catch(e){return d}},
+  setJSON:function(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){return false}}
+};
+var RM=(function(){var r=SS.get('wso_rm',null);if(r==='0')return false;if(r==='1')return true;try{return !!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)}catch(e){return false}})();
+function $(id){return document.getElementById(id)}
+
+/* LOAD-B3: palette, tunnel scene, car slot and progress bar. Colours come from one hue with fixed saturation and lightness. */
+LD.makePal=function(h,accSign){
+  var a=(h+(accSign<0?-120:120)+360)%360;   /* accent: 120 degrees from the hue, so never the hue or its opposite */
+  function c(s,l,al){return 'hsla('+h+','+s+'%,'+l+'%,'+(al==null?1:al)+')'}
+  return {h:h,acc:a,
+    body:c(85,56),dark:c(70,30),light:c(95,78),glow:c(100,60),line:c(80,55),glass:c(60,18),
+    accent:'hsl('+a+',90%,62%)',tire:'#0b0e1c',rim:c(25,80),
+    col:c,bar:'linear-gradient(90deg,hsl('+h+',85%,52%),hsl('+h+',95%,68%))',
+    card:c(90,62,.42),t:0};
+};
+LD.pal=LD.makePal(190,1);
+LD.applyPal=function(P){
+  var s=L.style;s.setProperty('--ld-line',P.line);s.setProperty('--ld-glow',P.glow);s.setProperty('--ld-card',P.card);s.setProperty('--ld-acc',P.accent);s.setProperty('--ld-bar',P.bar);
+};
+/* placeholder car (replaced by the 8-car table later) */
+LD.cars=[{id:'base',name:'Test Coupe',draw:function(ctx,w,h,P){
+  ctx.fillStyle=P.body;ctx.beginPath();ctx.moveTo(w*.04,h*.7);ctx.lineTo(w*.1,h*.5);ctx.lineTo(w*.34,h*.46);ctx.lineTo(w*.5,h*.22);ctx.lineTo(w*.78,h*.26);ctx.lineTo(w*.94,h*.52);ctx.lineTo(w*.97,h*.7);ctx.closePath();ctx.fill();
+  ctx.fillStyle=P.glass;ctx.fillRect(w*.52,h*.28,w*.22,h*.16);
+  ctx.fillStyle=P.light;ctx.fillRect(w*.93,h*.55,w*.05,h*.06);
+  [.24,.76].forEach(function(f){ctx.fillStyle=P.tire;ctx.beginPath();ctx.arc(w*f,h*.78,h*.14,0,6.2832);ctx.fill();ctx.strokeStyle=P.rim;ctx.lineWidth=2;ctx.beginPath();ctx.arc(w*f,h*.78,h*.07,P.t*12,P.t*12+4);ctx.stroke()});
+}}];
+LD.cur=LD.cars[0];
+var cv=$('ldc'),cx=cv.getContext&&cv.getContext('2d'),slot=$('ldslot'),W=0,H=0,DPR=1,box={x:0,y:0,w:10,h:4};
+function resize(){
+  DPR=Math.min(2,window.devicePixelRatio||1);W=window.innerWidth;H=window.innerHeight;cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR);
+  var r=slot.getBoundingClientRect(),cw=Math.min(r.width*.82,360),ch=cw*.42;
+  if(ch>r.height-10){ch=Math.max(40,r.height-10);cw=ch/.42}
+  box={x:r.left+r.width/2-cw/2,y:r.top+r.height/2-ch/2,w:cw,h:ch};
+  if(!raf)frame(lastT);
+}
+var lastT=0;
+function frame(t){
+  lastT=t;if(!cx)return;
+  var P=LD.pal;P.t=t;
+  cx.setTransform(DPR,0,0,DPR,0,0);cx.fillStyle='#05060f';cx.fillRect(0,0,W,H);
+  var vx=box.x+box.w*.5,vy=box.y+box.h*.5,maxR=Math.hypot(W,H)*.7,i,u,r,a;
+  /* tunnel: rings rushing outward + fixed radial lines */
+  for(i=0;i<9;i++){u=((i/9)+t*.12)%1;r=maxR*u*u;cx.strokeStyle=P.col(80,55,u*.5);cx.lineWidth=1+u*2;cx.beginPath();cx.ellipse(vx,vy,r*1.25,r*.8,0,0,6.2832);cx.stroke()}
+  cx.lineWidth=1;
+  for(i=0;i<18;i++){a=i*6.2832/18;cx.strokeStyle=P.col(80,55,.16);cx.beginPath();cx.moveTo(vx+Math.cos(a)*maxR*.03*1.25,vy+Math.sin(a)*maxR*.03*.8);cx.lineTo(vx+Math.cos(a)*maxR*1.25,vy+Math.sin(a)*maxR*.8);cx.stroke()}
+  /* glow under the car, road line with moving dashes */
+  var gy=box.y+box.h*.86,R=box.w*.75,g=cx.createRadialGradient(0,0,2,0,0,R);g.addColorStop(0,P.col(100,60,.38));g.addColorStop(1,P.col(100,60,0));
+  cx.save();cx.translate(vx,gy);cx.scale(1,.5);cx.fillStyle=g;cx.fillRect(-R,-R,2*R,2*R);cx.restore();
+  cx.fillStyle=P.col(80,55,.55);cx.fillRect(0,gy+box.h*.1,W,1.5);
+  cx.fillStyle=P.col(80,70,.5);for(i=0;i<14;i++){var dx=((i*86-t*260)%(W+86)+W+86)%(W+86)-43;cx.fillRect(dx,gy+box.h*.1+8+(i%3)*5,26+(i%4)*8,2)}
+  /* car (drawn by the car table; bobs a little) */
+  cx.save();cx.translate(box.x,box.y+(RM?0:Math.sin(t*9)*1.3));LD.cur.draw(cx,box.w,box.h,P);cx.restore();
+}
+function setPct(p){$('ldfill').style.width=(p*100).toFixed(1)+'%';var n=Math.round(p*10)*10,b=$('ldbar');if(b.getAttribute('aria-valuenow')!=n)b.setAttribute('aria-valuenow',n)}
+
+/* LOAD-B4: flashcard. States: question -> "Tap to know the answer" -> flip to answer -> "Tap for next card" -> next card. Text is set with textContent only. */
+LD.cards=[
+  {id:'p001',category:'PLACEHOLDER',q:'Placeholder question one?',a:'Placeholder answer one.'},
+  {id:'p002',category:'PLACEHOLDER',q:'Placeholder question two?',a:'Placeholder answer two.'},
+  {id:'p003',category:'PLACEHOLDER',q:'Placeholder question three?',a:'Placeholder answer three.'}
+];
+var cardIx=0,cardSt='q',cardBtn=$('ldcard');
+LD.nextCard=function(){var c=LD.cards[cardIx%LD.cards.length];cardIx++;return {card:c,pos:((cardIx-1)%LD.cards.length)+1,total:LD.cards.length}};
+var curCard=null;
+function showCard(flip){
+  if(!curCard)return;
+  var c=curCard.card;$('ldcat').textContent=c.category;
+  $('ldq').textContent=cardSt==='q'?c.q:c.a;
+  $('ldhint').textContent=cardSt==='q'?'Tap to know the answer':'Tap for next card';
+  $('ldcnt').textContent='Card '+curCard.pos+' of '+curCard.total+' this round';
+  cardBtn.setAttribute('aria-label',(cardSt==='q'?'Question: '+c.q+'. Tap to know the answer.':'Answer: '+c.a+'. Tap for next card.'));
+  if(flip&&!RM){cardBtn.classList.remove('flip');void cardBtn.offsetWidth;cardBtn.classList.add('flip')}
+}
+cardBtn.addEventListener('click',function(){
+  if(cardSt==='q'){cardSt='a';showCard(true)}else{cardSt='q';curCard=LD.nextCard();showCard(true)}
+});
+curCard=LD.nextCard();showCard(false);$('ldname').textContent=LD.cur.name;LD.applyPal(LD.pal);
+
+/* LOAD-B5: lifecycle. Bar fills over MIN seconds and cannot finish before the page has loaded; then START appears. Keys are held back from the game while the loader is up. */
+var MIN=RM?1.2:3.2,t0=performance.now(),ready=document.readyState==='complete',go=$('ldgo'),shownGo=false;
+if(!ready)window.addEventListener('load',function(){ready=true});
+setTimeout(function(){ready=true},6000);
+function tick(now){
+  if(dead)return;
+  var el=(now-t0)/1000,p=Math.min(1,el/MIN);p=1-Math.pow(1-p,2.2);if(!ready)p=Math.min(p,.92);
+  setPct(p);
+  if(p>=1&&!shownGo){shownGo=true;go.classList.add('on');go.tabIndex=0;try{go.focus({preventScroll:true})}catch(e){}}
+  frame(RM?0:el);
+  raf=requestAnimationFrame(tick);
+}
+function finish(){
+  if(dead)return;dead=true;cancelAnimationFrame(raf);raf=0;
+  window.removeEventListener('keydown',onKey,true);window.removeEventListener('keyup',onKey,true);window.removeEventListener('resize',resize);
+  LD.done=true;L.classList.add('out');
+  setTimeout(function(){if(L.parentNode)L.parentNode.removeChild(L);try{window.dispatchEvent(new Event('wso-loader-done'))}catch(e){}},RM?0:300);
+}
+function onKey(e){
+  if(dead||e.key==='Tab')return;
+  e.stopPropagation();
+  if(e.type==='keydown'&&(e.key==='Enter'||e.key===' ')&&e.target&&e.target.tagName!=='BUTTON'&&shownGo){e.preventDefault();finish()}
+}
+go.addEventListener('click',finish);
+window.addEventListener('keydown',onKey,true);window.addEventListener('keyup',onKey,true);window.addEventListener('resize',resize);
+resize();raf=requestAnimationFrame(tick);
+}catch(err){dead=true;if(raf)cancelAnimationFrame(raf);if(L.parentNode)L.parentNode.removeChild(L)}   /* if anything above fails, get out of the way: the game must always start */
+window.__LD=LD;
+})();
+</script>
+
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
 <filter id="cvd1" color-interpolation-filters="linearRGB"><feColorMatrix type="matrix" values="0.367322 0.860646 -0.227968 0 0  0.280085 0.672501 0.047413 0 0  -0.011820 0.042940 0.968881 0 0  0 0 0 1 0"/></filter>
 <filter id="cvd2" color-interpolation-filters="linearRGB"><feColorMatrix type="matrix" values="0.152286 1.052583 -0.204868 0 0  0.114503 0.786281 0.099216 0 0  -0.003882 -0.048116 1.051998 0 0  0 0 0 1 0"/></filter>
