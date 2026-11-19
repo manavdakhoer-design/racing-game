@@ -215,40 +215,42 @@
 </style>
 </head>
 <body>
-<!-- LOAD-B1: loading overlay (markup + CSS). Separate script, self-contained; never touches game state. -->
+<!-- LOAD-B14: square-loop loading overlay (markup + CSS). Separate script, self-contained; never touches game state. -->
 <style>
-#loader{position:fixed;inset:0;z-index:200;display:flex;flex-direction:column;align-items:center;overflow-y:auto;padding:max(14px,env(safe-area-inset-top)) 18px max(14px,env(safe-area-inset-bottom));background:#05060f;color:#f4f7ff;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;transition:opacity .28s;touch-action:manipulation;--ld-line:#37e6ff;--ld-glow:#37e6ff;--ld-card:#37e6ff66;--ld-acc:#ffb347;--ld-bar:linear-gradient(90deg,#37e6ff,#8df3ff)}
+#loader{position:fixed;inset:0;z-index:200;display:flex;flex-direction:column;align-items:center;overflow-y:auto;padding:max(14px,env(safe-area-inset-top)) 18px max(14px,env(safe-area-inset-bottom));background:#05060f;color:#f4f7ff;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;transition:opacity .28s;touch-action:manipulation;--ld-glow:#37e6ff;--ld-card:#37e6ff66;--ld-acc:#8df3ff;--ld-bar:linear-gradient(90deg,#37e6ff,#8df3ff)}
 #loader.out{opacity:0;pointer-events:none}
 #ldc{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none}
 #loader .ldz{position:relative;z-index:1;width:100%;max-width:520px;display:flex;flex-direction:column;align-items:center;flex:1 0 auto;min-height:0}
-#ldttl{margin-top:6px;font:800 12px/1 Orbitron,ui-sans-serif,system-ui,sans-serif;letter-spacing:.34em;color:var(--ld-line);text-align:center;text-shadow:0 0 14px var(--ld-glow)}
-#ldslot{flex:1 1 auto;min-height:118px;width:100%}
-#ldbar{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}   /* the visible bar is the 3D cuboid drawn on the canvas; this one stays for screen readers */
-#ldfill{height:100%;width:0;border-radius:6px;background:var(--ld-bar);box-shadow:0 0 14px var(--ld-glow)}
-#ldname{margin-top:9px;min-height:12px;font:700 11px/1 ui-sans-serif,system-ui,sans-serif;letter-spacing:.22em;text-transform:uppercase;color:#b9c6e2;text-align:center}
-#ldcard{margin-top:14px;width:100%;min-height:128px;display:flex;flex-direction:column;align-items:flex-start;gap:7px;padding:14px 16px;text-align:left;font:inherit;color:inherit;border:1px solid var(--ld-card);border-radius:16px;background:rgba(9,13,34,.8);box-shadow:0 0 26px -10px var(--ld-glow),0 8px 24px #0007;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);cursor:pointer}
+#ldslot{flex:1 1 auto;min-height:150px;width:100%}
+.ldr{width:100%;display:flex;flex-direction:column;align-items:center;min-width:0}
+#ldcard{width:100%;min-height:128px;display:flex;flex-direction:column;align-items:center;justify-content:space-between;gap:8px;padding:14px 16px;text-align:center;font:inherit;color:inherit;border:1.5px solid var(--ld-card);border-radius:16px;background:rgba(9,13,34,.8);box-shadow:0 0 26px -10px var(--ld-glow),0 8px 24px #0007;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);cursor:pointer}
 #ldcard:focus-visible,#ldgo:focus-visible{outline:2px solid #fff;outline-offset:3px}
-#ldcat{font:800 10px/1 ui-sans-serif,system-ui,sans-serif;letter-spacing:.24em;color:var(--ld-acc)}
-#ldq{font:700 16px/1.4 ui-sans-serif,system-ui,sans-serif;color:#f4f7ff}
-#ldhint{margin-top:auto;font:700 10px/1 ui-sans-serif,system-ui,sans-serif;letter-spacing:.18em;text-transform:uppercase;color:#9fb2d4}
-#ldcnt{margin-top:9px;font:700 10px/1 ui-sans-serif,system-ui,sans-serif;letter-spacing:.14em;color:#8190b3;text-align:center}
-#ldgo{margin:12px 0 4px;min-height:46px;padding:0 34px;border-radius:999px;font:800 14px/1 Orbitron,ui-sans-serif,system-ui,sans-serif;letter-spacing:.22em;color:#05060f;background:var(--ld-bar);box-shadow:0 0 22px -4px var(--ld-glow);opacity:0;transform:translateY(6px);pointer-events:none;transition:opacity .25s,transform .25s}
+#ldcat{font:800 11px/1.2 Orbitron,ui-sans-serif,system-ui,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:var(--ld-acc)}
+#ldq{font:700 16px/1.4 ui-sans-serif,system-ui,sans-serif;color:#f4f7ff;overflow-wrap:anywhere}
+#ldhint{font:700 11px/1.2 ui-sans-serif,system-ui,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#9fb2d4}
+#ldcnt{margin-top:9px;font:700 10px/1.2 ui-sans-serif,system-ui,sans-serif;letter-spacing:.14em;color:#9fb2d4;text-align:center}
+#ldgo{margin:12px 0 4px;min-height:46px;padding:0 30px;border-radius:999px;font:800 13px/1 Orbitron,ui-sans-serif,system-ui,sans-serif;letter-spacing:.18em;text-transform:uppercase;color:#05060f;background:var(--ld-bar);box-shadow:0 0 22px -4px var(--ld-glow);opacity:0;transform:translateY(6px);pointer-events:none;transition:opacity .25s,transform .25s}
 #ldgo.on{opacity:1;transform:none;pointer-events:auto}
-#ldcard.flip{animation:ldflip .3s ease}
+#ldcard.flip{animation:ldflip .25s ease}
 @keyframes ldflip{0%{transform:rotateX(0)}50%{transform:rotateX(88deg)}100%{transform:rotateX(0)}}
-@media (prefers-reduced-motion:reduce){#loader,#ldgo{transition:none}#ldcard.flip{animation:none}}
-@media (max-height:480px){#ldttl{display:none}#ldslot{min-height:104px}#ldcard{min-height:92px;margin-top:8px;padding:10px 14px;gap:5px}#ldq{font-size:14px}#ldgo{min-height:40px;margin:8px 0 2px}}
+#ldcard.fade{animation:ldfade .25s ease}
+@keyframes ldfade{0%{opacity:.25}100%{opacity:1}}
+#ldbar,#ldlive{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}   /* screen-reader only: progress value and the spoken answer */
+@media (prefers-reduced-motion:reduce){#loader,#ldgo{transition:none}}
+@media (max-height:420px){#loader .ldz{flex-direction:row;align-items:center;gap:18px;max-width:900px}#ldslot{flex:1 1 50%;min-height:0;align-self:stretch;width:auto}.ldr{flex:1 1 50%}#ldcard{min-height:92px;padding:10px 14px;gap:6px}#ldq{font-size:14px}#ldgo{min-height:40px;margin:8px 0 2px}}
 </style>
 <div id="loader" role="dialog" aria-modal="true" aria-label="Loading Weight-Shift Odyssey"><canvas id="ldc" aria-hidden="true"></canvas>
 <div class="ldz">
-<div id="ldttl">WEIGHT-SHIFT ODYSSEY</div>
 <div id="ldslot"></div>
-<div id="ldbar" role="progressbar" aria-label="Loading" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="ldfill"></div></div>
-<div id="ldname"></div>
+<div class="ldr">
 <button id="ldcard" type="button"><span id="ldcat"></span><span id="ldq"></span><span id="ldhint"></span></button>
 <div id="ldcnt"></div>
-<button id="ldgo" type="button" tabindex="-1">START</button>
-</div></div>
+<button id="ldgo" type="button" tabindex="-1">Tap to continue</button>
+</div>
+</div>
+<div id="ldbar" role="progressbar" aria-label="Loading" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="ldfill"></div></div>
+<div id="ldlive" aria-live="polite"></div>
+</div>
 <script>
 (function(){
 var L=document.getElementById('loader');if(!L)return;
@@ -265,92 +267,77 @@ var SS=LD.ss={
 var RM=(function(){var r=SS.get('wso_rm',null);if(r==='0')return false;if(r==='1')return true;try{return !!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)}catch(e){return false}})();
 function $(id){return document.getElementById(id)}
 
-/* LOAD-B3: palette, tunnel scene, car slot and progress bar. Colours come from one hue with fixed saturation and lightness. */
+/* LOAD-B14: palette, double-outline rounded square, percentage and car name. Fixed hue for now (the game's cyan); all colours come from one hue with fixed saturation and lightness. */
 LD.makePal=function(h,accSign){
-  var a=(h+(accSign<0?-120:120)+360)%360;   /* accent: 120 degrees from the hue, so never the hue or its opposite */
+  var a=(h+(accSign<0?-120:120)+360)%360;   /* accent: 120 degrees from the hue, never the hue or its opposite */
   function c(s,l,al){return 'hsla('+h+','+s+'%,'+l+'%,'+(al==null?1:al)+')'}
   return {h:h,acc:a,
-    body:c(85,56),dark:c(70,30),light:c(95,78),glow:c(100,60),line:c(80,55),glass:c(60,18),
-    accent:'hsl('+a+',90%,62%)',tire:'#0b0e1c',rim:c(25,80),
-    col:c,bar:'linear-gradient(90deg,hsl('+h+',85%,52%),hsl('+h+',95%,68%))',
-    card:c(90,62,.42),t:0};
+    outer:c(90,80),inner:c(85,68),lane:c(70,50,.12),lit:c(100,61),glow:c(100,60),pct:c(95,84),
+    body:c(85,56),dark:c(70,30),light:c(95,78),glass:c(60,18),accent:'hsl('+a+',90%,66%)',tire:'#0b0e1c',rim:c(25,80),
+    col:c,bar:'linear-gradient(90deg,hsl('+h+',85%,52%),hsl('+h+',95%,68%))',card:c(90,62,.45),cardAcc:c(90,74),t:0};
 };
-LD.pal=LD.makePal(190,1);
-LD.applyPal=function(P){
-  var s=L.style;s.setProperty('--ld-line',P.line);s.setProperty('--ld-glow',P.glow);s.setProperty('--ld-card',P.card);s.setProperty('--ld-acc',P.accent);s.setProperty('--ld-bar',P.bar);
-};
-/* placeholder car (replaced by the 8-car table later) */
-LD.cars=[{id:'base',name:'Test Coupe',draw:function(ctx,w,h,P){
-  ctx.fillStyle=P.body;ctx.beginPath();ctx.moveTo(w*.04,h*.7);ctx.lineTo(w*.1,h*.5);ctx.lineTo(w*.34,h*.46);ctx.lineTo(w*.5,h*.22);ctx.lineTo(w*.78,h*.26);ctx.lineTo(w*.94,h*.52);ctx.lineTo(w*.97,h*.7);ctx.closePath();ctx.fill();
-  ctx.fillStyle=P.glass;ctx.fillRect(w*.52,h*.28,w*.22,h*.16);
-  ctx.fillStyle=P.light;ctx.fillRect(w*.93,h*.55,w*.05,h*.06);
-  [.24,.76].forEach(function(f){ctx.fillStyle=P.tire;ctx.beginPath();ctx.arc(w*f,h*.78,h*.14,0,6.2832);ctx.fill();ctx.strokeStyle=P.rim;ctx.lineWidth=2;ctx.beginPath();ctx.arc(w*f,h*.78,h*.07,P.t*12,P.t*12+4);ctx.stroke()});
-}}];
+LD.pal=LD.makePal(188,1);   /* 188 = the game's --cy #37e6ff */
+LD.applyPal=function(P){var s=L.style;s.setProperty('--ld-glow',P.glow);s.setProperty('--ld-card',P.card);s.setProperty('--ld-acc',P.cardAcc);s.setProperty('--ld-bar',P.bar)};
+LD.cars=[{id:'base',name:'Placeholder car',draw:null}];   /* the 8 real cars arrive in a later block */
 LD.cur=LD.cars[0];
-var cv=$('ldc'),cx=cv.getContext&&cv.getContext('2d'),slot=$('ldslot'),W=0,H=0,DPR=1,G={x0:0,y0:0,Lb:200,dx:22,dy:16,fh:16,cw:80,ch:34},curP=0,lastT=0;
+var cv=$('ldc'),cx=cv.getContext&&cv.getContext('2d'),slot=$('ldslot'),W=0,H=0,DPR=1,G={S:200,x:0,y:0},curP=0,lastT=0,pctFixed=null;
 function resize(){
   DPR=Math.min(2,window.devicePixelRatio||1);W=window.innerWidth;H=window.innerHeight;cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR);
-  var r=slot.getBoundingClientRect(),dx=22,dy=16,fh=16,Lb=Math.min(r.width*.84,460);
-  var ch=Math.min(Lb*.40*.42,(r.height-fh-dy/2-10)/.86);if(ch<26)ch=26;
-  var Hg=.86*ch+dy/2+fh,top=r.top+(r.height-Hg)/2;
-  G={x0:r.left+(r.width-Lb-dx)/2,y0:top+.86*ch+dy/2,Lb:Lb,dx:dx,dy:dy,fh:fh,cw:ch/.42,ch:ch};
+  var r=slot.getBoundingClientRect(),S=Math.min(.55*Math.min(W,H),r.width-8,r.height-8);if(S<80)S=80;
+  G={S:S,x:r.left+(r.width-S)/2,y:r.top+(r.height-S)/2};   /* always square, about 55% of the smaller screen side, centred in its area */
   if(!raf)frame(lastT);
 }
+function rr(x,y,w,h,r){cx.moveTo(x+r,y);cx.lineTo(x+w-r,y);cx.arcTo(x+w,y,x+w,y+r,r);cx.lineTo(x+w,y+h-r);cx.arcTo(x+w,y+h,x+w-r,y+h,r);cx.lineTo(x+r,y+h);cx.arcTo(x,y+h,x,y+h-r,r);cx.lineTo(x,y+r);cx.arcTo(x,y,x+r,y,r);cx.closePath()}
 function frame(t){
   lastT=t;if(!cx)return;
-  var P=LD.pal,p=curP,x0=G.x0,y0=G.y0,Lb=G.Lb,dx=G.dx,dy=G.dy,fh=G.fh,cw=G.cw,ch=G.ch,i,u,r,a;P.t=t;
-  var xp=x0+p*Lb+cw*(.5-.5*p);                 /* lit part ends under the car, and reaches the far end at 100% */
-  var vx=x0+(Lb+dx)/2,vy=y0-ch*.4,maxR=Math.hypot(W,H)*.7;
-  cx.setTransform(DPR,0,0,DPR,0,0);cx.fillStyle='#05060f';cx.fillRect(0,0,W,H);
-  /* tunnel: rings rushing outward + fixed radial lines */
-  for(i=0;i<9;i++){u=((i/9)+t*.12)%1;r=maxR*u*u;cx.strokeStyle=P.col(80,55,u*.5);cx.lineWidth=1+u*2;cx.beginPath();cx.ellipse(vx,vy,r*1.25,r*.8,0,0,6.2832);cx.stroke()}
-  cx.lineWidth=1;
-  for(i=0;i<18;i++){a=i*6.2832/18;cx.strokeStyle=P.col(80,55,.16);cx.beginPath();cx.moveTo(vx+Math.cos(a)*maxR*.0375,vy+Math.sin(a)*maxR*.024);cx.lineTo(vx+Math.cos(a)*maxR*1.25,vy+Math.sin(a)*maxR*.8);cx.stroke()}
-  /* cuboid bar: top face, front face and end face. Dark glass until the car has driven over it, then lit in the palette. */
-  function poly(pts){cx.beginPath();cx.moveTo(pts[0],pts[1]);for(var k=2;k<pts.length;k+=2)cx.lineTo(pts[k],pts[k+1]);cx.closePath()}
-  var TOP=[x0,y0,x0+Lb,y0,x0+Lb+dx,y0-dy,x0+dx,y0-dy],END=[x0+Lb,y0,x0+Lb+dx,y0-dy,x0+Lb+dx,y0-dy+fh,x0+Lb,y0+fh];
-  cx.fillStyle='#141a3e';poly(TOP);cx.fill();cx.fillStyle='#0b102a';cx.fillRect(x0,y0,Lb,fh);cx.fillStyle='#080c20';poly(END);cx.fill();
-  if(p>0){
-    var LT=[x0,y0,xp,y0,xp+dx,y0-dy,x0+dx,y0-dy],g1=cx.createLinearGradient(x0,0,x0+Lb,0);g1.addColorStop(0,P.col(85,40));g1.addColorStop(1,P.col(95,64));
-    cx.save();cx.shadowColor=P.glow;cx.shadowBlur=RM?0:14;cx.fillStyle=g1;poly(LT);cx.fill();cx.restore();
-    cx.fillStyle=g1;cx.fillRect(x0,y0,xp-x0,fh);
-    cx.save();poly(LT);cx.clip();cx.fillStyle=P.col(100,85,.55);var off=RM?0:(t*70)%44;for(i=-1;i<Lb/44+2;i++)cx.fillRect(x0+dx*.5+i*44+off-10,y0-dy*.5-1,20,2);cx.restore();   /* road dashes slide past the car */
-    if(p>=.999){cx.fillStyle=P.col(85,46);poly(END);cx.fill()}
-  }
-  cx.strokeStyle=P.col(80,62,.75);cx.lineWidth=1;poly(TOP);cx.stroke();cx.strokeRect(x0+.5,y0+.5,Lb-1,fh-1);poly(END);cx.stroke();
-  cx.strokeStyle='#ffffff30';for(i=1;i<10;i++){var tx=x0+Lb*i/10;cx.beginPath();cx.moveTo(tx,y0+fh-4);cx.lineTo(tx,y0+fh-1);cx.stroke()}
-  cx.font='800 10px ui-sans-serif,system-ui,sans-serif';cx.textAlign='right';cx.textBaseline='middle';cx.fillStyle='#fff';cx.shadowColor='#000';cx.shadowBlur=3;cx.fillText(Math.round(p*100)+'%',x0+Lb-6,y0+fh/2+.5);cx.shadowBlur=0;cx.textAlign='start';
-  /* the car runs along the top face; its glow sits under it */
-  var carX=x0+dx*.5+p*(Lb-cw),gy=y0-dy*.5,R=cw*.7,g=cx.createRadialGradient(0,0,2,0,0,R);g.addColorStop(0,P.col(100,60,.4));g.addColorStop(1,P.col(100,60,0));
-  cx.save();cx.translate(carX+cw/2,gy);cx.scale(1,.35);cx.fillStyle=g;cx.fillRect(-R,-R,2*R,2*R);cx.restore();
-  cx.save();cx.translate(carX,gy-.86*ch+(RM?0:Math.sin(t*14)*.8));LD.cur.draw(cx,cw,ch,P);cx.restore();
+  var P=LD.pal,S=G.S,x=G.x,y=G.y,R=S*.15,Lw=S*.095,p=pctFixed==null?curP:pctFixed;P.t=t;
+  cx.setTransform(DPR,0,0,DPR,0,0);cx.fillStyle='#05060f';cx.fillRect(0,0,W,H);   /* background unchanged: the game's #05060f */
+  /* the lane: ring between the outer and the inner rounded square (flat 2D) */
+  cx.beginPath();rr(x,y,S,S,R);rr(x+Lw,y+Lw,S-2*Lw,S-2*Lw,R-Lw);cx.fillStyle=P.lane;cx.fill('evenodd');
+  cx.lineWidth=2;cx.strokeStyle=P.outer;cx.beginPath();rr(x,y,S,S,R);cx.stroke();
+  cx.lineWidth=2;cx.strokeStyle=P.inner;cx.beginPath();rr(x+Lw,y+Lw,S-2*Lw,S-2*Lw,R-Lw);cx.stroke();
+  /* placeholder car: a plain rectangle on the middle of the lane, top side (it only becomes a car on the path later) */
+  var cw=S*.15,ch=Lw*.5;cx.fillStyle=P.body;cx.fillRect(x+S*.42-cw/2,y+Lw/2-ch/2,cw,ch);
+  /* percentage on the left of the square, vertically centred; centred inside the square if the left margin is too narrow */
+  var fs=Math.max(16,Math.min(26,S*.115)),pt=Math.round(p*100)+'%',nm=LD.cur.name.toUpperCase(),room=x-16,cxm=x+S/2,cym=y+S/2;
+  function split(av,nf){cx.font='700 '+nf+'px ui-sans-serif,system-ui,sans-serif';var ln=[nm];if(cx.measureText(nm).width>av&&nm.indexOf(' ')>0){var sp=nm.indexOf(' ',Math.floor(nm.length/2)-2);if(sp<0)sp=nm.lastIndexOf(' ');ln=[nm.slice(0,sp),nm.slice(sp+1)]}var mw=0;for(var k=0;k<ln.length;k++)mw=Math.max(mw,cx.measureText(ln[k]).width);return {ln:ln,mw:mw,nf:nf}}
+  cx.font='800 '+fs+'px Orbitron,ui-sans-serif,system-ui,sans-serif';cx.textBaseline='middle';
+  var tw=cx.measureText(pt).width,nmI=split(room,10);
+  if(nmI.mw>room)nmI=split(room,9);if(nmI.mw>room)nmI=split(room,8);
+  var inside=room<tw+4||nmI.mw>room;                       /* not enough room on the left: put the readout in the centre of the square */
+  if(inside)nmI=split(S*.8,10);
+  var ax=inside?cxm:x-14;
+  cx.font='800 '+fs+'px Orbitron,ui-sans-serif,system-ui,sans-serif';cx.textAlign=inside?'center':'right';cx.fillStyle=P.pct;cx.fillText(pt,ax,cym-(inside?8:9));
+  cx.font='700 '+nmI.nf+'px ui-sans-serif,system-ui,sans-serif';cx.fillStyle='#b9c6e2';
+  for(var i=0;i<nmI.ln.length;i++)cx.fillText(nmI.ln[i],ax,cym+(inside?14:13)+i*(nmI.nf+3));
+  cx.textAlign='start';
 }
 function setPct(p){curP=p;$('ldfill').style.width=(p*100).toFixed(1)+'%';var n=Math.round(p*10)*10,b=$('ldbar');if(b.getAttribute('aria-valuenow')!=n)b.setAttribute('aria-valuenow',n)}
 
-/* LOAD-B4: flashcard. States: question -> "Tap to know the answer" -> flip to answer -> "Tap for next card" -> next card. Text is set with textContent only. */
+/* LOAD-B4: flashcard. States: question -> "Tap to know more" -> flip to answer -> "Tap for next card" -> next card. Text is set with textContent only. */
 LD.cards=[
-  {id:'p001',category:'PLACEHOLDER',q:'Placeholder question one?',a:'Placeholder answer one.'},
-  {id:'p002',category:'PLACEHOLDER',q:'Placeholder question two?',a:'Placeholder answer two.'},
-  {id:'p003',category:'PLACEHOLDER',q:'Placeholder question three?',a:'Placeholder answer three.'}
+  {id:'p001',category:'Placeholder',q:'Placeholder question one?',a:'Placeholder answer one.'},
+  {id:'p002',category:'Placeholder',q:'Placeholder question two?',a:'Placeholder answer two.'},
+  {id:'p003',category:'Placeholder',q:'Placeholder question three?',a:'Placeholder answer three.'}
 ];
-var cardIx=0,cardSt='q',cardBtn=$('ldcard');
+var cardIx=0,cardSt='q',cardBtn=$('ldcard'),curCard=null;
 LD.nextCard=function(){var c=LD.cards[cardIx%LD.cards.length];cardIx++;return {card:c,pos:((cardIx-1)%LD.cards.length)+1,total:LD.cards.length}};
-var curCard=null;
-function showCard(flip){
+function showCard(anim){
   if(!curCard)return;
-  var c=curCard.card;$('ldcat').textContent=c.category;
+  var c=curCard.card;$('ldcat').textContent='Flashcard · '+c.category;
   $('ldq').textContent=cardSt==='q'?c.q:c.a;
-  $('ldhint').textContent=cardSt==='q'?'Tap to know the answer':'Tap for next card';
+  $('ldhint').textContent=cardSt==='q'?'Tap to know more':'Tap for next card';
   $('ldcnt').textContent='Card '+curCard.pos+' of '+curCard.total+' this round';
-  cardBtn.setAttribute('aria-label',(cardSt==='q'?'Question: '+c.q+'. Tap to know the answer.':'Answer: '+c.a+'. Tap for next card.'));
-  if(flip&&!RM){cardBtn.classList.remove('flip');void cardBtn.offsetWidth;cardBtn.classList.add('flip')}
+  cardBtn.setAttribute('aria-label',cardSt==='q'?'Flashcard question: '+c.q+'. Tap to know more.':'Flashcard answer: '+c.a+'. Tap for next card.');
+  $('ldlive').textContent=cardSt==='a'?'Answer: '+c.a:'';
+  if(anim){cardBtn.classList.remove('flip','fade');void cardBtn.offsetWidth;cardBtn.classList.add(RM?'fade':'flip')}   /* reduced motion: the flip becomes a fade */
 }
 cardBtn.addEventListener('click',function(){
-  if(cardSt==='q'){cardSt='a';showCard(true)}else{cardSt='q';curCard=LD.nextCard();showCard(true)}
+  if(cardSt==='q'){cardSt='a';showCard(true)}else{cardSt='q';curCard=LD.nextCard();showCard(true)}   /* tapping the card never skips loading */
 });
-curCard=LD.nextCard();showCard(false);$('ldname').textContent=LD.cur.name;LD.applyPal(LD.pal);
+curCard=LD.nextCard();showCard(false);LD.applyPal(LD.pal);
 
-/* LOAD-B5: lifecycle. Bar fills over MIN seconds and cannot finish before the page has loaded; then START appears. Keys are held back from the game while the loader is up. */
+/* LOAD-B5: lifecycle. Bar fills over MIN seconds and cannot finish before the page has loaded; then the continue button appears. Keys are held back from the game while the loader is up. */
 var MIN=RM?1.2:3.2,t0=performance.now(),ready=document.readyState==='complete',go=$('ldgo'),shownGo=false;
 if(!ready)window.addEventListener('load',function(){ready=true});
 setTimeout(function(){ready=true},6000);
