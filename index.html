@@ -236,6 +236,8 @@
 #ldcard.fade{animation:ldfade .25s ease}
 @keyframes ldfade{0%{opacity:.25}100%{opacity:1}}
 #ldbar,#ldlive{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}   /* screen-reader only: progress value and the spoken answer */
+#ldloop{position:fixed;left:50%;bottom:6px;transform:translateX(-50%);width:min(86vw,460px);z-index:5;accent-color:var(--ld-glow)}
+#ldloopv{position:fixed;left:0;right:0;bottom:30px;text-align:center;font:700 11px ui-sans-serif,system-ui,sans-serif;letter-spacing:.14em;color:#b9c6e2;z-index:5}
 @media (prefers-reduced-motion:reduce){#loader,#ldgo{transition:none}}
 @media (max-height:420px){#loader .ldz{flex-direction:row;align-items:center;gap:18px;max-width:900px}#ldslot{flex:1 1 50%;min-height:0;align-self:stretch;width:auto}.ldr{flex:1 1 50%}#ldcard{min-height:92px;padding:10px 14px;gap:6px}#ldq{font-size:14px}#ldgo{min-height:40px;margin:8px 0 2px}}
 </style>
@@ -267,37 +269,66 @@ var SS=LD.ss={
 var RM=(function(){var r=SS.get('wso_rm',null);if(r==='0')return false;if(r==='1')return true;try{return !!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)}catch(e){return false}})();
 function $(id){return document.getElementById(id)}
 
-/* LOAD-B14: palette, double-outline rounded square, percentage and car name. Fixed hue for now (the game's cyan); all colours come from one hue with fixed saturation and lightness. */
+/* LOAD-B14: palette. One hue, fixed saturation and lightness; fixed hue for now (the game's cyan). */
 LD.makePal=function(h,accSign){
   var a=(h+(accSign<0?-120:120)+360)%360;   /* accent: 120 degrees from the hue, never the hue or its opposite */
   function c(s,l,al){return 'hsla('+h+','+s+'%,'+l+'%,'+(al==null?1:al)+')'}
   return {h:h,acc:a,
     outer:c(90,80),inner:c(85,68),lane:c(70,50,.12),lit:c(100,61),glow:c(100,60),pct:c(95,84),
-    body:c(85,56),dark:c(70,30),light:c(95,78),glass:c(60,18),accent:'hsl('+a+',90%,66%)',tire:'#0b0e1c',rim:c(25,80),
-    col:c,bar:'linear-gradient(90deg,hsl('+h+',85%,52%),hsl('+h+',95%,68%))',card:c(90,62,.45),cardAcc:c(90,74),t:0};
+    body:c(85,68),dark:c(70,30),light:c(95,78),glass:c(60,18),accent:'hsl('+a+',90%,66%)',tire:'#0b0e1c',rim:c(25,80),
+    col:c,bar:'linear-gradient(90deg,hsl('+h+',85%,52%),hsl('+h+',95%,68%))',card:c(90,62,.45),cardAcc:c(90,74),t:0,sp:0};
 };
 LD.pal=LD.makePal(188,1);   /* 188 = the game's --cy #37e6ff */
 LD.applyPal=function(P){var s=L.style;s.setProperty('--ld-glow',P.glow);s.setProperty('--ld-card',P.card);s.setProperty('--ld-acc',P.cardAcc);s.setProperty('--ld-bar',P.bar)};
-LD.cars=[{id:'base',name:'Placeholder car',draw:null}];   /* the 8 real cars arrive in a later block */
+var LOWQ=SS.get('wso_q',null)==='0';   /* the game's saved "low" graphics setting: no streak, no glow */
+/* LOAD-B16 (one car for now): anti-gravity coupe, side view facing right, wheels on the bottom edge of the box (0.86 h). The loader turns it so the wheels always face the inner square. */
+LD.cars=[{id:'aero',name:'Aero Coupe',draw:function(ctx,w,h,P){
+  ctx.fillStyle=P.body;ctx.beginPath();ctx.moveTo(w*.02,h*.70);ctx.lineTo(w*.05,h*.52);ctx.lineTo(w*.28,h*.46);ctx.lineTo(w*.44,h*.2);ctx.lineTo(w*.72,h*.2);ctx.lineTo(w*.88,h*.46);ctx.lineTo(w*.97,h*.56);ctx.lineTo(w*.98,h*.7);ctx.closePath();ctx.fill();ctx.lineWidth=Math.max(1,h*.06);ctx.strokeStyle='#05060f';ctx.stroke();
+  ctx.fillStyle=P.glass;ctx.beginPath();ctx.moveTo(w*.47,h*.27);ctx.lineTo(w*.69,h*.27);ctx.lineTo(w*.8,h*.45);ctx.lineTo(w*.4,h*.45);ctx.closePath();ctx.fill();
+  ctx.fillStyle=P.accent;ctx.fillRect(w*.06,h*.58,w*.88,h*.05);
+  ctx.fillStyle=P.light;ctx.fillRect(w*.93,h*.5,w*.06,h*.1);
+  [.25,.75].forEach(function(f){var cx_=w*f,cy_=h*.86-h*.17;ctx.fillStyle=P.tire;ctx.beginPath();ctx.arc(cx_,cy_,h*.17,0,6.2832);ctx.fill();ctx.strokeStyle=P.rim;ctx.lineWidth=Math.max(1,h*.05);ctx.beginPath();ctx.arc(cx_,cy_,h*.09,P.sp,P.sp+4.2);ctx.stroke()});
+}}];
 LD.cur=LD.cars[0];
-var cv=$('ldc'),cx=cv.getContext&&cv.getContext('2d'),slot=$('ldslot'),W=0,H=0,DPR=1,G={S:200,x:0,y:0},curP=0,lastT=0,pctFixed=null;
+var cv=$('ldc'),cx=cv.getContext&&cv.getContext('2d'),slot=$('ldslot'),W=0,H=0,DPR=1,G={S:200,x:0,y:0,Lw:20,R:40,Ltot:600,ch:16,cw:36,sg:[]},curP=0,lastT=0;
+/* LOAD-B15: path maths. One path along the middle of the lane (a rounded rectangle), clockwise, starting at the middle of the bottom-left corner. */
 function resize(){
   DPR=Math.min(2,window.devicePixelRatio||1);W=window.innerWidth;H=window.innerHeight;cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR);
-  var r=slot.getBoundingClientRect(),S=Math.min(.55*Math.min(W,H),r.width-8,r.height-8);if(S<80)S=80;
-  G={S:S,x:r.left+(r.width-S)/2,y:r.top+(r.height-S)/2};   /* always square, about 55% of the smaller screen side, centred in its area */
+  var r_=slot.getBoundingClientRect(),S=Math.min(.55*Math.min(W,H),r_.width-8,r_.height-8);if(S<80)S=80;
+  var x=r_.left+(r_.width-S)/2,y=r_.top+(r_.height-S)/2,Lw=S*.12,R=S*.21,m=Lw/2,r=R-m,x0=x+m,y0=y+m,w=S-Lw,a=w-2*r,PI=Math.PI;
+  var BL={x:x0+r,y:y0+w-r},TL={x:x0+r,y:y0+r},TR={x:x0+w-r,y:y0+r},BR={x:x0+w-r,y:y0+w-r};
+  var sg=[{k:'a',c:BL,a0:.75*PI,a1:PI},{k:'l',x:x0,y:BL.y,dx:0,dy:-1,len:a},{k:'a',c:TL,a0:PI,a1:1.5*PI},{k:'l',x:TL.x,y:y0,dx:1,dy:0,len:a},{k:'a',c:TR,a0:1.5*PI,a1:2*PI},{k:'l',x:x0+w,y:TR.y,dx:0,dy:1,len:a},{k:'a',c:BR,a0:0,a1:.5*PI},{k:'l',x:BR.x,y:y0+w,dx:-1,dy:0,len:a},{k:'a',c:BL,a0:.5*PI,a1:.75*PI}],tot=0;
+  sg.forEach(function(q){q.s0=tot;if(q.k==='a')q.len=r*(q.a1-q.a0);tot+=q.len;q.s1=tot});
+  var ch=Lw*.88;
+  G={S:S,x:x,y:y,Lw:Lw,R:R,r:r,Ltot:tot,sg:sg,ch:ch,cw:ch*2.4};   /* always square, about 55% of the smaller screen side, centred in its area */
   if(!raf)frame(lastT);
 }
+function pos(t){   /* position and rotation (radians) from one value t, 0..1, smooth through the corners */
+  var s=Math.max(0,Math.min(1,t))*G.Ltot,sg=G.sg,q=sg[sg.length-1],i;
+  for(i=0;i<sg.length;i++){if(s<=sg[i].s1){q=sg[i];break}}
+  var d=Math.max(0,Math.min(q.len,s-q.s0));
+  if(q.k==='a'){var f=q.a0+d/G.r;return {x:q.c.x+G.r*Math.cos(f),y:q.c.y+G.r*Math.sin(f),a:f+Math.PI/2}}
+  return {x:q.x+q.dx*d,y:q.y+q.dy*d,a:Math.atan2(q.dy,q.dx)};
+}
+function lanePath(){var q=G.sg,i,k;cx.beginPath();var p0=pos(0);cx.moveTo(p0.x,p0.y);for(i=0;i<q.length;i++){k=q[i];if(k.k==='a')cx.arc(k.c.x,k.c.y,G.r,k.a0,k.a1);else cx.lineTo(k.x+k.dx*k.len,k.y+k.dy*k.len)}}
 function rr(x,y,w,h,r){cx.moveTo(x+r,y);cx.lineTo(x+w-r,y);cx.arcTo(x+w,y,x+w,y+r,r);cx.lineTo(x+w,y+h-r);cx.arcTo(x+w,y+h,x+w-r,y+h,r);cx.lineTo(x+r,y+h);cx.arcTo(x,y+h,x,y+h-r,r);cx.lineTo(x,y+r);cx.arcTo(x,y,x+r,y,r);cx.closePath()}
 function frame(t){
   lastT=t;if(!cx)return;
-  var P=LD.pal,S=G.S,x=G.x,y=G.y,R=S*.15,Lw=S*.095,p=pctFixed==null?curP:pctFixed;P.t=t;
+  var P=LD.pal,S=G.S,x=G.x,y=G.y,R=G.R,Lw=G.Lw,p=curP,sT=p*G.Ltot,cw=G.cw,ch=G.ch;P.t=t;P.sp=sT/(ch*.2);
   cx.setTransform(DPR,0,0,DPR,0,0);cx.fillStyle='#05060f';cx.fillRect(0,0,W,H);   /* background unchanged: the game's #05060f */
   /* the lane: ring between the outer and the inner rounded square (flat 2D) */
   cx.beginPath();rr(x,y,S,S,R);rr(x+Lw,y+Lw,S-2*Lw,S-2*Lw,R-Lw);cx.fillStyle=P.lane;cx.fill('evenodd');
   cx.lineWidth=2;cx.strokeStyle=P.outer;cx.beginPath();rr(x,y,S,S,R);cx.stroke();
-  cx.lineWidth=2;cx.strokeStyle=P.inner;cx.beginPath();rr(x+Lw,y+Lw,S-2*Lw,S-2*Lw,R-Lw);cx.stroke();
-  /* placeholder car: a plain rectangle on the middle of the lane, top side (it only becomes a car on the path later) */
-  var cw=S*.15,ch=Lw*.5;cx.fillStyle=P.body;cx.fillRect(x+S*.42-cw/2,y+Lw/2-ch/2,cw,ch);
+  cx.strokeStyle=P.inner;cx.beginPath();rr(x+Lw,y+Lw,S-2*Lw,S-2*Lw,R-Lw);cx.stroke();
+  if(sT>.5){
+    /* lit lane from 0 to t: one stroke of the lane path cut with a dash, one glow pass, no per-segment work */
+    cx.save();cx.lineWidth=Lw*.2;cx.lineCap='butt';cx.strokeStyle=P.lit;cx.shadowColor=P.glow;cx.shadowBlur=LOWQ?0:10;cx.setLineDash([sT,G.Ltot+50]);lanePath();cx.stroke();cx.restore();
+    /* short glowing streak behind the car (skipped in low quality) */
+    if(!LOWQ){var end=Math.max(0,sT-cw*.35),sk=[[40,.12,.25],[26,.18,.45],[13,.26,.85]],i,ln;cx.save();cx.lineCap='butt';
+      for(i=0;i<3;i++){ln=Math.min(sk[i][0],end);if(ln>1){cx.lineWidth=Lw*sk[i][1];cx.strokeStyle=P.col(70,92,sk[i][2]);cx.setLineDash([ln,G.Ltot+50]);cx.lineDashOffset=-(end-ln);lanePath();cx.stroke()}}cx.restore()}
+  }
+  /* the car: wheels on the inner square, roof toward the outer outline, so it is upside down along the bottom side */
+  var q=pos(p);cx.save();cx.translate(q.x,q.y);cx.rotate(q.a);cx.translate(-cw/2,Lw/2-.86*ch);LD.cur.draw(cx,cw,ch,P);cx.restore();
   /* percentage on the left of the square, vertically centred; centred inside the square if the left margin is too narrow */
   var fs=Math.max(16,Math.min(26,S*.115)),pt=Math.round(p*100)+'%',nm=LD.cur.name.toUpperCase(),room=x-16,cxm=x+S/2,cym=y+S/2;
   function split(av,nf){cx.font='700 '+nf+'px ui-sans-serif,system-ui,sans-serif';var ln=[nm];if(cx.measureText(nm).width>av&&nm.indexOf(' ')>0){var sp=nm.indexOf(' ',Math.floor(nm.length/2)-2);if(sp<0)sp=nm.lastIndexOf(' ');ln=[nm.slice(0,sp),nm.slice(sp+1)]}var mw=0;for(var k=0;k<ln.length;k++)mw=Math.max(mw,cx.measureText(ln[k]).width);return {ln:ln,mw:mw,nf:nf}}
@@ -309,7 +340,7 @@ function frame(t){
   var ax=inside?cxm:x-14;
   cx.font='800 '+fs+'px Orbitron,ui-sans-serif,system-ui,sans-serif';cx.textAlign=inside?'center':'right';cx.fillStyle=P.pct;cx.fillText(pt,ax,cym-(inside?8:9));
   cx.font='700 '+nmI.nf+'px ui-sans-serif,system-ui,sans-serif';cx.fillStyle='#b9c6e2';
-  for(var i=0;i<nmI.ln.length;i++)cx.fillText(nmI.ln[i],ax,cym+(inside?14:13)+i*(nmI.nf+3));
+  for(var i2=0;i2<nmI.ln.length;i2++)cx.fillText(nmI.ln[i2],ax,cym+(inside?14:13)+i2*(nmI.nf+3));
   cx.textAlign='start';
 }
 function setPct(p){curP=p;$('ldfill').style.width=(p*100).toFixed(1)+'%';var n=Math.round(p*10)*10,b=$('ldbar');if(b.getAttribute('aria-valuenow')!=n)b.setAttribute('aria-valuenow',n)}
@@ -337,16 +368,26 @@ cardBtn.addEventListener('click',function(){
 });
 curCard=LD.nextCard();showCard(false);LD.applyPal(LD.pal);
 
-/* LOAD-B5: lifecycle. Bar fills over MIN seconds and cannot finish before the page has loaded; then the continue button appears. Keys are held back from the game while the loader is up. */
-var MIN=RM?1.2:3.2,t0=performance.now(),ready=document.readyState==='complete',go=$('ldgo'),shownGo=false;
+/* LOAD-B15 staged progress: the bar and the car pass 0, 20, 32, 47, 66, 84, 99, 100 with short holds, so the screen takes about 7.6 s. Change TS to make it faster or slower (1 = as designed). */
+var TS=1,ST=[0,20,32,47,66,84,99,100],MV=[1,.6,.8,.9,.9,1,.3],HD=[.2,.4,.3,.4,.3,.5,0],segs=[],tt=0,TOTAL=0;
+(function(){for(var i=0;i<7;i++){segs.push({a:tt,b:tt+MV[i]*TS,p0:ST[i]/100,p1:ST[i+1]/100});tt+=MV[i]*TS;if(HD[i]){segs.push({a:tt,b:tt+HD[i]*TS,p0:ST[i+1]/100,p1:ST[i+1]/100});tt+=HD[i]*TS}}TOTAL=tt})();
+function staged(el){if(el>=TOTAL)return 1;for(var i=0;i<segs.length;i++){var q=segs[i];if(el<q.b){var u=(el-q.a)/(q.b-q.a);u=u*u*(3-2*u);return q.p0+(q.p1-q.p0)*u}}return 1}
+/* LOAD-B5: lifecycle. The page must have loaded before the bar can pass 99%; then the continue button appears. Keys are held back from the game while the loader is up. */
+var t0=performance.now(),ready=document.readyState==='complete',go=$('ldgo'),shownGo=false,loopMode=/loop/.test(location.hash),loopV=0;
 if(!ready)window.addEventListener('load',function(){ready=true});
-setTimeout(function(){ready=true},6000);
+setTimeout(function(){ready=true},9000);
+if(loopMode){   /* debug: #loop shows a slider so you can drag t from 0 to 100 and check every corner */
+  var sl=document.createElement('input');sl.type='range';sl.id='ldloop';sl.min='0';sl.max='100';sl.step='0.1';sl.value='0';sl.setAttribute('aria-label','Debug progress');
+  var lv=document.createElement('div');lv.id='ldloopv';lv.textContent='LOOP DEBUG 0.0%';
+  sl.addEventListener('input',function(){loopV=+sl.value/100;lv.textContent='LOOP DEBUG '+(+sl.value).toFixed(1)+'%'});
+  L.appendChild(lv);L.appendChild(sl);
+}
 function tick(now){
   if(dead)return;
-  var el=(now-t0)/1000,p=Math.min(1,el/MIN);p=1-Math.pow(1-p,2.2);if(!ready)p=Math.min(p,.92);
+  var p=loopMode?loopV:staged((now-t0)/1000);if(!ready)p=Math.min(p,.99);
   setPct(p);
-  if(p>=1&&!shownGo){shownGo=true;go.classList.add('on');go.tabIndex=0;try{go.focus({preventScroll:true})}catch(e){}}
-  frame(RM?0:el);
+  if(p>=1&&!shownGo){shownGo=true;go.classList.add('on');go.tabIndex=0;if(!loopMode){try{go.focus({preventScroll:true})}catch(e){}}}
+  frame((now-t0)/1000);
   raf=requestAnimationFrame(tick);
 }
 function finish(){
