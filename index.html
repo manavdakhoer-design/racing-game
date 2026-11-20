@@ -238,6 +238,7 @@
 @keyframes ldfade{0%{opacity:.25}100%{opacity:1}}
 #ldbar,#ldlive{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}   /* screen-reader only: progress value and the spoken answer */
 #ldloop{position:fixed;left:50%;bottom:6px;transform:translateX(-50%);width:min(86vw,460px);z-index:5;accent-color:var(--ld-glow)}
+#ldcarbtn{position:fixed;left:10px;bottom:56px;z-index:5;padding:8px 12px;border-radius:10px;background:#ffffff22;border:1px solid #ffffff55;color:#fff;font:800 11px ui-sans-serif,system-ui,sans-serif;letter-spacing:.12em}
 #ldloopv{position:fixed;left:0;right:0;bottom:30px;text-align:center;font:700 11px ui-sans-serif,system-ui,sans-serif;letter-spacing:.14em;color:#b9c6e2;z-index:5}
 @media (prefers-reduced-motion:reduce){#loader,#ldgo{transition:none}}
 @media (max-height:420px){#loader .ldz{flex-direction:row;align-items:center;gap:18px;max-width:900px}#ldslot{flex:1 1 50%;min-height:0;align-self:stretch;width:auto}.ldr{flex:1 1 50%}#ldcard{min-height:92px;padding:10px 14px;gap:6px}#ldq{font-size:14px}#ldgo{min-height:40px;margin:8px 0 2px}}
@@ -308,16 +309,76 @@ LD.entry=LD.pick(SS,Math.random);
 LD.pal=LD.makePal(LD.entry);
 LD.applyPal=function(P){var s=L.style;s.setProperty('--ld-glow',P.glow);s.setProperty('--ld-card',P.card);s.setProperty('--ld-acc',P.cardAcc);s.setProperty('--ld-bar',P.bar)};
 var LOWQ=SS.get('wso_q',null)==='0';   /* the game's saved "low" graphics setting: no streak, no glow */
-/* LOAD-B16 (one car for now): anti-gravity coupe, side view facing right, wheels on the bottom edge of the box (0.86 h). The loader turns it so the wheels always face the inner square. */
-LD.cars=[{id:'aero',name:'Aero Coupe',draw:function(ctx,w,h,P){
-  ctx.fillStyle=P.body;ctx.beginPath();ctx.moveTo(w*.02,h*.70);ctx.lineTo(w*.05,h*.52);ctx.lineTo(w*.28,h*.46);ctx.lineTo(w*.44,h*.2);ctx.lineTo(w*.72,h*.2);ctx.lineTo(w*.88,h*.46);ctx.lineTo(w*.97,h*.56);ctx.lineTo(w*.98,h*.7);ctx.closePath();ctx.fill();ctx.lineWidth=Math.max(1,h*.06);ctx.strokeStyle='#05060f';ctx.stroke();
-  ctx.fillStyle=P.glass;ctx.beginPath();ctx.moveTo(w*.47,h*.27);ctx.lineTo(w*.69,h*.27);ctx.lineTo(w*.8,h*.45);ctx.lineTo(w*.4,h*.45);ctx.closePath();ctx.fill();
-  ctx.fillStyle=P.accent;ctx.fillRect(w*.06,h*.58,w*.88,h*.05);
-  ctx.fillStyle=P.light;ctx.fillRect(w*.93,h*.5,w*.06,h*.1);
-  [.25,.75].forEach(function(f){var cx_=w*f,cy_=h*.86-h*.17;ctx.fillStyle=P.tire;ctx.beginPath();ctx.arc(cx_,cy_,h*.17,0,6.2832);ctx.fill();ctx.strokeStyle=P.rim;ctx.lineWidth=Math.max(1,h*.05);ctx.beginPath();ctx.arc(cx_,cy_,h*.09,P.sp,P.sp+4.2);ctx.stroke()});
-}}];
-LD.cur=LD.cars[0];
-var cv=$('ldc'),cx=cv.getContext&&cv.getContext('2d'),slot=$('ldslot'),W=0,H=0,DPR=1,G={S:200,x:0,y:0,Lw:20,R:40,Ltot:600,ch:16,cw:36,sg:[]},curP=0,lastT=0;
+/* LOAD-B16: the car table. Eight original designs, each its own Canvas-2D draw function: { id, name, draw(ctx, w, h, palette) }. Side view facing right; the part that touches the inner square (wheel, hover foot or skid) always ends at 0.86 h. palette.sp is the wheel spin angle. No images, no real-brand shapes. */
+var K={
+  ol:function(c,h){c.lineWidth=Math.max(1,h*.055);c.strokeStyle='#05060f';c.lineJoin='round'},
+  poly:function(c,w,h,p,fill,line){c.beginPath();c.moveTo(p[0]*w,p[1]*h);for(var i=2;i<p.length;i+=2)c.lineTo(p[i]*w,p[i+1]*h);c.closePath();if(fill){c.fillStyle=fill;c.fill()}if(line){K.ol(c,h);c.stroke()}},
+  ell:function(c,x,y,rx,ry,fill,line,h){c.beginPath();c.ellipse(x,y,rx,ry,0,0,6.2832);if(fill){c.fillStyle=fill;c.fill()}if(line){K.ol(c,h);c.stroke()}},
+  arch:function(c,x,y,r){c.fillStyle='#05060f';c.beginPath();c.arc(x,y,r*1.2,Math.PI,6.2832);c.fill()},
+  wheel:function(c,x,y,r,P,ring){c.fillStyle=P.tire;c.beginPath();c.arc(x,y,r,0,6.2832);c.fill();c.strokeStyle=ring||P.rim;c.lineWidth=Math.max(1,r*.32);c.beginPath();c.arc(x,y,r*.52,P.sp,P.sp+4.4);c.stroke()},
+  lamp:function(c,x,y,r,P){c.fillStyle=P.glow;c.globalAlpha=.35;c.beginPath();c.arc(x,y,r*2.1,0,6.2832);c.fill();c.globalAlpha=1;c.fillStyle=P.light;c.beginPath();c.arc(x,y,r,0,6.2832);c.fill()}
+};
+LD.cars=[
+ {id:'coupe',name:'Apex Coupe',draw:function(c,w,h,P){var r=h*.16,cy=h*.86-r;
+  K.poly(c,w,h,[.02,.7,.03,.58,.28,.52,.45,.3,.70,.3,.88,.5,.98,.58,.98,.7],P.body,1);
+  K.poly(c,w,h,[.47,.36,.68,.36,.8,.5,.4,.5],P.glass);K.poly(c,w,h,[.04,.6,.96,.6,.96,.64,.04,.64],P.accent);
+  K.poly(c,w,h,[.9,.53,.98,.56,.98,.61,.9,.58],P.light);K.poly(c,w,h,[.02,.58,.05,.58,.05,.66,.02,.66],P.accent);
+  K.arch(c,w*.22,cy,r);K.arch(c,w*.77,cy,r);K.wheel(c,w*.22,cy,r,P);K.wheel(c,w*.77,cy,r,P)}},
+ {id:'rally',name:'Dust Devil',draw:function(c,w,h,P){var r=h*.19,cy=h*.86-r;
+  K.poly(c,w,h,[.03,.74,.03,.4,.08,.3,.62,.3,.82,.5,.97,.55,.98,.74],P.body,1);
+  K.poly(c,w,h,[.13,.34,.37,.34,.37,.5,.11,.5],P.glass);K.poly(c,w,h,[.42,.34,.59,.34,.74,.5,.42,.5],P.glass);
+  K.poly(c,w,h,[.0,.2,.15,.2,.15,.25,.0,.25],P.dark,1);K.poly(c,w,h,[.04,.25,.07,.25,.07,.4,.04,.4],P.dark);
+  K.poly(c,w,h,[.34,.25,.46,.25,.46,.3,.34,.3],P.dark);K.poly(c,w,h,[.04,.6,.96,.6,.96,.65,.04,.65],P.accent);
+  K.lamp(c,w*.93,h*.6,h*.06,P);
+  K.arch(c,w*.2,cy,r);K.arch(c,w*.79,cy,r);K.wheel(c,w*.2,cy,r,P);K.wheel(c,w*.79,cy,r,P)}},
+ {id:'pickup',name:'Haul Cat',draw:function(c,w,h,P){var r=h*.18,cy=h*.86-r;
+  K.poly(c,w,h,[.4,.52,.44,.3,.68,.3,.8,.52,.97,.55,.98,.72,.4,.72],P.body,1);
+  K.poly(c,w,h,[.02,.5,.4,.5,.4,.72,.02,.72],P.body,1);K.poly(c,w,h,[.06,.52,.37,.52,.37,.58,.06,.58],P.dark);
+  K.poly(c,w,h,[.47,.34,.63,.34,.73,.5,.47,.5],P.glass);K.poly(c,w,h,[.5,.24,.64,.24,.64,.28,.5,.28],P.accent);
+  K.poly(c,w,h,[.04,.62,.96,.62,.96,.67,.04,.67],P.accent);K.poly(c,w,h,[.93,.56,.98,.56,.98,.63,.93,.63],P.light);
+  K.poly(c,w,h,[.95,.66,.99,.66,.99,.71,.95,.71],P.dark);
+  K.arch(c,w*.2,cy,r);K.arch(c,w*.78,cy,r);K.wheel(c,w*.2,cy,r,P);K.wheel(c,w*.78,cy,r,P)}},
+ {id:'pod',name:'Glide Pod',draw:function(c,w,h,P){
+  K.ell(c,w*.5,h*.5,w*.44,h*.28,P.body,1,h);K.ell(c,w*.6,h*.4,w*.2,h*.13,P.glass,0,h);K.ell(c,w*.56,h*.35,w*.08,h*.04,P.light,0,h);
+  K.poly(c,w,h,[.02,.46,.1,.38,.1,.62,.02,.54],P.dark,1);c.globalAlpha=.55;K.ell(c,w*.02,h*.5,w*.03,h*.1,P.accent,0,h);c.globalAlpha=1;
+  [.28,.72].forEach(function(f){K.poly(c,w,h,[f-.015,.66,f+.015,.66,f+.015,.8,f-.015,.8],P.dark);c.globalAlpha=.4;K.ell(c,w*f,h*.8,w*.12,h*.05,P.glow,0,h);c.globalAlpha=1;K.ell(c,w*f,h*.825,w*.1,h*.035,P.light,1,h)});
+  K.lamp(c,w*.9,h*.5,h*.055,P);K.poly(c,w,h,[.1,.56,.9,.56,.9,.6,.1,.6],P.accent)}},
+ {id:'formula',name:'Bolt Racer',draw:function(c,w,h,P){var r=h*.19,cy=h*.86-r;
+  K.poly(c,w,h,[.98,.66,.7,.52,.5,.46,.46,.34,.36,.34,.3,.44,.1,.46,.08,.66],P.body,1);
+  K.poly(c,w,h,[.12,.4,.3,.4,.3,.47,.12,.47],P.dark);K.ell(c,w*.43,h*.36,h*.05,h*.05,P.light,1,h);
+  c.strokeStyle=P.accent;c.lineWidth=Math.max(1,h*.05);c.beginPath();c.moveTo(w*.4,h*.34);c.lineTo(w*.44,h*.22);c.lineTo(w*.54,h*.24);c.stroke();
+  K.poly(c,w,h,[.0,.2,.15,.2,.15,.26,.0,.26],P.accent,1);K.poly(c,w,h,[.0,.2,.04,.2,.04,.58,.0,.58],P.dark);K.poly(c,w,h,[.03,.26,.06,.26,.06,.5,.03,.5],P.dark);
+  K.poly(c,w,h,[.86,.71,.99,.71,.99,.76,.86,.76],P.accent,1);K.lamp(c,w*.96,h*.62,h*.035,P);
+  K.wheel(c,w*.2,cy,r,P);K.wheel(c,w*.8,cy,r*.95,P)}},
+ {id:'roadster',name:'Chrome Roadster',draw:function(c,w,h,P){var r=h*.17,cy=h*.86-r;
+  K.poly(c,w,h,[.03,.72,.04,.54,.18,.46,.4,.46,.45,.38,.52,.38,.58,.46,.8,.48,.96,.56,.98,.72],P.body,1);
+  K.poly(c,w,h,[.44,.4,.5,.4,.53,.46,.45,.46],P.glass);K.ell(c,w*.33,h*.39,h*.06,h*.06,P.rim,1,h);
+  c.fillStyle=P.body;[.22,.78].forEach(function(f){c.beginPath();c.arc(w*f,cy,r*1.2,Math.PI,6.2832);c.fill();K.ol(c,h);c.stroke()});
+  K.poly(c,w,h,[.05,.6,.95,.6,.95,.63,.05,.63],P.rim);K.ell(c,w*.9,h*.52,h*.075,h*.075,P.light,1,h);c.fillStyle=P.glow;c.globalAlpha=.3;c.beginPath();c.arc(w*.9,h*.52,h*.15,0,6.2832);c.fill();c.globalAlpha=1;
+  K.wheel(c,w*.22,cy,r,P,P.light);K.wheel(c,w*.78,cy,r,P,P.light)}},
+ {id:'sled',name:'Comet Sled',draw:function(c,w,h,P){
+  K.poly(c,w,h,[.1,.4,.04,.22,.22,.38],P.accent,1);K.poly(c,w,h,[.1,.72,.04,.8,.22,.72],P.accent,1);
+  K.poly(c,w,h,[.06,.6,.12,.4,.62,.36,.84,.44,.98,.58,.84,.7,.12,.72],P.body,1);K.poly(c,w,h,[.84,.44,.98,.58,.84,.7],P.accent);
+  K.ell(c,w*.46,h*.44,w*.12,h*.07,P.glass,0,h);K.poly(c,w,h,[.0,.5,.06,.46,.06,.66,.0,.62],P.dark,1);c.globalAlpha=.7;K.ell(c,w*.012,h*.56,w*.02,h*.07,P.light,0,h);c.globalAlpha=1;
+  K.poly(c,w,h,[.1,.83,.9,.83,.9,.865,.1,.865],P.light);K.poly(c,w,h,[.2,.72,.24,.72,.24,.83,.2,.83],P.dark);K.poly(c,w,h,[.74,.7,.78,.7,.78,.83,.74,.83],P.dark);
+  K.wheel(c,w*.22,h*.79,h*.07,P);K.wheel(c,w*.76,h*.79,h*.07,P);K.lamp(c,w*.9,h*.57,h*.04,P)}},
+ {id:'buggy',name:'Bulwark Buggy',draw:function(c,w,h,P){var r=h*.21,cy=h*.86-r;
+  K.poly(c,w,h,[.1,.7,.08,.46,.16,.4,.86,.4,.94,.5,.96,.7],P.body,1);K.poly(c,w,h,[.28,.4,.34,.26,.7,.26,.78,.4],P.dark,1);
+  K.poly(c,w,h,[.38,.3,.66,.3,.66,.36,.38,.36],P.glass);
+  c.strokeStyle=P.accent;c.lineWidth=Math.max(1,h*.05);c.beginPath();c.moveTo(w*.3,h*.4);c.lineTo(w*.3,h*.22);c.lineTo(w*.72,h*.22);c.lineTo(w*.78,h*.4);c.stroke();
+  K.poly(c,w,h,[.12,.52,.34,.52,.34,.58,.12,.58],P.accent,1);K.poly(c,w,h,[.46,.52,.8,.52,.8,.58,.46,.58],P.accent,1);
+  K.poly(c,w,h,[.94,.52,.99,.52,.99,.66,.94,.66],P.dark,1);K.poly(c,w,h,[.88,.44,.93,.44,.93,.5,.88,.5],P.light);K.poly(c,w,h,[.48,.16,.58,.16,.58,.22,.48,.22],P.light,1);
+  K.arch(c,w*.24,cy,r);K.arch(c,w*.76,cy,r);K.wheel(c,w*.24,cy,r,P,P.accent);K.wheel(c,w*.76,cy,r,P,P.accent)}}
+];
+
+LD.pickCar=function(store,rnd){   /* never one of the last 2 cars; history in safe storage. Cosmetic only: it never touches the equipped skin or gameplay. */
+  var C=LD.cars,hist=store.getJSON('wso_ld_car',[]);
+  hist=(Array.isArray(hist)?hist:[]).filter(function(id){return C.some(function(c){return c.id===id})}).slice(-2);
+  var cand=C.filter(function(c){return hist.indexOf(c.id)<0});if(!cand.length)cand=C.filter(function(c){return c.id!==hist[hist.length-1]});
+  var c=cand[Math.min(cand.length-1,Math.floor(rnd()*cand.length))];hist.push(c.id);store.setJSON('wso_ld_car',hist.slice(-2));return c;
+};
+LD.cur=LD.pickCar(SS,Math.random);
+var carsMode=/cars/.test(location.hash),cv=$('ldc'),cx=cv.getContext&&cv.getContext('2d'),slot=$('ldslot'),W=0,H=0,DPR=1,G={S:200,x:0,y:0,Lw:20,R:40,Ltot:600,ch:16,cw:36,sg:[]},curP=0,lastT=0;
 /* LOAD-B15: path maths. One path along the middle of the lane (a rounded rectangle), clockwise, starting at the middle of the bottom-left corner. */
 function resize(){
   DPR=Math.min(2,window.devicePixelRatio||1);W=window.innerWidth;H=window.innerHeight;cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR);
@@ -382,6 +443,9 @@ function frame(t){
   }
   /* the car: wheels on the inner square, roof toward the outer outline, so it is upside down along the bottom side */
   var q=pos(p);cx.save();cx.translate(q.x,q.y);cx.rotate(q.a);cx.translate(-cw/2,Lw/2-.86*ch);LD.cur.draw(cx,cw,ch,P);cx.restore();
+  if(carsMode){var pw=Math.min(W*.8,360),ph=pw/2.4,px=W/2-pw/2,py=G.y>=ph+24?12:G.y+G.S/2-ph/2-20;   /* debug preview, bigger than the real car */
+    if(G.y<ph+24){pw=Math.min(G.S*.8,200);ph=pw/2.4;px=G.x+G.S/2-pw/2;py=G.y+G.S/2-ph/2-26}
+    cx.save();cx.translate(px,py);cx.fillStyle='rgba(255,255,255,.05)';cx.fillRect(0,0,pw,ph);cx.fillStyle='rgba(255,255,255,.35)';cx.fillRect(0,ph*.86,pw,1);LD.cur.draw(cx,pw,ph,P);cx.restore()}
   /* percentage on the left of the square, vertically centred; centred inside the square if the left margin is too narrow */
   var fs=Math.max(16,Math.min(26,S*.115)),pt=Math.round(p*100)+'%',nm=LD.cur.name.toUpperCase(),room=x-16,cxm=x+S/2,cym=y+S/2;
   function split(av,nf){cx.font='700 '+nf+'px ui-sans-serif,system-ui,sans-serif';var ln=[nm];if(cx.measureText(nm).width>av&&nm.indexOf(' ')>0){var sp=nm.indexOf(' ',Math.floor(nm.length/2)-2);if(sp<0)sp=nm.lastIndexOf(' ');ln=[nm.slice(0,sp),nm.slice(sp+1)]}var mw=0;for(var k=0;k<ln.length;k++)mw=Math.max(mw,cx.measureText(ln[k]).width);return {ln:ln,mw:mw,nf:nf}}
@@ -519,7 +583,7 @@ var TS=1,ST=[0,20,32,47,66,84,99,100],MV=[1,.6,.8,.9,.9,1,.3],HD=[.2,.4,.3,.4,.3
 (function(){for(var i=0;i<7;i++){segs.push({a:tt,b:tt+MV[i]*TS,p0:ST[i]/100,p1:ST[i+1]/100});tt+=MV[i]*TS;if(HD[i]){segs.push({a:tt,b:tt+HD[i]*TS,p0:ST[i+1]/100,p1:ST[i+1]/100});tt+=HD[i]*TS}}TOTAL=tt})();
 function staged(el){if(el>=TOTAL)return 1;for(var i=0;i<segs.length;i++){var q=segs[i];if(el<q.b){var u=(el-q.a)/(q.b-q.a);u=u*u*(3-2*u);return q.p0+(q.p1-q.p0)*u}}return 1}
 /* LOAD-B5: lifecycle. The page must have loaded before the bar can pass 99%; then the continue button appears. Keys are held back from the game while the loader is up. */
-var t0=performance.now(),ready=document.readyState==='complete',go=$('ldgo'),shownGo=false,loopMode=/loop/.test(location.hash),loopV=0;
+var t0=performance.now(),ready=document.readyState==='complete',go=$('ldgo'),shownGo=false,loopMode=/loop|cars/.test(location.hash),carsMode=/cars/.test(location.hash),loopV=0;
 if(!ready)window.addEventListener('load',function(){ready=true});
 setTimeout(function(){ready=true},9000);
 if(loopMode){   /* debug: #loop shows a slider so you can drag t from 0 to 100 and check every corner */
@@ -527,6 +591,13 @@ if(loopMode){   /* debug: #loop shows a slider so you can drag t from 0 to 100 a
   var lv=document.createElement('div');lv.id='ldloopv';lv.textContent='LOOP DEBUG 0.0%';
   sl.addEventListener('input',function(){loopV=+sl.value/100;lv.textContent='LOOP DEBUG '+(+sl.value).toFixed(1)+'%'});
   L.appendChild(lv);L.appendChild(sl);
+  if(carsMode){   /* #cars: step through the 8 designs (button, or N / P keys), with a big preview so each can be checked */
+    var cb=document.createElement('button');cb.id='ldcarbtn';cb.type='button';cb.textContent='NEXT CAR \u25B6';L.appendChild(cb);
+    var setCar=function(d){var n=LD.cars.length,i=(LD.cars.indexOf(LD.cur)+d+n)%n;LD.cur=LD.cars[i];lv.textContent='CAR '+(i+1)+'/'+n+' \u00B7 '+LD.cur.name+' \u00B7 PROGRESS '+(+sl.value).toFixed(1)+'%'};
+    cb.addEventListener('click',function(){setCar(1)});LD.setCar=setCar;
+    sl.addEventListener('input',function(){setCar(0)});setCar(0);
+    window.addEventListener('keydown',function(e){if(dead)return;if(e.key==='n'||e.key==='N')setCar(1);if(e.key==='p'||e.key==='P')setCar(-1)},true);
+  }
 }
 function tick(now){
   if(dead)return;
