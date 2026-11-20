@@ -224,6 +224,8 @@
 #ldslot{flex:1 1 auto;min-height:150px;width:100%}
 .ldr{width:100%;display:flex;flex-direction:column;align-items:center;min-width:0}
 #ldcard{width:100%;min-height:128px;display:flex;flex-direction:column;align-items:center;justify-content:space-between;gap:8px;padding:14px 16px;text-align:center;font:inherit;color:inherit;border:1.5px solid var(--ld-card);border-radius:16px;background:linear-gradient(150deg,#141f42ee,#070b1cee);box-shadow:0 0 26px -10px var(--ld-glow),0 8px 24px #0007;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);cursor:pointer}
+/* LOAD-B19 card themes: tiny cars drive round the card border */
+#ldcw{position:relative;width:100%}#ldtc{position:absolute;left:-12px;top:-12px;width:calc(100% + 24px);height:calc(100% + 24px);pointer-events:none}
 #ldcard:focus-visible,#ldgo:focus-visible{outline:2px solid #fff;outline-offset:3px}
 #ldcat{font:800 11px/1.2 Orbitron,ui-sans-serif,system-ui,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:var(--ld-acc)}
 #ldq{font:700 16px/1.4 ui-sans-serif,system-ui,sans-serif;color:#f4f7ff;overflow-wrap:anywhere}
@@ -247,7 +249,7 @@
 <div class="ldz">
 <div id="ldslot"></div>
 <div class="ldr">
-<button id="ldcard" type="button"><span id="ldcat"></span><span id="ldq"></span><span id="ldhint"></span></button>
+<div id="ldcw"><button id="ldcard" type="button"><span id="ldcat"></span><span id="ldq"></span><span id="ldhint"></span></button><canvas id="ldtc" aria-hidden="true"></canvas></div>
 <div id="ldcnt"></div>
 <button id="ldgo" type="button" tabindex="-1">Tap to continue</button>
 </div>
@@ -285,10 +287,14 @@ LD.pool=[
   {id:'golden',name:'Golden Hour',main:'#FFE07A',sec:'#E8B923',acc:'#FFE98A'},
   {id:'midnight',name:'Midnight Pulse',main:'#9D6BFF',sec:'#9DBCFF',acc:'#AA6EFF'}
 ];
+LD.hueOf=function(e){return hex2hsl(e.main).h};
+LD.hueDist=function(a,b){var d=Math.abs(a-b)%360;return d>180?360-d:d};
 LD.pick=function(store,rnd){   /* never one of the last 3 palettes; history lives in safe storage */
   var P=LD.pool,hist=store.getJSON('wso_ld_pal',[]);
   hist=(Array.isArray(hist)?hist:[]).filter(function(id){return P.some(function(v){return v.id===id})}).slice(-3);
   var cand=P.filter(function(v){return hist.indexOf(v.id)<0});
+  var far=cand.filter(function(v){var h=LD.hueOf(v);return hist.every(function(id){var o=P.filter(function(z){return z.id===id})[0];return !o||LD.hueDist(h,LD.hueOf(o))>=40})});   /* LOAD-B19: hue at least 40 degrees from the last 3 launches when the pool allows it */
+  if(far.length)cand=far;
   if(!cand.length)cand=P.filter(function(v){return v.id!==hist[hist.length-1]});
   var e=cand[Math.min(cand.length-1,Math.floor(rnd()*cand.length))];
   hist.push(e.id);store.setJSON('wso_ld_pal',hist.slice(-3));return e;
@@ -510,6 +516,28 @@ function frame(t){
   for(var i2=0;i2<nmI.ln.length;i2++)cx.fillText(nmI.ln[i2],ax,cym+(inside?14:13)+i2*(nmI.nf+3));
   cx.textAlign='start';
 }
+/* LOAD-B19 tiny cars on the card border: 3 cars (1 in low quality) drive clockwise round the card, wheels toward the card like the big car; reduced motion = parked. */
+var tcv=$('ldtc'),tcx=tcv.getContext&&tcv.getContext('2d'),tcW=0,tcH=0,tcD=0;
+function drawTiny(t){
+  if(!tcx)return;var b=$('ldcard'),w=b.offsetWidth,h=b.offsetHeight;if(!w||!h)return;
+  if(w!==tcW||h!==tcH||DPR!==tcD){tcW=w;tcH=h;tcD=DPR;tcv.width=Math.round((w+24)*DPR);tcv.height=Math.round((h+24)*DPR)}
+  tcx.setTransform(DPR,0,0,DPR,0,0);tcx.clearRect(0,0,w+24,h+24);
+  var r=16,x=12,y=12,a=w-2*r,b2=h-2*r,q=Math.PI*r/2,Lt=2*a+2*b2+4*q,n=LOWQ?1:3,cs=LD.theme.cars,i,s;
+  function at(s){var PI=Math.PI;
+    if(s<a)return{x:x+r+s,y:y,a:0};s-=a;
+    if(s<q){var g=-PI/2+s/r;return{x:x+w-r+Math.cos(g)*r,y:y+r+Math.sin(g)*r,a:g+PI/2}}s-=q;
+    if(s<b2)return{x:x+w,y:y+r+s,a:PI/2};s-=b2;
+    if(s<q){var g2=s/r;return{x:x+w-r+Math.cos(g2)*r,y:y+h-r+Math.sin(g2)*r,a:g2+PI/2}}s-=q;
+    if(s<a)return{x:x+w-r-s,y:y+h,a:PI};s-=a;
+    if(s<q){var g3=PI/2+s/r;return{x:x+r+Math.cos(g3)*r,y:y+h-r+Math.sin(g3)*r,a:g3+PI/2}}s-=q;
+    if(s<b2)return{x:x,y:y+h-r-s,a:-PI/2};s-=b2;var g4=PI+s/r;return{x:x+r+Math.cos(g4)*r,y:y+r+Math.sin(g4)*r,a:g4+PI/2}}
+  for(i=0;i<n;i++){s=((i*Lt/n)+(RM?Lt*.07:t*44))%Lt;var p=at(s);
+    tcx.save();tcx.translate(p.x,p.y);tcx.rotate(p.a);
+    tcx.fillStyle=cs[0];tcx.beginPath();tcx.moveTo(-7,-1);tcx.lineTo(-7,-4);tcx.lineTo(-3,-5);tcx.lineTo(-1.5,-8);tcx.lineTo(3,-8);tcx.lineTo(5,-5);tcx.lineTo(7,-4);tcx.lineTo(7,-1);tcx.closePath();tcx.fill();
+    tcx.fillStyle=cs[1];tcx.fillRect(-.5,-7,3,2.2);
+    tcx.fillStyle='#0b0e1c';tcx.strokeStyle=cs[1];tcx.lineWidth=.8;tcx.beginPath();tcx.arc(-4,-.5,1.9,0,6.2832);tcx.arc(4,-.5,1.9,0,6.2832);tcx.fill();tcx.stroke();
+    tcx.restore()}
+}
 function setPct(p){curP=p;$('ldfill').style.width=(p*100).toFixed(1)+'%';var n=Math.round(p*10)*10,b=$('ldbar');if(b.getAttribute('aria-valuenow')!=n)b.setAttribute('aria-valuenow',n)}
 
 /* LOAD-B8: the 75 flashcards from your PDF (ids fc01 to fc75 follow the PDF numbers, so editing a card's text never breaks saved state; `theme` is stored for the card-theme block and not drawn yet). */
@@ -611,10 +639,23 @@ LD.Bag=function(cards,store,rnd,key){
   };
 };
 LD.bag=new LD.Bag(LD.cards,SS,Math.random,'wso_ld_bag');
+/* LOAD-B19: the 8 card themes from the PDF. They have their own shuffle bag (never the same theme twice in a row, also across launches), and each one recolours the card border, the label and the tiny cars driving round the card. The theme tag stored on each card is not used: the bag decides. */
+LD.THEMES=[
+ {id:'neon',name:'Neon',card:'#37e6ff',acc:'#8ff2ff',cars:['#37e6ff','#ff4fd8']},
+ {id:'matrix',name:'Matrix',card:'#3dff7a',acc:'#9affbb',cars:['#3dff7a','#d2ffe1']},
+ {id:'blood',name:'Blood Moon',card:'#ff4b5c',acc:'#ffa3ad',cars:['#ff4b5c','#ffc2c8']},
+ {id:'solar',name:'Solar Flare',card:'#ffb347',acc:'#ffd694',cars:['#ffb347','#fff1c2']},
+ {id:'space',name:'Deep Space',card:'#9b6bff',acc:'#c9b0ff',cars:['#9b6bff','#6ee0ff']},
+ {id:'helix',name:'Plasma Helix',card:'#ff4fd8',acc:'#ffa6ec',cars:['#ff4fd8','#37e6ff']},
+ {id:'ember',name:'Ember Sparks',card:'#ff7a3d',acc:'#ffb892',cars:['#ff7a3d','#ffd166']},
+ {id:'arctic',name:'Arctic Drift',card:'#bfe9ff',acc:'#e6f7ff',cars:['#bfe9ff','#7fd0ff']}];
+LD.tbag=new LD.Bag(LD.THEMES,SS,Math.random,'wso_ld_thm');
+LD.theme=LD.THEMES[0];
+LD.applyTheme=function(t){LD.theme=t;var b=$('ldcard').style;b.setProperty('--ld-card',t.card);b.setProperty('--ld-acc',t.acc);b.setProperty('--ld-glow',t.card)};
 var cardSt='q',cardBtn=$('ldcard'),curCard=null;
-LD.nextCard=function(){return LD.bag.deal()};
+LD.nextCard=function(){var r=LD.bag.deal();r.theme=LD.tbag.deal().card;return r};
 function showCard(anim){
-  if(!curCard)return;
+  if(!curCard)return;LD.applyTheme(curCard.theme);
   var c=curCard.card;$('ldcat').textContent='Flashcard · '+c.category;
   $('ldq').textContent=cardSt==='q'?c.q:c.a;
   $('ldhint').textContent=cardSt==='q'?'Tap to know more':'Tap for next card';
@@ -633,9 +674,17 @@ var TS=1,ST=[0,20,32,47,66,84,99,100],MV=[1,.6,.8,.9,.9,1,.3],HD=[.2,.4,.3,.4,.3
 (function(){for(var i=0;i<7;i++){segs.push({a:tt,b:tt+MV[i]*TS,p0:ST[i]/100,p1:ST[i+1]/100});tt+=MV[i]*TS;if(HD[i]){segs.push({a:tt,b:tt+HD[i]*TS,p0:ST[i+1]/100,p1:ST[i+1]/100});tt+=HD[i]*TS}}TOTAL=tt})();
 function staged(el){if(el>=TOTAL)return 1;for(var i=0;i<segs.length;i++){var q=segs[i];if(el<q.b){var u=(el-q.a)/(q.b-q.a);u=u*u*(3-2*u);return q.p0+(q.p1-q.p0)*u}}return 1}
 /* LOAD-B5: lifecycle. The page must have loaded before the bar can pass 99%; then the continue button appears. Keys are held back from the game while the loader is up. */
-var t0=performance.now(),ready=document.readyState==='complete',go=$('ldgo'),shownGo=false,loopMode=/loop|cars/.test(location.hash),carsMode=/cars/.test(location.hash),loopV=0;
-if(!ready)window.addEventListener('load',function(){ready=true});
-setTimeout(function(){ready=true},9000);
+var t0=performance.now(),go=$('ldgo'),shownGo=false,loopMode=/loop|cars/.test(location.hash),carsMode=/cars/.test(location.hash),loopV=0;
+/* LOAD-B20 real progress: four checks gate the bar. fonts (document.fonts.ready), assets (the page's own load event, which waits for every script, style and image), service worker (an installing one must finish; none registered counts as done) and save data (stored game data is checked read-only for damaged JSON, nothing is changed or repaired). The staged timeline sets the pace, the checks set the ceiling: with n of 4 done the bar may reach .25+.74*n/4, and all four unlock 99 then 100%. A check that never answers cannot hold the screen: the service worker check gives up after 3 s, and after 10 s everything is treated as done (LD.timedOut). The bar eases toward its target, and the Continue button never shows before 2.5 s. */
+var T={fonts:0,assets:0,sw:0,save:0},TN=4,MINMS=2500,TOUT=10000,dispP=0;LD.T=T;LD.timedOut=false;LD.save={checked:0,damaged:0};
+function mark(k){T[k]=1}
+function nDone(){return T.fonts+T.assets+T.sw+T.save}
+try{if(document.fonts&&document.fonts.ready)document.fonts.ready.then(function(){mark('fonts')},function(){mark('fonts')});else mark('fonts')}catch(e){mark('fonts')}
+if(document.readyState==='complete')mark('assets');else window.addEventListener('load',function(){mark('assets')});
+try{if(navigator.serviceWorker&&navigator.serviceWorker.getRegistration)navigator.serviceWorker.getRegistration().then(function(r){if(!r||r.active)mark('sw');else{var w=r.installing||r.waiting;if(w)w.addEventListener('statechange',function(){if(w.state==='activated'||w.state==='redundant')mark('sw')})}},function(){mark('sw')});else mark('sw')}catch(e){mark('sw')}
+setTimeout(function(){mark('sw')},3000);
+setTimeout(function(){try{var n=0,bad=0,i,k,v;for(i=0;i<localStorage.length;i++){k=localStorage.key(i);if(k&&k.indexOf('wso')===0&&k.indexOf('wso_ld_')!==0){v=localStorage.getItem(k);if(v&&(v.charAt(0)==='{'||v.charAt(0)==='[')){n++;try{JSON.parse(v)}catch(e){bad++}}}}LD.save={checked:n,damaged:bad}}catch(e){LD.save={checked:0,damaged:0,unavailable:true}}mark('save')},0);
+setTimeout(function(){LD.timedOut=!(nDone()>=TN);mark('fonts');mark('assets');mark('sw');mark('save')},TOUT);
 if(loopMode){   /* debug: #loop shows a slider so you can drag t from 0 to 100 and check every corner */
   var sl=document.createElement('input');sl.type='range';sl.id='ldloop';sl.min='0';sl.max='100';sl.step='0.1';sl.value='0';sl.setAttribute('aria-label','Debug progress');
   var lv=document.createElement('div');lv.id='ldloopv';lv.textContent='LOOP DEBUG 0.0%';
@@ -649,12 +698,17 @@ if(loopMode){   /* debug: #loop shows a slider so you can drag t from 0 to 100 a
     window.addEventListener('keydown',function(e){if(dead)return;if(e.key==='n'||e.key==='N')setCar(1);if(e.key==='p'||e.key==='P')setCar(-1)},true);
   }
 }
+var prevNow=0,frameDt=.016;
 function tick(now){
-  if(dead)return;
-  var p=loopMode?loopV:staged((now-t0)/1000);if(!ready)p=Math.min(p,.99);
+  if(dead)return;frameDt=Math.min(.1,Math.max(0,(now-(prevNow||now))/1000));prevNow=now;
+  var el=now-t0,p;
+  if(loopMode)p=loopV;
+  else{var d=nDone(),tg=staged(el/1000);tg=Math.min(tg,d>=TN?1:.25+.74*d/TN);if(el<MINMS)tg=Math.min(tg,.99);
+    if(RM)dispP=tg;else{dispP+=(tg-dispP)*Math.min(1,(frameDt||.016)*9);if(tg-dispP<.002&&tg>dispP)dispP=tg}   /* easing */
+    p=dispP>.9995?1:dispP}
   setPct(p);
   if(p>=1&&!shownGo){shownGo=true;go.classList.add('on');go.tabIndex=0;if(!loopMode){try{go.focus({preventScroll:true})}catch(e){}}}
-  frame((now-t0)/1000);
+  frame((now-t0)/1000);drawTiny((now-t0)/1000);
   raf=requestAnimationFrame(tick);
 }
 function finish(){
@@ -670,7 +724,32 @@ function onKey(e){
 }
 go.addEventListener('click',finish);
 window.addEventListener('keydown',onKey,true);window.addEventListener('keyup',onKey,true);window.addEventListener('resize',resize);
-resize();raf=requestAnimationFrame(tick);
+/* LOAD-B21: 200-launch test page. Open the game with #sim (for example index.html#sim). It replays 200 launches with the real pick code and an in-memory store (your saved history is never touched) and prints PASS or FAIL for: palette not in the last 3 and hue at least 40 degrees from the last 3 (when the pool allows it, counted separately), car not in the last 2, card never the same twice in a row, theme never the same twice in a row. Reduced-motion and low-quality switches do not matter here. */
+LD.runSim=function(N){
+  N=N||200;var mem={},ms={get:function(k,d){return k in mem?mem[k]:d},set:function(k,v){mem[k]=String(v)},getJSON:function(k,d){return k in mem?JSON.parse(mem[k]):d},setJSON:function(k,v){mem[k]=JSON.stringify(v)}};
+  var cb=new LD.Bag(LD.cards,ms,Math.random,'c'),tb=new LD.Bag(LD.THEMES,ms,Math.random,'t'),rows=[],i,j,r,pal=[],car=[],card=[],thm=[],cnt={pal:{},car:{},card:{},thm:{}};
+  for(i=0;i<N;i++){var e=LD.pick(ms,Math.random),c=LD.pickCar(ms,Math.random),d=cb.deal().card,t=tb.deal().card;pal.push(e);car.push(c.id);card.push(d.id);thm.push(t.id);
+    cnt.pal[e.id]=(cnt.pal[e.id]||0)+1;cnt.car[c.id]=(cnt.car[c.id]||0)+1;cnt.card[d.id]=(cnt.card[d.id]||0)+1;cnt.thm[t.id]=(cnt.thm[t.id]||0)+1;
+    rows.push(i+1+'  '+e.name+' ('+Math.round(LD.hueOf(e))+'°)  |  '+c.name+'  |  '+d.id+'  |  '+t.name)}
+  var bad={palLast3:0,hue40:0,hueFallback:0,carLast2:0,cardBack:0,themeBack:0};
+  for(i=1;i<N;i++){
+    for(j=Math.max(0,i-3);j<i;j++){if(pal[i].id===pal[j].id)bad.palLast3++;if(LD.hueDist(LD.hueOf(pal[i]),LD.hueOf(pal[j]))<40)bad.hue40++}
+    for(j=Math.max(0,i-2);j<i;j++)if(car[i]===car[j])bad.carLast2++;
+    if(card[i]===card[i-1])bad.cardBack++;if(thm[i]===thm[i-1])bad.themeBack++}
+  function span(o){var v=Object.keys(o).map(function(k){return o[k]});return Object.keys(o).length+' used, '+Math.min.apply(0,v)+'..'+Math.max.apply(0,v)+' times each'}
+  var res={launches:N,palette_not_in_last3:bad.palLast3===0,hue_within_40deg_of_last3_count:bad.hue40,car_not_in_last2:bad.carLast2===0,card_never_back_to_back:bad.cardBack===0,theme_never_back_to_back:bad.themeBack===0,
+    palettes:span(cnt.pal),cars:span(cnt.car),cards:span(cnt.card),themes:span(cnt.thm)};
+  res.pass=res.palette_not_in_last3&&res.car_not_in_last2&&res.card_never_back_to_back&&res.theme_never_back_to_back;
+  var o=document.createElement('div');o.id='ldsim';o.style.cssText='position:fixed;inset:0;z-index:400;overflow:auto;background:#080720;color:#f4f7ff;font:13px/1.5 ui-monospace,Menlo,Consolas,monospace;padding:16px';
+  var h='<h2 style="font:800 18px Orbitron,sans-serif;margin:0 0 8px">LOADING SCREEN · '+N+'-LAUNCH TEST: <span style="color:'+(res.pass?'#7cffc2':'#ff6b6b')+'">'+(res.pass?'PASS':'FAIL')+'</span></h2><pre style="white-space:pre-wrap;margin:0 0 12px">';
+  function ln(k,v){h+=(v===true?'PASS  ':v===false?'FAIL  ':'      ')+k+(v===true||v===false?'':': '+v)+'\n'}
+  ln('palette never in the last 3 launches',res.palette_not_in_last3);ln('hue 40+ degrees from the last 3 (misses, allowed only when the pool has no other choice)',String(bad.hue40));
+  ln('car never in the last 2 launches',res.car_not_in_last2);ln('card never the same twice in a row',res.card_never_back_to_back);ln('theme never the same twice in a row',res.theme_never_back_to_back);
+  ln('palettes',res.palettes);ln('cars',res.cars);ln('cards',res.cards);ln('themes',res.themes);
+  h+='</pre><pre style="white-space:pre-wrap;color:#9fb2d4;margin:0">launch  palette (hue)  |  car  |  card  |  theme\n'+rows.join('\n')+'</pre>';o.innerHTML=h;document.body.appendChild(o);
+  document.title='Loader test '+(res.pass?'PASS':'FAIL');LD.simResult=res;try{console.log('LOADER-SIM',JSON.stringify(res))}catch(e){}return res};
+if(/sim/.test(location.hash)){dead=true;L.style.display='none';LD.runSim(200)}
+else{resize();raf=requestAnimationFrame(tick)}
 }catch(err){dead=true;if(raf)cancelAnimationFrame(raf);if(L.parentNode)L.parentNode.removeChild(L)}   /* if anything above fails, get out of the way: the game must always start */
 window.__LD=LD;
 })();
