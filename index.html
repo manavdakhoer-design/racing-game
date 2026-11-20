@@ -398,14 +398,107 @@ function frame(t){
 }
 function setPct(p){curP=p;$('ldfill').style.width=(p*100).toFixed(1)+'%';var n=Math.round(p*10)*10,b=$('ldbar');if(b.getAttribute('aria-valuenow')!=n)b.setAttribute('aria-valuenow',n)}
 
-/* LOAD-B4: flashcard. States: question -> "Tap to know more" -> flip to answer -> "Tap for next card" -> next card. Text is set with textContent only. */
+/* LOAD-B8: the 75 flashcards from your PDF (ids fc01 to fc75 follow the PDF numbers, so editing a card's text never breaks saved state; `theme` is stored for the card-theme block and not drawn yet). */
 LD.cards=[
-  {id:'p001',category:'Placeholder',q:'Placeholder question one?',a:'Placeholder answer one.'},
-  {id:'p002',category:'Placeholder',q:'Placeholder question two?',a:'Placeholder answer two.'},
-  {id:'p003',category:'Placeholder',q:'Placeholder question three?',a:'Placeholder answer three.'}
+ {id:"fc01",category:"Scoring",theme:"solar",q:"What final score earns rank S?",a:"25,000 or more. A needs 12,000+, B needs 4,000+, and anything lower is C."},
+ {id:"fc02",category:"Controls",theme:"helix",q:"Which keys flip gravity to the opposite wall?",a:"Space or the Up arrow. Left/Right arrows (or A/D) put that side wall under you."},
+ {id:"fc03",category:"Settings",theme:"space",q:"What is 'Reduced flash & motion' set to by default?",a:"Off, unless your device asks for reduced motion, in which case it follows the device. It softens glitch, camera shake, hazard blinking and the shift pulse."},
+ {id:"fc04",category:"Hazards & Telegraph",theme:"blood",q:"What happens when you stay on an electrified plate?",a:"You are zapped, your chain resets, and you crash a blink later unless you shift off. The crash title is ELECTROCUTED."},
+ {id:"fc05",category:"Ghost Replay",theme:"arctic",q:"What does the MY BEST ghost race?",a:"Your best finished run. DAILY LEADER, the day's top daily player, only appears when an online leaderboard is connected."},
+ {id:"fc06",category:"Pro Tips",theme:"matrix",q:"How late must you shift to earn a NEAR MISS?",a:"Within about 11 m of a hazard. It pays +50 and starts a 4-second burst of doubled Flux."},
+ {id:"fc07",category:"Daily Challenge",theme:"neon",q:"What does everyone share in a Daily Challenge?",a:"The same track, at Normal speed, for that UTC date. Daily runs never touch your normal records."},
+ {id:"fc08",category:"Skins & Vault",theme:"helix",q:"How do you unlock a new Vault skin?",a:"Buy it with orbs collected in real runs; tutorial orbs don't count. Neon Tokyo is free and the other four cost 100 to 600."},
+ {id:"fc09",category:"Tutorial",theme:"arctic",q:"How many lessons are in the tutorial?",a:"18, from Welcome to Almost There."},
+ {id:"fc10",category:"Difficulties",theme:"ember",q:"How much faster is Hyper than Normal?",a:"About 18% faster: Chill is x0.85, Normal x1.00, Hyper x1.18."},
+ {id:"fc11",category:"Fun Facts",theme:"matrix",q:"How is the game's 3D tube drawn?",a:"By a custom 2D canvas renderer that projects the tube, with no 3D library."},
+ {id:"fc12",category:"Achievements & Labels",theme:"solar",q:"How many near misses in one run unlock a Play Games achievement?",a:"5. Play Games achievements exist only in the Android app; others need 10 slingshots in a run or 20 clean shifts in a row."},
+ {id:"fc13",category:"Controls",theme:"neon",q:"On a touch screen, which swipe flips gravity?",a:"Swipe up. Swipe left or right puts that wall under you, and the three on-screen buttons do the same."},
+ {id:"fc14",category:"Scoring",theme:"ember",q:"How is the time bonus calculated?",a:"15 points per second under 90 seconds, so a 60-second finish earns 450. At 90 seconds or slower it is zero."},
+ {id:"fc15",category:"Settings",theme:"space",q:"What does the colour-blind-safe palette add to every wall?",a:"A shape marker, with walls turned orange, green, white and violet. Every hazard also gets its own icon and pattern."},
+ {id:"fc16",category:"Hazards & Telegraph",theme:"blood",q:"What does touching a spiked barrier do?",a:"It wrecks your run on the spot with STRUCTURAL FAILURE. Shift onto a clear wall before it arrives."},
+ {id:"fc17",category:"Pro Tips",theme:"neon",q:"Which mistake resets your Flux multiplier chain?",a:"Falling into a gap or getting zapped. Each clean shift adds 0.1, so keep shifting cleanly."},
+ {id:"fc18",category:"Daily Challenge",theme:"space",q:"When is your one scored daily attempt used up?",a:"The moment you start it, even if you crash or quit. After that, runs on the same track are unscored practice."},
+ {id:"fc19",category:"Ghost Replay",theme:"helix",q:"What does 'AHEAD 0.42s' on the ghost readout mean?",a:"You reached this point 0.42 seconds before your ghost did. It reads BEHIND when the ghost got there first."},
+ {id:"fc20",category:"Skins & Vault",theme:"solar",q:"What does the Inventory screen promise about its items?",a:"Looks only: nothing there changes handling, hitboxes or score."},
+ {id:"fc21",category:"Fun Facts",theme:"matrix",q:"How often does the game world update, whatever your frame rate?",a:"120 times per second, so physics, time bonus and score match on 30, 60 or 144 Hz screens."},
+ {id:"fc22",category:"Difficulties",theme:"ember",q:"How many clean shifts in a row max out Hyper's speed-up?",a:"20. Each adds 0.4% speed, capped at +8%, and falling, a zap or a crash resets the streak."},
+ {id:"fc23",category:"Tutorial",theme:"arctic",q:"What happens to crashes and score in the tutorial?",a:"Nothing counts: no saved score and no Vault orbs, and a crash just rewinds you. Time also slows at each lesson."},
+ {id:"fc24",category:"Pro Tips",theme:"helix",q:"How do you collect a pink slingshot orb?",a:"Time a shift so you pass through it mid-move. It gives +100 times your multiplier and a speed boost."},
+ {id:"fc25",category:"Settings",theme:"neon",q:"What does the Flash meter show?",a:"The live number of screen flashes per second, measured from the game picture. It is off by default."},
+ {id:"fc26",category:"Controls",theme:"arctic",q:"Which keys pause a run?",a:"P or Esc, plus the pause button on touch screens. The game also pauses itself if you switch tabs or windows."},
+ {id:"fc27",category:"Scoring",theme:"ember",q:"What is the highest Flux multiplier a clean-shift chain can reach?",a:"x6, growing by 0.1 per clean shift. A near-miss burst doubles it for 4 seconds."},
+ {id:"fc28",category:"Hazards & Telegraph",theme:"blood",q:"How do you cross a chasm, where a wall has no floor?",a:"Ride along a wall that still has floor. Clearing it awards CHASM VAULT +75."},
+ {id:"fc29",category:"Skins & Vault",theme:"space",q:"Which Vault skin is free from the start?",a:"Neon Tokyo, \"The Classic\". The other four skins are bought with orbs."},
+ {id:"fc30",category:"Daily Challenge",theme:"matrix",q:"What does the DAILY # number count?",a:"Days since 1 January 2026, starting at #1."},
+ {id:"fc31",category:"Achievements & Labels",theme:"solar",q:"What does a coloured anchor gate do?",a:"It forces your gravity onto its wall, locks controls briefly and pays ANCHOR LOCKED +30. A GRAVITY ANCHOR message warns you about 60 m ahead."},
+ {id:"fc32",category:"Pro Tips",theme:"neon",q:"How can yellow orbs help you navigate?",a:"They float on the safe wall of each stretch, so following them keeps you away from hazards."},
+ {id:"fc33",category:"Fun Facts",theme:"helix",q:"How long is a standard run's track?",a:"1,800 metres, made of 90 stretches of 20 m."},
+ {id:"fc34",category:"Settings",theme:"space",q:"What does 'High-contrast track edges' do?",a:"It thickens the bright track lines with a dark outline, darkens panels and removes background clutter. It is off by default."},
+ {id:"fc35",category:"Ghost Replay",theme:"arctic",q:"Which runs can become your ghost?",a:"Finished runs with no checkpoint retry that beat your previous best. Crashes, retries and tutorial runs are never saved."},
+ {id:"fc36",category:"Difficulties",theme:"blood",q:"Do Chill, Normal and Hyper share one high score?",a:"No. Each keeps its own best score, best time and day, week, month and all-time records."},
+ {id:"fc37",category:"Daily Challenge",theme:"matrix",q:"When does the next Daily Challenge begin?",a:"At midnight UTC, counted down by the NEXT CHALLENGE IN timer."},
+ {id:"fc38",category:"Skins & Vault",theme:"solar",q:"How do you unlock the Void Smoke trail?",a:"Finish a run with rank S."},
+ {id:"fc39",category:"Pro Tips",theme:"helix",q:"The hazard warning banner checks which wall?",a:"Only the wall you are driving on, so scan your escape wall yourself before you shift."},
+ {id:"fc40",category:"Fun Facts",theme:"matrix",q:"How many sectors does a run have?",a:"3: Neon Drift, Magenta Rush and Amber Storm, split by green checkpoint gates."},
+ {id:"fc41",category:"Controls",theme:"arctic",q:"How do you restart a live run with the keyboard?",a:"Press R, then press R again within about 1.5 seconds. The scored daily attempt allows no restarts."},
+ {id:"fc42",category:"Settings",theme:"space",q:"Which are the HUD text size options?",a:"Normal, Large and XL, with Normal as the default."},
+ {id:"fc43",category:"Hazards & Telegraph",theme:"blood",q:"When does the hazard warning banner appear?",a:"When a hazard is within about 34 m on the wall you are driving on. It names the hazard and the metres left."},
+ {id:"fc44",category:"Daily Challenge",theme:"neon",q:"What happens when you press START SCORED ATTEMPT?",a:"The game asks you to confirm, because you only get one and quitting or crashing uses it up."},
+ {id:"fc45",category:"Skins & Vault",theme:"solar",q:"How do you unlock the Plasma Helix trail?",a:"Finish 5 runs in a row. A crash resets the streak."},
+ {id:"fc46",category:"Pro Tips",theme:"helix",q:"Which move do you need when hazards block both side walls?",a:"Flip to the opposite wall. This is what the flip lesson in the tutorial teaches."},
+ {id:"fc47",category:"Fun Facts",theme:"space",q:"What plays behind the main menu?",a:"An automated demo run of the track, with no collisions."},
+ {id:"fc48",category:"Scoring",theme:"ember",q:"What does the efficiency multiplier compare?",a:"Your sideways travel against the shortest possible path. It scales your Flux Score by between x0.40 and x1.00."},
+ {id:"fc49",category:"Tutorial",theme:"arctic",q:"How can you replay the tutorial?",a:"Press TUTORIAL on the menu, or REPLAY TUTORIAL on the You're Ready screen."},
+ {id:"fc50",category:"Settings",theme:"neon",q:"What flash limit does 'Reduced flash & motion' promise?",a:"Flashing stays under 1.5 per second."},
+ {id:"fc51",category:"Pro Tips",theme:"matrix",q:"Why finish your shifts before an anchor gate?",a:"Controls are locked around the gate. Inputs are ignored from just before it until a little after it."},
+ {id:"fc52",category:"Achievements & Labels",theme:"ember",q:"Which crash title means you hit a spiked barrier?",a:"STRUCTURAL FAILURE. LOST IN THE VOID is a fall and ELECTROCUTED is an electrified plate."},
+ {id:"fc53",category:"Skins & Vault",theme:"solar",q:"Why can spending Vault orbs delay the Starfall trail?",a:"It needs you to hold 300 orbs at once, so spending orbs sets your progress back. Golden Hour needs 600."},
+ {id:"fc54",category:"Controls",theme:"arctic",q:"Which key hides or shows the ghost during a run?",a:"G, or the pause menu's HIDE/SHOW GHOST button. The ghost never affects your car or score."},
+ {id:"fc55",category:"Fun Facts",theme:"helix",q:"How does the music react to your play?",a:"Pitch climbs with your chain and tempo with your speed. All sound is synthesised live, with no audio files."},
+ {id:"fc56",category:"Daily Challenge",theme:"neon",q:"What does the TRACK CODE on the daily screen identify?",a:"Today's exact track, so everyone with the same code races the same layout."},
+ {id:"fc57",category:"Settings",theme:"space",q:"What does the Colour-vision simulation do?",a:"It filters the whole screen (Deutan, Protan, Tritan or Mono) so you can test each view. It is not saved."},
+ {id:"fc58",category:"Hazards & Telegraph",theme:"blood",q:"What happens if you drive into a gap?",a:"You fall into the void and crash as LOST IN THE VOID, and your chain resets."},
+ {id:"fc59",category:"Pro Tips",theme:"matrix",q:"What should you do during a 2x near-miss burst?",a:"Chain clean shifts, orbs and slingshots, because every award is doubled for those 4 seconds."},
+ {id:"fc60",category:"Skins & Vault",theme:"solar",q:"What are the two tabs on the Inventory screen?",a:"TRAILS and SHIPS. Trails start with the clean \"No trail\" look equipped."},
+ {id:"fc61",category:"Fun Facts",theme:"space",q:"What does a saved replay store?",a:"Only your inputs, and the game re-runs them to draw your ghost. The finish screen shows the replay size in bytes."},
+ {id:"fc62",category:"Settings",theme:"arctic",q:"What happens when you Import a backup?",a:"The game asks you to confirm, then replaces all progress on that device and reloads. Files that are not game backups are rejected."},
+ {id:"fc63",category:"Pro Tips",theme:"neon",q:"Why do fewer, smaller shifts help your efficiency?",a:"They keep your sideways travel near the shortest path, and a flip travels farther than a quarter turn."},
+ {id:"fc64",category:"Daily Challenge",theme:"matrix",q:"What happens to your chosen difficulty in a daily run?",a:"It is set to Normal for everyone. Your own choice returns when you leave the daily."},
+ {id:"fc65",category:"Skins & Vault",theme:"helix",q:"How do you unlock the Midnight Pulse ship?",a:"Finish the Daily Challenge on 7 days."},
+ {id:"fc66",category:"Fun Facts",theme:"space",q:"What does AUTO graphics quality do?",a:"It drops one level if the game can't hold about 42 fps, and never raises it again that session."},
+ {id:"fc67",category:"Settings",theme:"neon",q:"What does Backup & restore export?",a:"All progress: records, orbs, cosmetics and settings, with no personal data."},
+ {id:"fc68",category:"Pro Tips",theme:"matrix",q:"Which pickup speeds you up and helps your time bonus?",a:"Pink slingshot orbs, with a smaller boost on Hyper. Every second under 90 s is worth 15 points."},
+ {id:"fc69",category:"Fun Facts",theme:"helix",q:"How does the game keep each daily track fair?",a:"It builds the track from the date, checks its shape, and rerolls unless a test driver can finish it."},
+ {id:"fc70",category:"Skins & Vault",theme:"solar",q:"Do ship skins recolour pink slingshot orbs?",a:"No. They stay pink with a diamond ring so they always read clearly; skins only restyle normal orbs."},
+ {id:"fc71",category:"Pro Tips",theme:"helix",q:"What must you do the instant you see ZAPPED, SHIFT NOW?",a:"Shift off the plate at once, because a crash follows after a blink."},
+ {id:"fc72",category:"Pro Tips",theme:"neon",q:"What does retrying from a checkpoint cost?",a:"-50 points and +3 seconds. It also ends a flawless finish, and that run can't become your ghost."},
+ {id:"fc73",category:"Fun Facts",theme:"space",q:"Where does the PLAY GAMES button appear?",a:"Only in the Android app. Your daily ranking stays separate and is checked by the game's own server."},
+ {id:"fc74",category:"Pro Tips",theme:"matrix",q:"What happens if you press a shift mid-move?",a:"It is queued and fires when you land. Presses within about 50 ms of a shift are ignored."},
+ {id:"fc75",category:"Pro Tips",theme:"neon",q:"How should you prepare for the scored daily attempt?",a:"Run PRACTISE first: same track, unscored, with no limit on tries."}
 ];
-var cardIx=0,cardSt='q',cardBtn=$('ldcard'),curCard=null;
-LD.nextCard=function(){var c=LD.cards[cardIx%LD.cards.length];cardIx++;return {card:c,pos:((cardIx-1)%LD.cards.length)+1,total:LD.cards.length}};
+/* LOAD-B8: shuffle bag. Deal one card per launch and one per tap, never repeat until all cards were dealt, never start a new round with the card just seen. Saved in safe storage; a damaged or outdated save is rebuilt silently, and added or removed cards are picked up. */
+LD.Bag=function(cards,store,rnd,key){
+  var ids=cards.map(function(c){return c.id}),known={},byId={},i;ids.forEach(function(x){known[x]=1});cards.forEach(function(c){byId[c.id]=c});
+  function shuffle(a){a=a.slice();for(var k=a.length-1;k>0;k--){var j=Math.min(k,Math.floor(rnd()*(k+1))),t=a[k];a[k]=a[j];a[j]=t}return a}
+  function strs(a){return Array.isArray(a)?a.filter(function(x){return typeof x==='string'&&known[x]}):null}
+  var b=null,d=null,last='',st=store.getJSON(key,null);
+  if(st&&typeof st==='object'&&Array.isArray(st.b)&&Array.isArray(st.d)){
+    b=strs(st.b);d=strs(st.d);last=(typeof st.l==='string'&&known[st.l])?st.l:'';
+    var seen={},dup=false;b.concat(d).forEach(function(x){if(seen[x])dup=true;seen[x]=1});
+    if(dup){b=null;d=null}
+    else{ids.forEach(function(x){if(!seen[x])b.splice(Math.floor(rnd()*(b.length+1)),0,x)})}   /* cards added since the last save join this round at random places */
+  }
+  if(!b){b=shuffle(ids);d=[]}
+  function save(){store.setJSON(key,{b:b,d:d,l:last})}
+  this.deal=function(){
+    if(!b.length){b=shuffle(ids);d=[];if(ids.length>1&&b[0]===last){var j=1+Math.min(b.length-2,Math.floor(rnd()*(b.length-1)));var t=b[0];b[0]=b[j];b[j]=t}}
+    var id=b.shift();d.push(id);last=id;save();
+    return {card:byId[id],pos:d.length,total:ids.length};
+  };
+};
+LD.bag=new LD.Bag(LD.cards,SS,Math.random,'wso_ld_bag');
+var cardSt='q',cardBtn=$('ldcard'),curCard=null;
+LD.nextCard=function(){return LD.bag.deal()};
 function showCard(anim){
   if(!curCard)return;
   var c=curCard.card;$('ldcat').textContent='Flashcard · '+c.category;
