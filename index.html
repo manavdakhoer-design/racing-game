@@ -78,6 +78,12 @@
   .rec>div{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:6px 4px;text-align:center;color:#b9c6e2}
   .rec>div b{display:block;font-size:15px;color:#fff;letter-spacing:0;margin-top:2px}
   .rec>div.new{border-color:#ffd166;color:#ffd166}.rec>div.new b{color:#ffd166}
+  .rpan{margin:0 0 12px}.rtl{font:800 11px Orbitron,Inter,ui-sans-serif,system-ui,sans-serif;letter-spacing:.2em;color:#b9c6e2;margin:0 0 8px;text-align:center}
+  .rpan .seg{margin:0 0 8px}.rrows{display:grid;gap:5px;margin:0 0 6px}
+  .rr{display:grid;grid-template-columns:minmax(80px,1fr) auto 16px minmax(78px,auto);align-items:center;gap:8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:6px 10px;font-size:10px;letter-spacing:.1em;color:#b9c6e2;text-align:left}
+  .rr b{font-family:Orbitron,Inter,ui-sans-serif,system-ui,sans-serif;font-size:14px;color:#fff;letter-spacing:0;text-align:right}
+  .rr .rk{font:800 12px Orbitron,Inter,ui-sans-serif,system-ui,sans-serif;text-align:center}.rr .rd{text-align:right;letter-spacing:.03em;color:#b9c6e2}
+  @media (max-width:360px){.rr{grid-template-columns:1fr auto 16px}.rr .rd{grid-column:1/-1;text-align:left}}
   .best{ min-height:16px; color:var(--cy); font-weight:800; font-size:11px; letter-spacing:.14em; margin-bottom:18px; }
   .small{ margin-top:16px; font-size:11px; color:#8ea0c4; letter-spacing:.06em; }
   #mute{ position:absolute; top:max(14px,env(safe-area-inset-top)); right:16px; z-index:12; pointer-events:auto; width:38px; height:38px; border-radius:50%; background:#0a1226b8; border:1px solid #ffffff2e; font-size:15px; display:none; }
@@ -809,7 +815,7 @@ window.__LD=LD;
 
     <div class="small" id="dline"></div>
     <div class="small" id="bestline"></div>
-    <div class="rec" id="mrec"></div>
+    <div class="rpan"><div class="rtl">HIGH SCORES</div><div class="seg" id="rsw" role="group" aria-label="High scores for difficulty"><button type="button" data-d="0">CHILL</button><button type="button" data-d="1">NORMAL</button><button type="button" data-d="2">HYPER</button></div><div class="rrows" id="mrec"></div><div class="small" id="rnote">Today, week and month use this device's date (weeks start Monday). Daily Challenge uses UTC.</div></div>
     <button class="btn alt" id="mshare" style="display:none">⇪ SHARE HIGH SCORE</button>
   </div></section>
      <section class="overlay" id="vault"><div class="panel">
@@ -1411,7 +1417,7 @@ function finish(){
   $('#rank').textContent=rank;$('#rank').style.color={S:'#ffd166',A:'#37e6ff',B:'#ff4fd8',C:'#b9c6e2'}[rank];
   $('#ftime').textContent=fmt(elapsed);$('#forbs').textContent=got.size+' / '+totalOrbs;$('#fshift').textContent=shifts;
   if(dailyMode){$('#frec').textContent='';$('#fbest').textContent='DAILY #'+dailyInfo.n+(wasDaily?' · SCORED RESULT SAVED':' · PRACTICE (not scored)');return}   // daily runs never touch the normal records
-  const before=recordsOf(loadRuns(),load()),mark={};for(const k in before)mark[k]=final>before[k];
+  const mark=(!bot&&!demo&&!tutMode)?recAdd(diff,final):{};   // GAME-B6: period records (daily, bot, tutorial and unfinished runs never get here)
   const best=load(),nb={t:best&&best.t>0?Math.min(best.t,elapsed):elapsed,o:Math.max(best&&best.o||0,got.size),s:Math.max(best&&best.s||0,final)};
   const newHi=!best||final>(best.s||0);save(nb);saveRun(final,elapsed);renderRecs($('#frec'),null,mark);
   $('#fbest').textContent=newHi?'★ NEW HIGH SCORE ('+DNAME[diff]+') ★':'HIGH SCORE  '+fmtN(nb.s)+'  ·  BEST TIME '+fmt(nb.t);
@@ -1429,10 +1435,10 @@ function periodStarts(now){const d=new Date(now);const day=new Date(d.getFullYea
   const mo=new Date(d.getFullYear(),d.getMonth(),1).getTime();return {DAY:day,WEEK:wk,MONTH:mo,'ALL TIME':0}}
 function recordsOf(runs,legacy){const ps=periodStarts(Date.now()),r={};
   for(const k in ps){let b=0;for(const x of runs)if(x.d>=ps[k]&&x.s>b)b=x.s;if(k==='ALL TIME'&&legacy)b=Math.max(b,legacy.s||0);r[k]=b}return r}
-function renderRecs(el,prev,mark){const r=recordsOf(loadRuns(),load());
+function renderRecs(el,prev,mark){const v=recView(diff),r={DAY:v.day?v.day.s:0,WEEK:v.wk?v.wk.s:0,MONTH:v.mo?v.mo.s:0,'ALL TIME':v.all?v.all.s:0};
   el.textContent='';for(const k of ['DAY','WEEK','MONTH','ALL TIME']){const d=document.createElement('div');if(mark&&mark[k])d.className='new';d.append(k+' BEST');const b=document.createElement('b');b.textContent=r[k]?fmtN(r[k]):'—';d.append(b);el.append(d)}}
-function updBest(){renderRecs($('#mrec'));{const b=load();$('#mshare').style.display=b&&b.s>0?'':'none'}const bl0=load(),bl=bl0&&bl0.t>0?bl0:null;$('#bestline').textContent=bl?`${DNAME[diff]} · HIGH SCORE  ${fmtN(bl.s||0)}  ·  BEST TIME ${fmt(bl.t)}`:`${DNAME[diff]} · reach the finish gate to set your first time.`}
-function setDiff(d){diff=d;try{localStorage.setItem('wso_diff',d)}catch(e){}document.querySelectorAll('#diffs button').forEach(b=>b.classList.toggle('on',+b.dataset.d===d));updBest()}
+function updBest(){renderPanel();{const b=load();$('#mshare').style.display=b&&b.s>0?'':'none'}const bl0=load(),bl=bl0&&bl0.t>0?bl0:null;$('#bestline').textContent=bl?`${DNAME[diff]} · HIGH SCORE  ${fmtN(bl.s||0)}  ·  BEST TIME ${fmt(bl.t)}`:`${DNAME[diff]} · reach the finish gate to set your first time.`}
+function setDiff(d){diff=d;rpView=-1;try{localStorage.setItem('wso_diff',d)}catch(e){}document.querySelectorAll('#diffs button').forEach(b=>b.classList.toggle('on',+b.dataset.d===d));updBest()}
 const fmt=t=>{const m=Math.floor(t/60),s=t-m*60;return m+':'+(s<10?'0':'')+s.toFixed(2)};
 
 function botThink(){
@@ -1748,15 +1754,24 @@ function ghostHud(){
 const todayStr=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
 const yesterdayStr=()=>{const d=new Date();d.setDate(d.getDate()-1);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
 const Save=(()=>{
-  const KEY='wso_save',V=2,FMT=1;
+  const KEY='wso_save',V=3,FMT=1;   /* GAME-B6: v3 adds rc (period records) */
   const int=(x,max)=>{x=Math.floor(+x);return Number.isFinite(x)&&x>=0?Math.min(x,max||1e9):0};
   const dstr=x=>typeof x==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(x)?x:'';
   const idok=x=>typeof x==='string'&&/^[a-z0-9]{1,12}$/.test(x);
-  const def=()=>({v:V,own:{},eq:{trail:'',skin:'s1'},seen:{},st:{fin:0,rk:{S:0,A:0,B:0,C:0},best:0,chain:0,fs:0,bfs:0,dl:'',dn:0,bdn:0,dc:0,dd:''},dy:null,dh:[]});
+  const def=()=>({v:V,own:{},eq:{trail:'',skin:'s1'},seen:{},st:{fin:0,rk:{S:0,A:0,B:0,C:0},best:0,chain:0,fs:0,bfs:0,dl:'',dn:0,bdn:0,dc:0,dd:''},dy:null,dh:[],rc:null});
   function migrate(o){ // v1 -> v2 adds the daily-challenge result (dy) and history (dh). Later formats: add steps here.
     if(!o||typeof o!=='object')return null;let v=+o.v;if(!Number.isFinite(v)||v<1)v=1;
     if(v<2){if(!('dy'in o))o.dy=null;if(!Array.isArray(o.dh))o.dh=[];v=2}
+    if(v<3){if(!('rc'in o))o.rc=null;v=3}
     o.v=v;return o}
+  /* GAME-B6: sanitise the records block. Per difficulty (0 chill, 1 normal, 2 hyper): day / wk (Monday date) / mo records {k period key, s score, d date set, at time}, all-time {s,d,at} and an archive of expired or invalid-clock records. */
+  const kOk={day:/^\d{4}-\d{2}-\d{2}$/,wk:/^\d{4}-\d{2}-\d{2}$/,mo:/^\d{4}-\d{2}$/};
+  const rcRec=(x,p)=>{if(!x||typeof x!=='object')return null;const s=int(x.s,1e7);if(!s)return null;if(p==='all')return{s,d:dstr(x.d),at:int(x.at,8.64e15)};if(typeof x.k!=='string'||!kOk[p].test(x.k))return null;return{k:x.k,s,d:dstr(x.d),at:int(x.at,8.64e15)}};
+  const rcSan=x=>{if(!x||typeof x!=='object'||!Array.isArray(x.d))return null;const out={v:1,d:[]};
+    for(let i=0;i<3;i++){const e=x.d[i]&&typeof x.d[i]==='object'?x.d[i]:{};const o={day:rcRec(e.day,'day'),wk:rcRec(e.wk,'wk'),mo:rcRec(e.mo,'mo'),all:rcRec(e.all,'all'),arc:[]};
+      if(Array.isArray(e.arc))for(const a of e.arc){if(!a||!kOk[a.p]||typeof a.k!=='string'||!kOk[a.p].test(a.k))continue;const s=int(a.s,1e7);if(s)o.arc.push({p:a.p,k:a.k,s,d:dstr(a.d)})}
+      o.arc=o.arc.slice(-60);out.d.push(o)}
+    return out};
   function sanitize(o){
     const d=def();o=migrate(o);if(!o)return d;
     if(o.own&&typeof o.own==='object')for(const k in o.own)if(idok(k)&&o.own[k])d.own[k]=1;
@@ -1768,6 +1783,7 @@ const Save=(()=>{
     d.st.dn=int(t.dn,1e5);d.st.bdn=int(t.bdn,1e5);d.st.dc=int(t.dc,1e5);d.st.dl=dstr(t.dl);d.st.dd=dstr(t.dd);
     const dyOk=x=>{if(!x||typeof x!=='object'||!dstr(x.d))return null;return{d:x.d,att:x.att?1:0,fin:x.fin?1:0,s:int(x.s,1e7),r:typeof x.r==='string'&&/^[SABC]$/.test(x.r)?x.r:'',t:Math.min(9999,Math.max(0,+x.t||0)),p:Math.min(100,int(x.p)),g:int(x.g,99)}};
     d.dy=dyOk(o.dy);d.dh=(Array.isArray(o.dh)?o.dh:[]).map(dyOk).filter(Boolean).slice(-30);
+    d.rc=rcSan(o.rc);
     return d}
   function read(){try{const raw=localStorage.getItem(KEY);return sanitize(raw?JSON.parse(raw):null)}catch(e){return def()}}
   function write(doc){try{localStorage.setItem(KEY,JSON.stringify(doc));return true}catch(e){return false}}
@@ -1859,6 +1875,49 @@ const COS=[
 const RI={C:1,B:2,A:3,S:4},RLBL=['','C','B','A','S'];
 const ORB0={sp:'rgba(255,214,102,A)',gr:'#ffc24a',b:[255,214,102],decor:null};
 let CS=Save.read();
+/* GAME-B6: period records. Keys use the player's LOCAL date (day YYYY-MM-DD, week = the date of its Monday, month YYYY-MM). There is no scheduled job: a record counts as current only while its key equals the current period's key, so it stays on display until its period ends and then simply stops matching. A run replaces a period record only if the same period is current and the score is higher. A stored key that is not the current period is expired (older, archived) or invalid (a newer date, the clock went backwards: kept, never erased, ignored for display and rollover). ALL TIME never expires. Daily Challenge runs, bot runs, tutorial and unfinished runs are never counted here. */
+const REC_P=['day','wk','mo'],REC_K={day:'DAY',wk:'WEEK',mo:'MONTH'};
+const rp2=n=>String(n).padStart(2,'0');
+function recKeys(ts){const d=new Date(ts),Y=d.getFullYear(),M=d.getMonth(),Dd=d.getDate(),f=(a,b,c)=>{const x=new Date(a,b,c);return x.getFullYear()+'-'+rp2(x.getMonth()+1)+'-'+rp2(x.getDate())};return{day:f(Y,M,Dd),wk:f(Y,M,Dd-((d.getDay()+6)%7)),mo:Y+'-'+rp2(M+1)}}
+function recMigrate(){   /* first start after the update: build the records from the old keys (wso_best*, wso_runs*) without losing the all-time best; the old keys stay untouched */
+  if(CS.rc)return;const now=Date.now(),K=recKeys(now),doc={v:1,d:[]};
+  for(let di=0;di<3;di++){const sfx=di===1?'':'_'+di;let bs=0,runs=[];
+    try{const o=JSON.parse(localStorage.getItem('wso_best'+sfx));if(o&&typeof o==='object')bs=Math.max(0,Math.floor(+o.s)||0)}catch(e){}
+    try{const a=JSON.parse(localStorage.getItem('wso_runs'+sfx));if(Array.isArray(a))runs=a.filter(x=>x&&typeof x.s==='number'&&typeof x.d==='number'&&Number.isFinite(x.s)&&Number.isFinite(x.d)&&x.s>0&&x.d>0)}catch(e){}
+    const E={day:null,wk:null,mo:null,all:null,arc:[]};
+    for(const x of runs){const k=recKeys(x.d),s=Math.round(x.s);for(const p of REC_P)if(k[p]===K[p]&&(!E[p]||s>E[p].s))E[p]={k:K[p],s,d:k.day,at:x.d};if(!E.all||s>E.all.s)E.all={s,d:k.day,at:x.d}}
+    if(bs>0&&(!E.all||bs>E.all.s))E.all={s:bs,d:'',at:0};
+    doc.d.push(E)}
+  CS.rc=doc;Save.write(CS)}
+recMigrate();
+function recAdd(di,score,now){   /* returns which tiles got a new best, keyed DAY / WEEK / MONTH / ALL TIME */
+  const s=Math.round(score),mk={};if(!(s>0)||!(di>=0&&di<=2))return mk;if(!CS.rc)recMigrate();now=now==null?Date.now():now;
+  const E=CS.rc.d[di],K=recKeys(now);
+  for(const p of REC_P){const r=E[p];
+    if(r&&r.k===K[p]){if(s>r.s){E[p]={k:K[p],s,d:K.day,at:now};mk[REC_K[p]]=true}}
+    else{if(r)E.arc.push({p,k:r.k,s:r.s,d:r.d});E[p]={k:K[p],s,d:K.day,at:now};mk[REC_K[p]]=true}}
+  if(!E.all||s>E.all.s){E.all={s,d:K.day,at:now};mk['ALL TIME']=true}
+  E.arc=E.arc.slice(-60);Save.write(CS);return mk}
+function recView(di,now){if(!CS.rc)recMigrate();now=now==null?Date.now():now;const E=CS.rc.d[di],K=recKeys(now),o={};for(const p of REC_P)o[p]=E[p]&&E[p].k===K[p]?E[p]:null;o.all=E.all;return o}
+function recRoll(now){   /* archive records whose period is over; keeps invalid (future-dated) ones untouched */
+  if(!CS.rc)return false;now=now==null?Date.now():now;const K=recKeys(now);let ch=false;
+  for(const E of CS.rc.d)for(const p of REC_P){const r=E[p];if(r&&r.k<K[p]){E.arc.push({p,k:r.k,s:r.s,d:r.d});E[p]=null;ch=true}}
+  if(ch){for(const E of CS.rc.d)E.arc=E.arc.slice(-60);Save.write(CS)}return ch}
+function recDaily(){let b=null;for(const e of CS.dh)if(e.fin&&e.s>0&&(!b||e.s>b.s))b=e;return b}
+const recRank=s=>s>=RANK_S?'S':s>=RANK_A?'A':s>=RANK_B?'B':'C';
+const recDate=d=>{if(!/^\d{4}-\d{2}-\d{2}$/.test(d||''))return'';try{return new Date(+d.slice(0,4),+d.slice(5,7)-1,+d.slice(8,10)).toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'})}catch(e){return d}};
+/* GAME-B7: records panel on the first screen: CHILL / NORMAL / HYPER switch (starts on the difficulty you last played), rows TODAY / THIS WEEK / THIS MONTH / ALL TIME / DAILY CHALLENGE with score, rank letter and the date it was set. Dates are re-checked when the panel opens, when the tab becomes visible again and every 30 s while the menu is open. */
+let rpView=-1,rpKey='';
+function renderPanel(){
+  const el=$('#mrec');if(!el)return;recRoll();const di=rpView<0?diff:rpView,v=recView(di),K=recKeys(Date.now());rpKey=K.day+K.wk+K.mo;
+  document.querySelectorAll('#rsw button').forEach(b=>{const on=+b.dataset.d===di;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on?'true':'false')});
+  el.textContent='';
+  const row=(lab,r,utc)=>{const d=document.createElement('div');d.className='rr';const a=document.createElement('span');a.className='rl';a.textContent=lab;const b=document.createElement('b');b.textContent=r?fmtN(r.s):'—';const k=document.createElement('span');k.className='rk';k.textContent=r?(r.r||recRank(r.s)):'';if(r)k.style.color={S:'#ffd166',A:'#37e6ff',B:'#ff4fd8',C:'#b9c6e2'}[k.textContent];const t=document.createElement('span');t.className='rd';t.textContent=r?(utc?recDate(r.d)+' (UTC)':recDate(r.d)):'';d.append(a,b,k,t);el.append(d)};
+  row('TODAY',v.day);row('THIS WEEK',v.wk);row('THIS MONTH',v.mo);row('ALL TIME',v.all);
+  const dd=recDaily();row('DAILY CHALLENGE',dd?{s:dd.s,r:dd.r,d:dd.d}:null,true)}
+function recTick(force){const K=recKeys(Date.now());if(!force&&rpKey===K.day+K.wk+K.mo)return;if(force||state==='menu')renderPanel()}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)recTick(true)});
+setInterval(()=>{if(state==='menu')recTick(false)},30000);
 function cosNormalize(){
   for(const c of COS)if(c.rule.t==='free')CS.own[c.id]=1;
   for(const k of Object.keys(CS.own))if(!COS.some(c=>c.id===k))delete CS.own[k];
@@ -1962,7 +2021,7 @@ const el={score:$('#score'),time:$('#time'),speed:$('#speed'),fill:$('#barfill')
   const ln=[['-26','26','26','26'],['26','-26','26','26'],['-26','-26','26','-26'],['-26','-26','-26','26']]; // floor,right,ceil,left in world frame
   [[-26,26,26,26],[26,-26,26,26],[-26,-26,26,-26],[-26,-26,-26,26]].forEach((l,i)=>{h+=`<line x1="${l[0]}" y1="${l[1]}" x2="${l[2]}" y2="${l[3]}" stroke="${FHEX[i]}" stroke-width="6" stroke-linecap="round"/>`});
   g.innerHTML=h;
-  document.querySelectorAll('#diffs button').forEach(b=>b.addEventListener('click',()=>setDiff(+b.dataset.d)));setDiff(diff);
+  document.querySelectorAll('#diffs button').forEach(b=>b.addEventListener('click',()=>setDiff(+b.dataset.d)));document.querySelectorAll('#rsw button').forEach(b=>b.addEventListener('click',()=>{rpView=+b.dataset.d;renderPanel()}));setDiff(diff);
 })();
 /* A11Y-B2: compass with the same shape markers as the tube faces */
 function buildCompass(){
@@ -2587,7 +2646,7 @@ function frame(t){
   requestAnimationFrame(frame);
 }
 placeOnFace(track[3].safe);D=3*L;
-if(location.hash.includes('test')){window.__wso={shuf:{genStd,seed:()=>runSeed,newRunSeed,STD_FIXED,setSeed:x=>{runSeed=x>>>0;STDL=genStd(runSeed);curTrk=''}},pgs:PGS,pgsIds:PGS_IDS,beginReal:s=>begin(s||0),rep:{enc:encRep,dec:decRep,run:runRep,SIM_V,REP_FMT,dexp,last:()=>({rep:lastRep,info:lastRepInfo}),setApi:u=>{GH_API=u},leader:leaderLoad,getLeader:()=>LEADER,submit:submitDaily,gh:()=>GH&&{n:GH.n,label:GH.label,score:GH.score},gmode:m=>{gmode=m},cycle:ghostCycle,pose:ghostPose,hud:ghostHud,gstore:gStore,gkey:gKey,state:()=>({simTick,rec:rec&&{n:rec.ev.length,dirty:rec.dirty}})},daily:{genV:()=>GEN_V,build:dailyBuild,genTrackData,validTrack,trackStats,dailySeed,VT,setup:prepDaily,useSeed:sd=>{DAILYT=genTrackData(sd);dailyInfo={n:0,date:'test',seed:sd};dailyMode='practice';if(savedDiff===null)savedDiff=diff;diff=1},leave:leaveDaily,start:startDaily,get:()=>({dailyMode,dy:CS.dy,dh:CS.dh}),utcDate,dayNoOf},cos:{COS,Save,getCS:()=>CS,runEnd:cosRunEnd,check:cosCheck,equip:cosEquip,dayNo:()=>dayNoOf(utcDate()),exportText:()=>Save.exportText(),importText:t=>Save.importText(t),drawTrail,renderInv,openInv,closeInv,setWallet:n=>{wallet=n}},share:{drawShareCard,cardBlob,shareResult,shareInfo,shareText,Native,getLast:()=>lastRun,getCrash:()=>lastCrash,crashInfo},a11y:{A11,FM,fmSample,set:a11ySet,apply:a11yApply,open:openSettings,close:closeSettings},step,render,begin:s=>{begin(s||0);state='run';$('#count').classList.remove('on')},bot:b=>{bot=b},look:x=>{botLook=x},
+if(location.hash.includes('test')){window.__wso={/* GAME-B8 test hook */rec:{add:recAdd,view:recView,roll:recRoll,keys:recKeys,doc:()=>CS.rc,daily:recDaily,migrate:()=>{CS.rc=null;recMigrate()},reload:()=>{CS=Save.read()},set:d=>{CS.rc=d}},shuf:{genStd,seed:()=>runSeed,newRunSeed,STD_FIXED,setSeed:x=>{runSeed=x>>>0;STDL=genStd(runSeed);curTrk=''}},pgs:PGS,pgsIds:PGS_IDS,beginReal:s=>begin(s||0),rep:{enc:encRep,dec:decRep,run:runRep,SIM_V,REP_FMT,dexp,last:()=>({rep:lastRep,info:lastRepInfo}),setApi:u=>{GH_API=u},leader:leaderLoad,getLeader:()=>LEADER,submit:submitDaily,gh:()=>GH&&{n:GH.n,label:GH.label,score:GH.score},gmode:m=>{gmode=m},cycle:ghostCycle,pose:ghostPose,hud:ghostHud,gstore:gStore,gkey:gKey,state:()=>({simTick,rec:rec&&{n:rec.ev.length,dirty:rec.dirty}})},daily:{genV:()=>GEN_V,build:dailyBuild,genTrackData,validTrack,trackStats,dailySeed,VT,setup:prepDaily,useSeed:sd=>{DAILYT=genTrackData(sd);dailyInfo={n:0,date:'test',seed:sd};dailyMode='practice';if(savedDiff===null)savedDiff=diff;diff=1},leave:leaveDaily,start:startDaily,get:()=>({dailyMode,dy:CS.dy,dh:CS.dh}),utcDate,dayNoOf},cos:{COS,Save,getCS:()=>CS,runEnd:cosRunEnd,check:cosCheck,equip:cosEquip,dayNo:()=>dayNoOf(utcDate()),exportText:()=>Save.exportText(),importText:t=>Save.importText(t),drawTrail,renderInv,openInv,closeInv,setWallet:n=>{wallet=n}},share:{drawShareCard,cardBlob,shareResult,shareInfo,shareText,Native,getLast:()=>lastRun,getCrash:()=>lastCrash,crashInfo},a11y:{A11,FM,fmSample,set:a11ySet,apply:a11yApply,open:openSettings,close:closeSettings},step,render,begin:s=>{begin(s||0);state='run';$('#count').classList.remove('on')},bot:b=>{bot=b},look:x=>{botLook=x},
   advance:(dt,stop)=>advance(dt,stop),q:l=>{qMode='manual';applyQ(l);updQ()},qs:()=>({qMode,qLev,DPRCAP,QG,PCAP,DRAWD,DRAWJ}),perf:()=>{const a=FTR.slice(1).sort((x,y)=>x-y),n=a.length;return n?{n,avgMs:+(a.reduce((q,x)=>q+x,0)/n*1000).toFixed(2),p95Ms:+(a[Math.floor(n*.95)]*1000).toFixed(2),maxMs:+(a[n-1]*1000).toFixed(2)}:null},tutTick,tutOn:x=>{tutMode=x},tutS:()=>({i:tutI,n:TL.length,cur:tutCur&&tutCur.ti,k:tutCur&&tutCur.k,to:tutCur&&tutCur.to,scale:tutScale}),snap:()=>({state,D,face,elapsed,orbs:got.size,total:totalOrbs,deaths,shifts,cp:cpSeg,score:flux(),chain,boost,eff:effi(),burst:burstT,sc:Object.assign({},sc)}),setD:d=>{D=d},track,np:()=>parts.length,sk:()=>shake,setSk:x=>{shake=x},emit:burst,sp:stepParts,L:()=>L}}
 setTimeout(()=>{PGS.init()},1200);   // PGS-B2: silent sign-in shortly after launch (never blocks the game)
 requestAnimationFrame(t=>{last=t;requestAnimationFrame(frame)});
