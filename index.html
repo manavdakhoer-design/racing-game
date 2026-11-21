@@ -2061,7 +2061,7 @@ function showHint(){if(hintShown||demo)return;hintShown=true;try{localStorage.se
 $('#pbtn').onclick=()=>{state==='paused'?resumeGame():pauseGame()};
 function pauseGame(){if(demo||(state!=='run'&&state!=='count'))return;$('#pause')._prev=state;state='paused';$('#pause').classList.add('on')}
 function resumeGame(){if(state!=='paused')return;state=$('#pause')._prev||'run';$('#pause').classList.remove('on')}
-function toMenu(){leaveDaily();tutMode=false;useTrack(false);tutHide();document.body.classList.remove('tut');$('#pquit').textContent='RESTART RUN';renderVault();updDaily();updInvBadge();cosCheck();['pause','crash','finish','tdone'].forEach(i=>$('#'+i).classList.remove('on'));$('#menu').classList.add('on');document.body.classList.remove('playing');$('#count').classList.remove('on');demo=true;state='menu';reset(0);D=3*L;placeOnFace(track[3].safe)}
+function toMenu(){leaveDaily();tutMode=false;useTrack(false);tutHide();document.body.classList.remove('tut');$('#pquit').textContent='RESTART RUN';renderVault();updDaily();updBest();updInvBadge();cosCheck();['pause','crash','finish','tdone'].forEach(i=>$('#'+i).classList.remove('on'));$('#menu').classList.add('on');document.body.classList.remove('playing');$('#count').classList.remove('on');demo=true;state='menu';reset(0);D=3*L;placeOnFace(track[3].safe)}
 $('#go').onclick=()=>{leaveDaily();tutMode=false;begin(0)};$('#again').onclick=()=>{tutMode=false;begin(0)};$('#restart1').onclick=()=>begin(0);
 $('#retry').onclick=()=>begin(cpSeg);$('#resume').onclick=resumeGame;$('#pquit').onclick=()=>tryRestart('Tap again to restart');$('#chome').onclick=$('#phome').onclick=$('#fhome').onclick=toMenu;
 /* RESTART-GUARD: during a live run (also while paused mid-run) a restart needs a second press within 1.5 s */
