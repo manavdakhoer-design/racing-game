@@ -1954,6 +1954,43 @@ const utcDate=()=>new Date().toISOString().slice(0,10);
 const dayNoOf=d=>Math.floor((Date.parse(d+'T00:00:00Z')-Date.UTC(2026,0,1))/864e5)+1;
 const fnv=str=>{let h=2166136261;for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0};
 const dailySeed=(date,k)=>fnv('WSO-DAILY|g'+GEN_V+'|'+date+(k?'|r'+k:''));
+/* DAILY-B4: Daily variety as DATA. Nothing here changes gameplay yet (DAILY-B5 applies the modifiers, B6 the goals). Edit the tables to retune; every id used by SCHED must exist (schedCheck() verifies this and falls back to a plain day if not). The day type comes only from the UTC date string, so no server job and no Math.random.
+   apply = the parameters B5 reads. rule = the one-line text shown on the Daily card. */
+const DMODS=[
+ {id:'mirror',name:'Mirror',rule:'The whole world is flipped left to right.',scoreNote:'Normal scoring.',apply:{flipX:1}},
+ {id:'blackout',name:'Blackout',rule:'You only see a short way ahead. Warnings stay visible.',scoreNote:'Normal scoring.',apply:{drawD:90}},
+ {id:'flipbudget',name:'Flip Budget',rule:'You only get a set number of shifts.',scoreNote:'Budget = shortest path + margin. Going over ends the attempt.',apply:{budgetMargin:6}},
+ {id:'orbrush',name:'Orb Rush',rule:'Extra orbs on the track. Orbs are worth much more.',scoreNote:'Orb points x2.',apply:{orbMul:1.5,orbScore:2}},
+ {id:'doubletime',name:'Double Time',rule:'Everything moves faster.',scoreNote:'Normal scoring, shorter time.',apply:{speed:1.25}},
+ {id:'notele',name:'No Telegraph',rule:'The hazard warning is switched off.',scoreNote:'Normal scoring.',apply:{telegraph:0}},
+ {id:'heavy',name:'Heavy Shift',rule:'After a shift you must wait longer before the next one.',scoreNote:'Normal scoring.',apply:{shiftLock:18}},
+ {id:'streakday',name:'Streak Day',rule:'Every clean shift speeds you up, like Hyper.',scoreNote:'Normal scoring.',apply:{chainSpeed:.012,chainCap:.15}},
+ {id:'boss',name:'Boss Day',rule:'Same length track, but denser hazards and extra anchor gates.',scoreNote:'Normal scoring.',apply:{boss:1,hazardMul:1.35,extraAnchors:2}}
+];
+const DGOALS=[
+ {id:'time',name:'Time Attack',rule:'Fastest finish wins.',rank:'ms',dir:'asc',needsFinish:true},
+ {id:'perfect',name:'Perfect Run',rule:'Finish clean. Near misses are worth extra.',rank:'score',dir:'desc',needsFinish:true,nearMul:3},
+ {id:'par',name:'Par Score',rule:'Beat the par score for bronze, silver or gold.',rank:'score',dir:'desc',needsFinish:true,par:{bronze:12000,silver:20000,gold:28000}},
+ {id:'sprint',name:'Survival Sprint',rule:'Get as far as you can before your first crash.',rank:'dist',dir:'desc',needsFinish:false}
+];
+/* weekday order is Sunday..Saturday (UTC). Two weeks rotate so every modifier appears. Each cell is [modifier id, goal id]. Week 0 is the week that contains 2026-01-05 (a Monday). */
+const SCHED=[
+ [['boss','par'],['mirror','time'],['orbrush','par'],['blackout','perfect'],['flipbudget','time'],['doubletime','sprint'],['notele','par']],
+ [['boss','time'],['heavy','time'],['streakday','par'],['mirror','perfect'],['orbrush','time'],['flipbudget','par'],['blackout','sprint']]
+];
+const SCHED_EPOCH=Date.UTC(2026,0,5);
+const WDN=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const dmodById=id=>DMODS.find(m=>m.id===id)||null, dgoalById=id=>DGOALS.find(g=>g.id===id)||null;
+function schedCheck(){try{if(!Array.isArray(SCHED)||!SCHED.length)return false;
+  for(const w of SCHED){if(!Array.isArray(w)||w.length!==7)return false;for(const c of w)if(!Array.isArray(c)||!dmodById(c[0])||!dgoalById(c[1]))return false}return true}catch(e){return false}}
+const SCHED_OK=schedCheck();
+const validDate=d=>{if(typeof d!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(d))return false;const t=Date.parse(d+'T00:00:00Z');return Number.isFinite(t)&&new Date(t).toISOString().slice(0,10)===d};
+/** the day type for a UTC date string: {date,wd,week,plain,mod,goal}. An invalid date or a broken table gives a plain day (no modifier, Time Attack). */
+function dayInfo(date){
+  if(!validDate(date)||!SCHED_OK)return{date,wd:-1,week:0,plain:true,mod:null,goal:dgoalById('time')};
+  const t=Date.parse(date+'T00:00:00Z'),wd=new Date(t).getUTCDay(),di=Math.floor((t-SCHED_EPOCH)/864e5),wk=((Math.floor(di/7)%SCHED.length)+SCHED.length)%SCHED.length,c=SCHED[wk][wd];
+  return{date,wd,week:wk,plain:false,mod:dmodById(c[0]),goal:dgoalById(c[1])}}
+const addDays=(date,n)=>new Date(Date.parse(date+'T00:00:00Z')+n*864e5).toISOString().slice(0,10);
 /* DAILY-B3: structural validity check (pure integer logic, so every device rerolls identically). The bot sweep in the test harness is what proves beatability; this guards the shape. */
 const VT={minT:44,maxT:66,maxRun:12,maxFlips:16,minOrbs:100,maxOrbs:190};   // fairness bounds calibrated on 90 raw seeds (see test notes): T 43-66, longest shift run 5-21, flips 6-16
 function trackStats(g){let T=0,run=0,maxRun=0,flips=0,bad=0;
@@ -2660,7 +2697,7 @@ function frame(t){
   requestAnimationFrame(frame);
 }
 placeOnFace(track[3].safe);D=3*L;
-if(location.hash.includes('test')){window.__wso={/* GAME-B8 test hook */crashNow:r=>crash(r||'wall'),rec:{add:recAdd,view:recView,roll:recRoll,keys:recKeys,doc:()=>CS.rc,daily:recDaily,migrate:()=>{CS.rc=null;recMigrate()},reload:()=>{CS=Save.read()},set:d=>{CS.rc=d}},shuf:{genStd,seed:()=>runSeed,newRunSeed,STD_FIXED,setSeed:x=>{runSeed=x>>>0;STDL=genStd(runSeed);curTrk=''}},pgs:PGS,pgsIds:PGS_IDS,beginReal:s=>begin(s||0),rep:{enc:encRep,dec:decRep,run:runRep,SIM_V,REP_FMT,dexp,last:()=>({rep:lastRep,info:lastRepInfo}),setApi:u=>{GH_API=u},leader:leaderLoad,getLeader:()=>LEADER,submit:submitDaily,gh:()=>GH&&{n:GH.n,label:GH.label,score:GH.score},gmode:m=>{gmode=m},cycle:ghostCycle,pose:ghostPose,hud:ghostHud,gstore:gStore,gkey:gKey,state:()=>({simTick,rec:rec&&{n:rec.ev.length,dirty:rec.dirty}})},daily:{genV:()=>GEN_V,build:dailyBuild,genTrackData,validTrack,trackStats,dailySeed,VT,setup:prepDaily,useSeed:sd=>{DAILYT=genTrackData(sd);dailyInfo={n:0,date:'test',seed:sd};dailyMode='practice';if(savedDiff===null)savedDiff=diff;diff=1},leave:leaveDaily,start:startDaily,get:()=>({dailyMode,dy:CS.dy,dh:CS.dh}),utcDate,dayNoOf},cos:{COS,Save,getCS:()=>CS,runEnd:cosRunEnd,check:cosCheck,equip:cosEquip,dayNo:()=>dayNoOf(utcDate()),exportText:()=>Save.exportText(),importText:t=>Save.importText(t),drawTrail,renderInv,openInv,closeInv,setWallet:n=>{wallet=n}},share:{drawShareCard,cardBlob,shareResult,shareInfo,shareText,Native,getLast:()=>lastRun,getCrash:()=>lastCrash,crashInfo},a11y:{A11,FM,fmSample,set:a11ySet,apply:a11yApply,open:openSettings,close:closeSettings},step,render,begin:s=>{begin(s||0);state='run';$('#count').classList.remove('on')},bot:b=>{bot=b},look:x=>{botLook=x},
+if(location.hash.includes('test')){window.__wso={/* GAME-B8 test hook */crashNow:r=>crash(r||'wall'),rec:{add:recAdd,view:recView,roll:recRoll,keys:recKeys,doc:()=>CS.rc,daily:recDaily,migrate:()=>{CS.rc=null;recMigrate()},reload:()=>{CS=Save.read()},set:d=>{CS.rc=d}},shuf:{genStd,seed:()=>runSeed,newRunSeed,STD_FIXED,setSeed:x=>{runSeed=x>>>0;STDL=genStd(runSeed);curTrk=''}},pgs:PGS,pgsIds:PGS_IDS,beginReal:s=>begin(s||0),rep:{enc:encRep,dec:decRep,run:runRep,SIM_V,REP_FMT,dexp,last:()=>({rep:lastRep,info:lastRepInfo}),setApi:u=>{GH_API=u},leader:leaderLoad,getLeader:()=>LEADER,submit:submitDaily,gh:()=>GH&&{n:GH.n,label:GH.label,score:GH.score},gmode:m=>{gmode=m},cycle:ghostCycle,pose:ghostPose,hud:ghostHud,gstore:gStore,gkey:gKey,state:()=>({simTick,rec:rec&&{n:rec.ev.length,dirty:rec.dirty}})},daily:{genV:()=>GEN_V,dmods:()=>DMODS,dgoals:()=>DGOALS,sched:()=>SCHED,schedOk:()=>SCHED_OK,dayInfo,addDays,build:dailyBuild,genTrackData,validTrack,trackStats,dailySeed,VT,setup:prepDaily,useSeed:sd=>{DAILYT=genTrackData(sd);dailyInfo={n:0,date:'test',seed:sd};dailyMode='practice';if(savedDiff===null)savedDiff=diff;diff=1},leave:leaveDaily,start:startDaily,get:()=>({dailyMode,dy:CS.dy,dh:CS.dh}),utcDate,dayNoOf},cos:{COS,Save,getCS:()=>CS,runEnd:cosRunEnd,check:cosCheck,equip:cosEquip,dayNo:()=>dayNoOf(utcDate()),exportText:()=>Save.exportText(),importText:t=>Save.importText(t),drawTrail,renderInv,openInv,closeInv,setWallet:n=>{wallet=n}},share:{drawShareCard,cardBlob,shareResult,shareInfo,shareText,Native,getLast:()=>lastRun,getCrash:()=>lastCrash,crashInfo},a11y:{A11,FM,fmSample,set:a11ySet,apply:a11yApply,open:openSettings,close:closeSettings},step,render,begin:s=>{begin(s||0);state='run';$('#count').classList.remove('on')},bot:b=>{bot=b},look:x=>{botLook=x},
   advance:(dt,stop)=>advance(dt,stop),q:l=>{qMode='manual';applyQ(l);updQ()},qs:()=>({qMode,qLev,DPRCAP,QG,PCAP,DRAWD,DRAWJ}),perf:()=>{const a=FTR.slice(1).sort((x,y)=>x-y),n=a.length;return n?{n,avgMs:+(a.reduce((q,x)=>q+x,0)/n*1000).toFixed(2),p95Ms:+(a[Math.floor(n*.95)]*1000).toFixed(2),maxMs:+(a[n-1]*1000).toFixed(2)}:null},tutTick,tutOn:x=>{tutMode=x},tutS:()=>({i:tutI,n:TL.length,cur:tutCur&&tutCur.ti,k:tutCur&&tutCur.k,to:tutCur&&tutCur.to,scale:tutScale}),snap:()=>({state,D,face,elapsed,orbs:got.size,total:totalOrbs,deaths,shifts,cp:cpSeg,score:flux(),chain,boost,eff:effi(),burst:burstT,sc:Object.assign({},sc)}),setD:d=>{D=d},track,np:()=>parts.length,sk:()=>shake,setSk:x=>{shake=x},emit:burst,sp:stepParts,L:()=>L}}
 setTimeout(()=>{PGS.init()},1200);   // PGS-B2: silent sign-in shortly after launch (never blocks the game)
 requestAnimationFrame(t=>{last=t;requestAnimationFrame(frame)});
