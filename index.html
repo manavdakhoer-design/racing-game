@@ -815,7 +815,7 @@ window.__LD=LD;
 
     <div class="small" id="dline"></div>
     <div class="small" id="bestline"></div>
-    <div class="rpan"><div class="rtl">HIGH SCORES</div><div class="seg" id="rsw" role="group" aria-label="High scores for difficulty"><button type="button" data-d="0">CHILL</button><button type="button" data-d="1">NORMAL</button><button type="button" data-d="2">HYPER</button></div><div class="rrows" id="mrec"></div><div class="small" id="rnote">Today, week and month use this device's date (weeks start Monday). Daily Challenge uses UTC.</div></div>
+    <div class="rpan"><div class="rtl">HIGH SCORES</div><div class="seg" id="rsw" role="group" aria-label="High scores for difficulty"><button type="button" data-d="0">CHILL</button><button type="button" data-d="1">NORMAL</button><button type="button" data-d="2">HYPER</button></div><div class="rrows" id="mrec"></div><div class="small" id="rnote">Every new best counts, finished or not. Today, week and month use this device's date (weeks start Monday). Daily Challenge uses UTC.</div></div>
     <button class="btn alt" id="mshare" style="display:none">⇪ SHARE HIGH SCORE</button>
   </div></section>
      <section class="overlay" id="vault"><div class="panel">
@@ -1388,9 +1388,10 @@ function crash(reason){if(QS){if(state==='crashed')return;state='crashed';crashT
   const wasDaily=dailyMode==='scored'&&!tutMode,dn=wasDaily?dailyInfo.n:0;
   lastCrash=crashInfo();lastCrash.dn=dn;if(dn)lastCrash.date=dailyInfo.date;
   if(wasDaily)dailyEnd(false,flux(),'',lastCrash.prog);
+  const rmk=(!dailyMode&&!bot&&!demo)?recRunEnd(diff,flux()):{};   // GAME-B9
   repEnd(false,flux());
   pgsRunEnd({fin:false,chain:sc.maxChain,sling:sc.slingN,near:sc.nearN})   // PGS-B3
-  {const r=cosRunEnd({fin:false,chain:sc.maxChain});$('#cnew').textContent=[cosNewText(r),wasDaily?'DAILY #'+dn+' · attempt used (score '+fmtN(flux())+' · '+lastCrash.prog+'%). More runs are practice.':''].filter(Boolean).join('   ')}
+  {const r=cosRunEnd({fin:false,chain:sc.maxChain});$('#cnew').textContent=[cosNewText(r),Object.keys(rmk).length?'★ NEW BEST · '+Object.keys(rmk).join(' · '):'',wasDaily?'DAILY #'+dn+' · attempt used (score '+fmtN(flux())+' · '+lastCrash.prog+'%). More runs are practice.':''].filter(Boolean).join('   ')}
   setTimeout(()=>{prepShare(lastCrash).catch(()=>{})},300);   // SHARE-CRASH
   const why={fall:['LOST IN THE VOID','The floor ended. Shift gravity onto a wall before the gap.'],zap:['ELECTROCUTED','Electrified plates zap you the moment you touch them. Shift away before you land on one.'],wall:['STRUCTURAL FAILURE','That spiked barrier was in your way. Flip gravity onto a clear face first.']}[reason]||['WRECKED',''];
   $('#creason').textContent=why[0];$('#chint').textContent=why[1];
@@ -1875,7 +1876,7 @@ const COS=[
 const RI={C:1,B:2,A:3,S:4},RLBL=['','C','B','A','S'];
 const ORB0={sp:'rgba(255,214,102,A)',gr:'#ffc24a',b:[255,214,102],decor:null};
 let CS=Save.read();
-/* GAME-B6: period records. Keys use the player's LOCAL date (day YYYY-MM-DD, week = the date of its Monday, month YYYY-MM). There is no scheduled job: a record counts as current only while its key equals the current period's key, so it stays on display until its period ends and then simply stops matching. A run replaces a period record only if the same period is current and the score is higher. A stored key that is not the current period is expired (older, archived) or invalid (a newer date, the clock went backwards: kept, never erased, ignored for display and rollover). ALL TIME never expires. Daily Challenge runs, bot runs, tutorial and unfinished runs are never counted here. */
+/* GAME-B6: period records. Keys use the player's LOCAL date (day YYYY-MM-DD, week = the date of its Monday, month YYYY-MM). There is no scheduled job: a record counts as current only while its key equals the current period's key, so it stays on display until its period ends and then simply stops matching. A run replaces a period record only if the same period is current and the score is higher. A stored key that is not the current period is expired (older, archived) or invalid (a newer date, the clock went backwards: kept, never erased, ignored for display and rollover). ALL TIME never expires. Daily Challenge runs, bot runs and the tutorial are never counted here. Since GAME-B9 every new best counts, finished or not (see recRunEnd). */
 const REC_P=['day','wk','mo'],REC_K={day:'DAY',wk:'WEEK',mo:'MONTH'};
 const rp2=n=>String(n).padStart(2,'0');
 function recKeys(ts){const d=new Date(ts),Y=d.getFullYear(),M=d.getMonth(),Dd=d.getDate(),f=(a,b,c)=>{const x=new Date(a,b,c);return x.getFullYear()+'-'+rp2(x.getMonth()+1)+'-'+rp2(x.getDate())};return{day:f(Y,M,Dd),wk:f(Y,M,Dd-((d.getDay()+6)%7)),mo:Y+'-'+rp2(M+1)}}
@@ -1903,6 +1904,11 @@ function recRoll(now){   /* archive records whose period is over; keeps invalid 
   if(!CS.rc)return false;now=now==null?Date.now():now;const K=recKeys(now);let ch=false;
   for(const E of CS.rc.d)for(const p of REC_P){const r=E[p];if(r&&r.k<K[p]){E.arc.push({p,k:r.k,s:r.s,d:r.d});E[p]=null;ch=true}}
   if(ch){for(const E of CS.rc.d)E.arc=E.arc.slice(-60);Save.write(CS)}return ch}
+/* GAME-B9: a run that does not reach the finish gate still counts. Its score is the Flux Score the crash screen shows. Called when a run ends in a crash, when you restart a live run and when you leave a live run for the menu. Daily Challenge, tutorial and bot runs never count. The old best-score key is kept in step so the menu's HIGH SCORE line and the share button agree with ALL TIME (the best TIME is only set by finished runs). */
+function recRunEnd(di,score){const s=Math.round(score);if(!(s>0))return{};const mk=recAdd(di,s);
+  if(mk['ALL TIME'])try{const k='wso_best'+(di===1?'':'_'+di);let o=null;try{o=JSON.parse(localStorage.getItem(k))}catch(e){}const t=o&&+o.t>0?+o.t:0,oo=o?Math.max(0,Math.floor(+o.o)||0):0,ps=o?Math.max(0,Math.floor(+o.s)||0):0;if(s>ps)localStorage.setItem(k,JSON.stringify({t,o:oo,s}))}catch(e){}
+  return mk}
+function recAbandon(){if(liveRun()&&!tutMode&&!dailyMode&&!bot)recRunEnd(diff,flux())}
 function recDaily(){let b=null;for(const e of CS.dh)if(e.fin&&e.s>0&&(!b||e.s>b.s))b=e;return b}
 const recRank=s=>s>=RANK_S?'S':s>=RANK_A?'A':s>=RANK_B?'B':'C';
 const recDate=d=>{if(!/^\d{4}-\d{2}-\d{2}$/.test(d||''))return'';try{return new Date(+d.slice(0,4),+d.slice(5,7)-1,+d.slice(8,10)).toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'})}catch(e){return d}};
@@ -2061,7 +2067,7 @@ function showHint(){if(hintShown||demo)return;hintShown=true;try{localStorage.se
 $('#pbtn').onclick=()=>{state==='paused'?resumeGame():pauseGame()};
 function pauseGame(){if(demo||(state!=='run'&&state!=='count'))return;$('#pause')._prev=state;state='paused';$('#pause').classList.add('on')}
 function resumeGame(){if(state!=='paused')return;state=$('#pause')._prev||'run';$('#pause').classList.remove('on')}
-function toMenu(){leaveDaily();tutMode=false;useTrack(false);tutHide();document.body.classList.remove('tut');$('#pquit').textContent='RESTART RUN';renderVault();updDaily();updBest();updInvBadge();cosCheck();['pause','crash','finish','tdone'].forEach(i=>$('#'+i).classList.remove('on'));$('#menu').classList.add('on');document.body.classList.remove('playing');$('#count').classList.remove('on');demo=true;state='menu';reset(0);D=3*L;placeOnFace(track[3].safe)}
+function toMenu(){recAbandon();leaveDaily();tutMode=false;useTrack(false);tutHide();document.body.classList.remove('tut');$('#pquit').textContent='RESTART RUN';renderVault();updDaily();updBest();updInvBadge();cosCheck();['pause','crash','finish','tdone'].forEach(i=>$('#'+i).classList.remove('on'));$('#menu').classList.add('on');document.body.classList.remove('playing');$('#count').classList.remove('on');demo=true;state='menu';reset(0);D=3*L;placeOnFace(track[3].safe)}
 $('#go').onclick=()=>{leaveDaily();tutMode=false;begin(0)};$('#again').onclick=()=>{tutMode=false;begin(0)};$('#restart1').onclick=()=>begin(0);
 $('#retry').onclick=()=>begin(cpSeg);$('#resume').onclick=resumeGame;$('#pquit').onclick=()=>tryRestart('Tap again to restart');$('#chome').onclick=$('#phome').onclick=$('#fhome').onclick=toMenu;
 /* RESTART-GUARD: during a live run (also while paused mid-run) a restart needs a second press within 1.5 s */
@@ -2069,7 +2075,7 @@ let restartAt=0,rtTO=0;
 const liveRun=()=>!demo&&(state==='run'||(state==='paused'&&$('#pause')._prev==='run'));
 function tryRestart(msg){
   if(dailyMode==='scored'&&!tutMode&&liveRun()){const t=$('#rtoast');t.textContent='No restarts in the scored daily attempt';t.classList.add('on');clearTimeout(rtTO);rtTO=setTimeout(()=>t.classList.remove('on'),1800);return}
-  const go=()=>{restartAt=0;clearTimeout(rtTO);$('#rtoast').classList.remove('on');$('#pause').classList.remove('on');begin(0)};
+  const go=()=>{recAbandon();restartAt=0;clearTimeout(rtTO);$('#rtoast').classList.remove('on');$('#pause').classList.remove('on');begin(0)};
   if(!liveRun()){go();return}
   const now=performance.now();
   if(restartAt&&now-restartAt<1500){go();return}
@@ -2646,7 +2652,7 @@ function frame(t){
   requestAnimationFrame(frame);
 }
 placeOnFace(track[3].safe);D=3*L;
-if(location.hash.includes('test')){window.__wso={/* GAME-B8 test hook */rec:{add:recAdd,view:recView,roll:recRoll,keys:recKeys,doc:()=>CS.rc,daily:recDaily,migrate:()=>{CS.rc=null;recMigrate()},reload:()=>{CS=Save.read()},set:d=>{CS.rc=d}},shuf:{genStd,seed:()=>runSeed,newRunSeed,STD_FIXED,setSeed:x=>{runSeed=x>>>0;STDL=genStd(runSeed);curTrk=''}},pgs:PGS,pgsIds:PGS_IDS,beginReal:s=>begin(s||0),rep:{enc:encRep,dec:decRep,run:runRep,SIM_V,REP_FMT,dexp,last:()=>({rep:lastRep,info:lastRepInfo}),setApi:u=>{GH_API=u},leader:leaderLoad,getLeader:()=>LEADER,submit:submitDaily,gh:()=>GH&&{n:GH.n,label:GH.label,score:GH.score},gmode:m=>{gmode=m},cycle:ghostCycle,pose:ghostPose,hud:ghostHud,gstore:gStore,gkey:gKey,state:()=>({simTick,rec:rec&&{n:rec.ev.length,dirty:rec.dirty}})},daily:{genV:()=>GEN_V,build:dailyBuild,genTrackData,validTrack,trackStats,dailySeed,VT,setup:prepDaily,useSeed:sd=>{DAILYT=genTrackData(sd);dailyInfo={n:0,date:'test',seed:sd};dailyMode='practice';if(savedDiff===null)savedDiff=diff;diff=1},leave:leaveDaily,start:startDaily,get:()=>({dailyMode,dy:CS.dy,dh:CS.dh}),utcDate,dayNoOf},cos:{COS,Save,getCS:()=>CS,runEnd:cosRunEnd,check:cosCheck,equip:cosEquip,dayNo:()=>dayNoOf(utcDate()),exportText:()=>Save.exportText(),importText:t=>Save.importText(t),drawTrail,renderInv,openInv,closeInv,setWallet:n=>{wallet=n}},share:{drawShareCard,cardBlob,shareResult,shareInfo,shareText,Native,getLast:()=>lastRun,getCrash:()=>lastCrash,crashInfo},a11y:{A11,FM,fmSample,set:a11ySet,apply:a11yApply,open:openSettings,close:closeSettings},step,render,begin:s=>{begin(s||0);state='run';$('#count').classList.remove('on')},bot:b=>{bot=b},look:x=>{botLook=x},
+if(location.hash.includes('test')){window.__wso={/* GAME-B8 test hook */crashNow:r=>crash(r||'wall'),rec:{add:recAdd,view:recView,roll:recRoll,keys:recKeys,doc:()=>CS.rc,daily:recDaily,migrate:()=>{CS.rc=null;recMigrate()},reload:()=>{CS=Save.read()},set:d=>{CS.rc=d}},shuf:{genStd,seed:()=>runSeed,newRunSeed,STD_FIXED,setSeed:x=>{runSeed=x>>>0;STDL=genStd(runSeed);curTrk=''}},pgs:PGS,pgsIds:PGS_IDS,beginReal:s=>begin(s||0),rep:{enc:encRep,dec:decRep,run:runRep,SIM_V,REP_FMT,dexp,last:()=>({rep:lastRep,info:lastRepInfo}),setApi:u=>{GH_API=u},leader:leaderLoad,getLeader:()=>LEADER,submit:submitDaily,gh:()=>GH&&{n:GH.n,label:GH.label,score:GH.score},gmode:m=>{gmode=m},cycle:ghostCycle,pose:ghostPose,hud:ghostHud,gstore:gStore,gkey:gKey,state:()=>({simTick,rec:rec&&{n:rec.ev.length,dirty:rec.dirty}})},daily:{genV:()=>GEN_V,build:dailyBuild,genTrackData,validTrack,trackStats,dailySeed,VT,setup:prepDaily,useSeed:sd=>{DAILYT=genTrackData(sd);dailyInfo={n:0,date:'test',seed:sd};dailyMode='practice';if(savedDiff===null)savedDiff=diff;diff=1},leave:leaveDaily,start:startDaily,get:()=>({dailyMode,dy:CS.dy,dh:CS.dh}),utcDate,dayNoOf},cos:{COS,Save,getCS:()=>CS,runEnd:cosRunEnd,check:cosCheck,equip:cosEquip,dayNo:()=>dayNoOf(utcDate()),exportText:()=>Save.exportText(),importText:t=>Save.importText(t),drawTrail,renderInv,openInv,closeInv,setWallet:n=>{wallet=n}},share:{drawShareCard,cardBlob,shareResult,shareInfo,shareText,Native,getLast:()=>lastRun,getCrash:()=>lastCrash,crashInfo},a11y:{A11,FM,fmSample,set:a11ySet,apply:a11yApply,open:openSettings,close:closeSettings},step,render,begin:s=>{begin(s||0);state='run';$('#count').classList.remove('on')},bot:b=>{bot=b},look:x=>{botLook=x},
   advance:(dt,stop)=>advance(dt,stop),q:l=>{qMode='manual';applyQ(l);updQ()},qs:()=>({qMode,qLev,DPRCAP,QG,PCAP,DRAWD,DRAWJ}),perf:()=>{const a=FTR.slice(1).sort((x,y)=>x-y),n=a.length;return n?{n,avgMs:+(a.reduce((q,x)=>q+x,0)/n*1000).toFixed(2),p95Ms:+(a[Math.floor(n*.95)]*1000).toFixed(2),maxMs:+(a[n-1]*1000).toFixed(2)}:null},tutTick,tutOn:x=>{tutMode=x},tutS:()=>({i:tutI,n:TL.length,cur:tutCur&&tutCur.ti,k:tutCur&&tutCur.k,to:tutCur&&tutCur.to,scale:tutScale}),snap:()=>({state,D,face,elapsed,orbs:got.size,total:totalOrbs,deaths,shifts,cp:cpSeg,score:flux(),chain,boost,eff:effi(),burst:burstT,sc:Object.assign({},sc)}),setD:d=>{D=d},track,np:()=>parts.length,sk:()=>shake,setSk:x=>{shake=x},emit:burst,sp:stepParts,L:()=>L}}
 setTimeout(()=>{PGS.init()},1200);   // PGS-B2: silent sign-in shortly after launch (never blocks the game)
 requestAnimationFrame(t=>{last=t;requestAnimationFrame(frame)});
