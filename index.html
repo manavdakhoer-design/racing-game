@@ -319,6 +319,9 @@ LD.makePal=function(e){   /* roles from the palette entry, with fixed saturation
 };
 LD.entry=LD.pick(SS,Math.random);
 LD.pal=LD.makePal(LD.entry);
+/* HOME-B1: the launch hue, shared with the game. LD.hue (0-359) and LD.sat (75-100) are the palette's hue and saturation; the last one is also saved so #test / #noload launches (no loader) can reuse it */
+LD.hue=Math.round(LD.pal.h)%360;LD.sat=Math.round(Math.max(75,Math.min(100,hex2hsl(LD.entry.main).s)));
+try{SS.setJSON('wso_ld_hue',{h:LD.hue,s:LD.sat});document.documentElement.style.setProperty('--ld-hue',LD.hue)}catch(e){}
 LD.applyPal=function(P){var s=L.style;s.setProperty('--ld-glow',P.glow);s.setProperty('--ld-card',P.card);s.setProperty('--ld-acc',P.cardAcc);s.setProperty('--ld-bar',P.bar)};
 var LOWQ=SS.get('wso_q',null)==='0';   /* the game's saved "low" graphics setting: no streak, no glow */
 /* LOAD-B16: the car table. Eight original designs, each its own Canvas-2D draw function: { id, name, draw(ctx, w, h, palette) }. Side view facing right; the part that touches the inner square (wheel, hover foot or skid) always ends at 0.86 h. palette.sp is the wheel spin angle. No images, no real-brand shapes. */
