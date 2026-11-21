@@ -54,6 +54,8 @@
 
   .overlay{ position:absolute; inset:0; display:none; place-items:center; padding:22px; background:linear-gradient(#050816a0,#050816ec); z-index:10; overflow:auto; }
   .overlay.on{ display:grid; }
+  /* HOME-B2: menu-family screens get one opaque background from the launch hue (same recipe as the loading screen: deep, saturated, ~8% lightness). Only set when a hue is known (body.hh). Pause/crash/finish keep the old see-through look. */
+  body.hh #menu,body.hh #vault,body.hh #daily,body.hh #pgs,body.hh .overlay.hb{ background:hsl(var(--hhue),calc(var(--hsat)*1%),8%); }
   .panel{ width:min(100%,430px); text-align:center; padding:30px 26px 24px; border:1px solid #ffffff2e; border-radius:26px; background:linear-gradient(150deg,#141f42ee,#070b1cee); box-shadow:0 26px 70px #000a, inset 0 1px #ffffff22; backdrop-filter:blur(14px); }
   .eyebrow{ font-size:10px; letter-spacing:.3em; font-weight:800; color:var(--cy); }
   h1{ margin:10px 0 4px; font-size:clamp(34px,9.5vw,52px); font-style:italic; line-height:.95; letter-spacing:-.05em; text-shadow:4px 4px 0 #8a2bd8; }
@@ -1443,6 +1445,9 @@ function renderRecs(el,prev,mark){const v=recView(diff),r={DAY:v.day?v.day.s:0,W
   el.textContent='';for(const k of ['DAY','WEEK','MONTH','ALL TIME']){const d=document.createElement('div');if(mark&&mark[k])d.className='new';d.append(k+' BEST');const b=document.createElement('b');b.textContent=r[k]?fmtN(r[k]):'—';d.append(b);el.append(d)}}
 function updBest(){renderPanel();{const b=load();$('#mshare').style.display=b&&b.s>0?'':'none'}const bl0=load(),bl=bl0&&bl0.t>0?bl0:null;$('#bestline').textContent=bl?`${DNAME[diff]} · HIGH SCORE  ${fmtN(bl.s||0)}  ·  BEST TIME ${fmt(bl.t)}`:`${DNAME[diff]} · reach the finish gate to set your first time.`}
 function setDiff(d){diff=d;rpView=-1;try{localStorage.setItem('wso_diff',d)}catch(e){}document.querySelectorAll('#diffs button').forEach(b=>b.classList.toggle('on',+b.dataset.d===d));updBest()}
+/* HOME-B2: read the launch hue once; it stays fixed for the whole session */
+(function(){let h=null,sa=null;try{if(window.__LD&&Number.isInteger(window.__LD.hue)){h=window.__LD.hue;sa=window.__LD.sat}else{const o=JSON.parse(localStorage.getItem('wso_ld_hue'));if(o&&Number.isInteger(o.h)&&o.h>=0&&o.h<360){h=o.h;sa=o.s}}}catch(e){}
+  if(h===null)return;sa=Math.max(75,Math.min(100,+sa||100));const r=document.documentElement.style;r.setProperty('--hhue',h);r.setProperty('--hsat',sa);document.body.classList.add('hh')})();
 const fmt=t=>{const m=Math.floor(t/60),s=t-m*60;return m+':'+(s<10?'0':'')+s.toFixed(2)};
 
 function botThink(){
@@ -2222,7 +2227,7 @@ function cosEquip(kind,id){
   if(id&&!CS.own[id])return false;
   if(id&&!COS.some(c=>c.id===id&&c.kind===kind))return false;
   CS.eq[kind]=id;Save.write(CS);if($('#inv').classList.contains('on'))renderInv();dirtyR=true;return true}
-function openInv(from){invPrev=from;cosCheck();$('#'+from).classList.remove('on');$('#inv').classList.add('on');renderInv()}
+function openInv(from){invPrev=from;$('#inv').classList.toggle('hb',from!=='pause');cosCheck();$('#'+from).classList.remove('on');$('#inv').classList.add('on');renderInv()}
 function closeInv(){for(const c of COS)if(CS.own[c.id])CS.seen[c.id]=1;Save.write(CS);updInvBadge();$('#inv').classList.remove('on');$('#'+invPrev).classList.add('on')}
 document.querySelectorAll('#invtabs button').forEach(b=>b.onclick=()=>{invTab=b.dataset.v;renderInv()});
 $('#invbtn').onclick=()=>openInv('menu');$('#invback').onclick=closeInv;
@@ -2291,7 +2296,7 @@ $('#s-rm').onclick=()=>a11ySet('rm',!A11.rm);$('#s-cb').onclick=()=>a11ySet('cb'
 document.querySelectorAll('#s-txt button').forEach(x=>x.onclick=()=>a11ySet('txt',+x.dataset.v));
 document.querySelectorAll('#s-sim button').forEach(x=>x.onclick=()=>a11ySet('sim',+x.dataset.v));
 let setPrev='menu';
-function openSettings(from){setPrev=from;$('#'+from).classList.remove('on');$('#settings').classList.add('on');a11yApply();$('#s-rm').focus()}
+function openSettings(from){setPrev=from;$('#settings').classList.toggle('hb',from!=='pause');$('#'+from).classList.remove('on');$('#settings').classList.add('on');a11yApply();$('#s-rm').focus()}
 function closeSettings(){$('#settings').classList.remove('on');$('#'+setPrev).classList.add('on')}
 $('#setbtn').onclick=()=>openSettings('menu');$('#pset').onclick=()=>openSettings('pause');$('#sback').onclick=closeSettings;
 a11yApply();
