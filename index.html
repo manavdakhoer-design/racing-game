@@ -975,6 +975,26 @@ function genTrackData(seed){
   return{t:track,a:ANCH0.slice(),c:[30,60],n:totalOrbs,sh:shortest,seed:seed>>>0};
 }
 {const g=genTrackData(20241014);for(const x of g.t)track.push(x);totalOrbs=g.n;shortest=g.sh}
+/* GAME-B1: shuffled sector layout for NORMAL runs (not the Daily Challenge, not the tutorial, not the menu demo). One 32-bit run seed is picked when a run starts (the only Math.random call); each sector (segments 0-29 NEON DRIFT, 30-59 MAGENTA RUSH, 60-89 AMBER STORM) is shuffled on its own from that seed with mulberry32. What moves: the hazard pattern of a segment, relative to that segment's safe wall, is swapped between segments of the same sector. What never moves: the safe path and the orbs (so shortest path and max score stay the same), the 3 sector themes and order, the start/finish zones, anchors, checkpoints, and the scripted set pieces (corkscrew, chasm, slalom, double flips). The hazard count is unchanged. The generator's own landing rule is kept: a gap or plate is never placed on the wall the player lands on next (it becomes a spiked barrier instead). */
+const STD_BASE_SEED=20241014;
+const mix32=(a,b)=>{let h=(a^Math.imul(b+1,0x9E3779B1))>>>0;h=Math.imul(h^h>>>16,0x85EBCA6B);h=Math.imul(h^h>>>13,0xC2B2AE35);return(h^h>>>16)>>>0};
+const STD_FIXED=(()=>{const f=new Set(),add=(a,b)=>{for(let j=a;j<=b;j++)f.add(j)};add(0,3);add(N-3,N-1);for(const j of ANCH0)add(j-1,j+1);add(29,31);add(59,61);add(25,30);add(39,44);add(53,58);add(69,74);return f})();
+let runSeed=0,STDL=null;
+const newRunSeed=()=>((Math.random()*4294967296)>>>0)||1;
+/* att[s] = attempt number of sector s (0 first try; a later block rerolls it); -1 = leave that sector unshuffled */
+function genStd(seed,att){
+  att=att||[0,0,0];const g=genTrackData(STD_BASE_SEED),t=g.t;
+  for(let s=0;s<3;s++){
+    if(att[s]<0)continue;
+    const a=s*30,idx=[];for(let j=a;j<a+30;j++)if(!STD_FIXED.has(j))idx.push(j);
+    const R=mulberry(mix32(seed>>>0,s*8+att[s]));
+    const rows=idx.map(j=>{const sf=t[j].safe;return[1,2,3].map(r=>t[j].hz[(sf+r)%4])});
+    for(let i=rows.length-1;i>0;i--){const k=Math.floor(R()*(i+1)),x=rows[i];rows[i]=rows[k];rows[k]=x}
+    idx.forEach((j,i)=>{const sf=t[j].safe,nx=t[j+1].safe,hz=[{t:0,off:0},{t:0,off:0},{t:0,off:0},{t:0,off:0}];
+      rows[i].forEach((h,r)=>{const f=(sf+r+1)%4,o={t:h.t,off:h.off};if((o.t===1||o.t===4)&&f===nx){o.t=2;o.off=[-2,0,2][Math.floor(R()*3)]}hz[f]=o});t[j].hz=hz})
+  }
+  g.seed=seed>>>0;return g
+}
 
 /* ============================ STATE ============================ */
 let state='menu', demo=true, time=0, D=0, v=24, elapsed=0, shifts=0, deaths=0;
@@ -1316,7 +1336,8 @@ function startCount(){
   document.body.classList.add('playing');['menu','pause','crash','finish','tdone','settings','inv','daily','pgs'].forEach(i=>$('#'+i).classList.remove('on'));
   demo=false;state='count';countT=0;lastPhase=-1;
 }
-function begin(seg){ghostPrep(seg);walletFlush();showHint();audioInit();if(AC&&AC.state==='suspended')AC.resume();useTrack(tutMode?'tut':dailyMode?'daily':'std');reset(seg);repStart(seg);if(tutMode)tutReset();document.body.classList.toggle('tut',tutMode);restartAt=0;$('#rtoast').classList.remove('on');$('#pquit').textContent=tutMode?'RESTART TUTORIAL':'RESTART RUN';{const dd=dailyMode&&!tutMode;$('#slabel').textContent=dd?'DAILY #'+dailyInfo.n+(dailyMode==='scored'?' · SCORED':' · PRACTICE'):'FLUX SCORE';$('#pquit').style.display=dailyMode==='scored'&&!tutMode?'none':''}startCount()}
+function begin(seg){if(!tutMode&&!dailyMode&&(seg===0||!STDL)){runSeed=newRunSeed();STDL=genStd(runSeed);curTrk=''}   /* GAME-B1: a new normal run gets a new layout; a checkpoint retry keeps it */
+  ghostPrep(seg);walletFlush();showHint();audioInit();if(AC&&AC.state==='suspended')AC.resume();useTrack(tutMode?'tut':dailyMode?'daily':'run');reset(seg);repStart(seg);if(tutMode)tutReset();document.body.classList.toggle('tut',tutMode);restartAt=0;$('#rtoast').classList.remove('on');$('#pquit').textContent=tutMode?'RESTART TUTORIAL':'RESTART RUN';{const dd=dailyMode&&!tutMode;$('#slabel').textContent=dd?'DAILY #'+dailyInfo.n+(dailyMode==='scored'?' · SCORED':' · PRACTICE'):'FLUX SCORE';$('#pquit').style.display=dailyMode==='scored'&&!tutMode?'none':''}startCount()}
 const anchorLock=()=>{if(demo||state!=='run')return false;for(const j of ANCH){if(D>=j*L-2&&D<j*L+9)return true}return false};
 function shiftNow(rel){   // applied inside a tick (GHOST-B0); recorded by tick number
   if(!demo&&state!=='run')return;
@@ -1631,7 +1652,7 @@ function runRep(r,opt){
   let tr=null;
   try{
     tutMode=false;bot=!!opt.bot;if(opt.bot)botLook=.16;demo=false;diff=r.diff;
-    if(r.mode){DAILYT=genTrackData(r.seed);useTrack('daily')}else useTrack('std');
+    if(r.mode){DAILYT=genTrackData(r.seed);useTrack('daily')}else if(r.seed){loadTrack(genStd(r.seed));curTrk='replay'}else useTrack('std');   /* GAME-B1: a normal replay rebuilds its own layout from its seed */
     reset(0);state='count';countT=0;lastPhase=-1;simTick=0;lastShiftK=-99;inputQ.length=0;
     if(opt.trace){const n=r.ticks+2;tr={D:new Float64Array(n),X:new Float32Array(n),Y:new Float32Array(n),T:new Float32Array(n),n:0,fin:!!r.fin}}
     for(let t=0;t<r.ticks+2&&!QS.r;t++){
@@ -1650,7 +1671,7 @@ function botBeats(seed){const x=runRep({mode:1,diff:1,seed,ticks:30000,ev:[],fin
 function repStart(seg){simTick=0;lastShiftK=-99;inputQ.length=0;lastRep=null;lastRepInfo=null;rec=(!tutMode)?{ev:[],dirty:seg>0}:null}
 function repEnd(fin,score){
   if(!rec||rec.dirty||tutMode){lastRep=null;return null}
-  const r={gv:GEN_V,mode:dailyMode?1:0,diff,seed:dailyMode?DAILYT.seed:0,fin:fin?1:0,ticks:simTick,score:Math.max(0,Math.round(score)),ms:Math.round(elapsed*1000),orbs:got.size,ev:rec.ev};
+  const r={gv:GEN_V,mode:dailyMode?1:0,diff,seed:dailyMode?DAILYT.seed:runSeed,fin:fin?1:0,ticks:simTick,score:Math.max(0,Math.round(score)),ms:Math.round(elapsed*1000),orbs:got.size,ev:rec.ev};
   lastRep=encRep(r);lastRepInfo={bytes:b64d(lastRep).length,chars:lastRep.length,events:r.ev.length,ticks:r.ticks};return lastRepInfo
 }
 /* GHOST-B3: personal-best ghost, stored locally per mode (normal: per difficulty; daily: per UTC date). */
@@ -1696,7 +1717,7 @@ function ghostPrep(seg){
   let s=null;
   if(gmode==='lead'&&dailyMode&&LEADER&&LEADER.date===dailyInfo.date&&LEADER.r.seed===DAILYT.seed)s={r:LEADER.r,label:'#1 '+LEADER.name};
   if(!s)s=gPB();if(!s)return;
-  const r=s.r;if(r.diff!==diff||(dailyMode?(!r.mode||r.seed!==DAILYT.seed):r.mode))return;
+  const r=s.r;if(r.diff!==diff||(dailyMode?(!r.mode||r.seed!==DAILYT.seed):(r.mode||r.seed!==runSeed)))return;   /* GAME-B1: a normal ghost only shows on the same layout */
   try{const x=runRep(r,{trace:true});if(x.ok&&x.trace){GH=x.trace;GH.label=s.label;GH.score=r.score;GH.ms=r.ms}}catch(e){GH=null}
 }
 function ghostPose(){
@@ -2229,7 +2250,7 @@ function buildTut(){
   return{t,a:[76],c:[],n}
 }
 let curTrk='std';
-function useTrack(m){m=m===true?'tut':m===false?'std':m;if(m==='daily'){loadTrack(DAILYT);curTrk=m;return}if(m===curTrk)return;if(m==='tut'){if(!TUT0)TUT0=buildTut();loadTrack(TUT0)}else loadTrack(RAND0);curTrk=m}
+function useTrack(m){m=m===true?'tut':m===false?'std':m;if(m==='daily'){loadTrack(DAILYT);curTrk=m;return}if(m==='run'){if(m!==curTrk){loadTrack(STDL||RAND0);curTrk=m}return}if(m===curTrk)return;if(m==='tut'){if(!TUT0)TUT0=buildTut();loadTrack(TUT0)}else loadTrack(RAND0);curTrk=m}
 // k:'i' info card (slow-mo for dur seconds) · k:'a' act card (slow-mo until you reach face "to")
 const TL=[
  {k:'i',trig:8,dur:7,ti:'WELCOME',tx:'A guided 3-minute course. Time slows down at every lesson, and nothing here counts: no crashes, no saved score, no Vault orbs. Gravity is your steering. Let\'s go!'},
@@ -2566,7 +2587,7 @@ function frame(t){
   requestAnimationFrame(frame);
 }
 placeOnFace(track[3].safe);D=3*L;
-if(location.hash.includes('test')){window.__wso={pgs:PGS,pgsIds:PGS_IDS,beginReal:s=>begin(s||0),rep:{enc:encRep,dec:decRep,run:runRep,SIM_V,REP_FMT,dexp,last:()=>({rep:lastRep,info:lastRepInfo}),setApi:u=>{GH_API=u},leader:leaderLoad,getLeader:()=>LEADER,submit:submitDaily,gh:()=>GH&&{n:GH.n,label:GH.label,score:GH.score},gmode:m=>{gmode=m},cycle:ghostCycle,pose:ghostPose,hud:ghostHud,gstore:gStore,gkey:gKey,state:()=>({simTick,rec:rec&&{n:rec.ev.length,dirty:rec.dirty}})},daily:{genV:()=>GEN_V,build:dailyBuild,genTrackData,validTrack,trackStats,dailySeed,VT,setup:prepDaily,useSeed:sd=>{DAILYT=genTrackData(sd);dailyInfo={n:0,date:'test',seed:sd};dailyMode='practice';if(savedDiff===null)savedDiff=diff;diff=1},leave:leaveDaily,start:startDaily,get:()=>({dailyMode,dy:CS.dy,dh:CS.dh}),utcDate,dayNoOf},cos:{COS,Save,getCS:()=>CS,runEnd:cosRunEnd,check:cosCheck,equip:cosEquip,dayNo:()=>dayNoOf(utcDate()),exportText:()=>Save.exportText(),importText:t=>Save.importText(t),drawTrail,renderInv,openInv,closeInv,setWallet:n=>{wallet=n}},share:{drawShareCard,cardBlob,shareResult,shareInfo,shareText,Native,getLast:()=>lastRun,getCrash:()=>lastCrash,crashInfo},a11y:{A11,FM,fmSample,set:a11ySet,apply:a11yApply,open:openSettings,close:closeSettings},step,render,begin:s=>{begin(s||0);state='run';$('#count').classList.remove('on')},bot:b=>{bot=b},look:x=>{botLook=x},
+if(location.hash.includes('test')){window.__wso={shuf:{genStd,seed:()=>runSeed,newRunSeed,STD_FIXED,setSeed:x=>{runSeed=x>>>0;STDL=genStd(runSeed);curTrk=''}},pgs:PGS,pgsIds:PGS_IDS,beginReal:s=>begin(s||0),rep:{enc:encRep,dec:decRep,run:runRep,SIM_V,REP_FMT,dexp,last:()=>({rep:lastRep,info:lastRepInfo}),setApi:u=>{GH_API=u},leader:leaderLoad,getLeader:()=>LEADER,submit:submitDaily,gh:()=>GH&&{n:GH.n,label:GH.label,score:GH.score},gmode:m=>{gmode=m},cycle:ghostCycle,pose:ghostPose,hud:ghostHud,gstore:gStore,gkey:gKey,state:()=>({simTick,rec:rec&&{n:rec.ev.length,dirty:rec.dirty}})},daily:{genV:()=>GEN_V,build:dailyBuild,genTrackData,validTrack,trackStats,dailySeed,VT,setup:prepDaily,useSeed:sd=>{DAILYT=genTrackData(sd);dailyInfo={n:0,date:'test',seed:sd};dailyMode='practice';if(savedDiff===null)savedDiff=diff;diff=1},leave:leaveDaily,start:startDaily,get:()=>({dailyMode,dy:CS.dy,dh:CS.dh}),utcDate,dayNoOf},cos:{COS,Save,getCS:()=>CS,runEnd:cosRunEnd,check:cosCheck,equip:cosEquip,dayNo:()=>dayNoOf(utcDate()),exportText:()=>Save.exportText(),importText:t=>Save.importText(t),drawTrail,renderInv,openInv,closeInv,setWallet:n=>{wallet=n}},share:{drawShareCard,cardBlob,shareResult,shareInfo,shareText,Native,getLast:()=>lastRun,getCrash:()=>lastCrash,crashInfo},a11y:{A11,FM,fmSample,set:a11ySet,apply:a11yApply,open:openSettings,close:closeSettings},step,render,begin:s=>{begin(s||0);state='run';$('#count').classList.remove('on')},bot:b=>{bot=b},look:x=>{botLook=x},
   advance:(dt,stop)=>advance(dt,stop),q:l=>{qMode='manual';applyQ(l);updQ()},qs:()=>({qMode,qLev,DPRCAP,QG,PCAP,DRAWD,DRAWJ}),perf:()=>{const a=FTR.slice(1).sort((x,y)=>x-y),n=a.length;return n?{n,avgMs:+(a.reduce((q,x)=>q+x,0)/n*1000).toFixed(2),p95Ms:+(a[Math.floor(n*.95)]*1000).toFixed(2),maxMs:+(a[n-1]*1000).toFixed(2)}:null},tutTick,tutOn:x=>{tutMode=x},tutS:()=>({i:tutI,n:TL.length,cur:tutCur&&tutCur.ti,k:tutCur&&tutCur.k,to:tutCur&&tutCur.to,scale:tutScale}),snap:()=>({state,D,face,elapsed,orbs:got.size,total:totalOrbs,deaths,shifts,cp:cpSeg,score:flux(),chain,boost,eff:effi(),burst:burstT,sc:Object.assign({},sc)}),setD:d=>{D=d},track,np:()=>parts.length,sk:()=>shake,setSk:x=>{shake=x},emit:burst,sp:stepParts,L:()=>L}}
 setTimeout(()=>{PGS.init()},1200);   // PGS-B2: silent sign-in shortly after launch (never blocks the game)
 requestAnimationFrame(t=>{last=t;requestAnimationFrame(frame)});
