@@ -215,6 +215,12 @@
   .fnew.rep{opacity:.8;font-size:12px}
   /* DAILY-CSS */
   #daily{place-items:start center} #daily .panel{margin:auto}
+  .dstreak{white-space:pre-line;font-size:12px;font-weight:800;letter-spacing:.08em;color:#ffd166;margin:0 0 8px;line-height:1.5}
+  .dcal{display:flex;gap:6px;justify-content:center;margin:0 0 12px}
+  .dcal span{flex:1 1 0;min-width:0;max-width:46px;border-radius:10px;padding:6px 0;font-size:10px;font-weight:800;letter-spacing:.06em;line-height:1.4;color:#b9c6e2;background:#ffffff10;border:1px solid #ffffff2a;text-align:center}
+  .dcal span.fin{background:linear-gradient(135deg,#37e6ff,#9b6bff);color:#071022;border-color:transparent}
+  .dcal span.att{border-color:#ffd166;color:#ffd166}
+  .dcal span.today{outline:2px solid #ffffffa0;outline-offset:2px}
   .dcard{display:grid;grid-template-columns:auto 1fr;gap:8px 14px;text-align:left;padding:12px 14px;border-radius:14px;background:#ffffff0c;margin:12px 0 10px;align-items:baseline}
   .dcard .dk{font-size:10px;letter-spacing:.16em;font-weight:800;color:#9fb2d4} .dcard .dv{font-weight:800;font-size:14px;font-variant-numeric:tabular-nums;text-align:right;letter-spacing:.04em}
   #dline{color:#ffd166;font-weight:800}
@@ -844,6 +850,7 @@ window.__LD=LD;
   <section class="overlay" id="daily" aria-label="Daily challenge"><div class="panel">
     <div class="eyebrow">TODAY'S CHALLENGE</div><h2 id="dtitle">DAILY</h2>
     <div class="dcard"><div class="dk">DATE</div><div class="dv" id="ddate">—</div><div class="dk">TRACK CODE</div><div class="dv" id="dcode">—</div><div class="dk">NEXT CHALLENGE IN</div><div class="dv" id="dcd">--:--:--</div><div class="dk">YOUR RESULT</div><div class="dv" id="dres">—</div></div>
+    <div class="dstreak" id="dstr"></div><div class="dcal" id="dcal" role="list" aria-label="Last 7 days"></div>
     <p class="tag" id="dlead" style="margin:4px auto 2px;font-size:12px;color:#ffd166"></p>
     <p class="tag" id="dnote" style="margin:6px auto 14px;font-size:12px"></p>
     <button class="btn" id="dgo">START SCORED ATTEMPT</button><button class="btn alt" id="dprac">PRACTISE (UNSCORED)</button><button class="btn alt" id="dback">BACK</button>
@@ -1418,7 +1425,7 @@ function finish(){
   if(wasDaily)dailyEnd(true,final,rank,100);else dailyPracEnd(true,final,rank,100);
   {const ri=repEnd(true,final),gs=ri?gStore():'';$('#frep').textContent=ri?'REPLAY '+ri.bytes+' bytes ('+ri.chars+' chars, '+ri.events+' inputs)'+(gs?' · '+gs:''):'';$('#fsubmit').style.display=ri&&wasDaily&&GH_API?'':'none';$('#fsubmit').disabled=false;$('#fsubmit').textContent='SUBMIT TO DAILY LEADERBOARD'}   // GHOST-B1/B3
   setTimeout(()=>{prepShare(lastRun).catch(()=>{})},400);
-  {const r=cosRunEnd({fin:true,rank,orbs:got.size,chain:sc.maxChain,sling:sc.slingN,near:sc.nearN,dailyScored:wasDaily});$('#fnew').textContent=[cosNewText(r),wasDaily&&lastDailyPay?'DAILY REWARD +'+lastDailyPay+' ◆ orbs':''].filter(Boolean).join(' · ')}   // SHARE: pre-render the card so the tap can share instantly
+  {const r=cosRunEnd({fin:true,rank,orbs:got.size,chain:sc.maxChain,sling:sc.slingN,near:sc.nearN,dailyScored:wasDaily});$('#fnew').textContent=[cosNewText(r),wasDaily&&lastDailyPay?'DAILY REWARD +'+lastDailyPay+' ◆ orbs'+(lastDailyNote?' ('+lastDailyNote+')':''):''].filter(Boolean).join(' · ')}   // SHARE: pre-render the card so the tap can share instantly
   pgsRunEnd({fin:true,rank,diff,score:final,deaths,pen:sc.pen,orbs:got.size,total:totalOrbs,chain:sc.maxChain,sling:sc.slingN,near:sc.nearN,daily:wasDaily,dc:CS.st.dc,norm:!dailyMode})   // PGS-B3
   $('#rank').textContent=rank;$('#rank').style.color={S:'#ffd166',A:'#37e6ff',B:'#ff4fd8',C:'#b9c6e2'}[rank];
   $('#ftime').textContent=fmt(elapsed);$('#forbs').textContent=got.size+' / '+totalOrbs;$('#fshift').textContent=shifts;
@@ -1767,7 +1774,7 @@ const Save=(()=>{
   const int=(x,max)=>{x=Math.floor(+x);return Number.isFinite(x)&&x>=0?Math.min(x,max||1e9):0};
   const dstr=x=>typeof x==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(x)?x:'';
   const idok=x=>typeof x==='string'&&/^[a-z0-9]{1,12}$/.test(x);
-  const def=()=>({v:V,own:{},eq:{trail:'',skin:'s1'},seen:{},st:{fin:0,rk:{S:0,A:0,B:0,C:0},best:0,chain:0,fs:0,bfs:0,dl:'',dn:0,bdn:0,dc:0,dd:''},dy:null,dh:[],dp:[],rc:null});
+  const def=()=>({v:V,own:{},eq:{trail:'',skin:'s1'},seen:{},st:{fin:0,rk:{S:0,A:0,B:0,C:0},best:0,chain:0,fs:0,bfs:0,dl:'',dn:0,bdn:0,dc:0,dd:'',ds:0},dy:null,dh:[],dp:[],dk:{wk:''},rc:null});
   function migrate(o){ // v1 -> v2 adds the daily-challenge result (dy) and history (dh). Later formats: add steps here.
     if(!o||typeof o!=='object')return null;let v=+o.v;if(!Number.isFinite(v)||v<1)v=1;
     if(v<2){if(!('dy'in o))o.dy=null;if(!Array.isArray(o.dh))o.dh=[];v=2}
@@ -1789,9 +1796,9 @@ const Save=(()=>{
     const t=o.st&&typeof o.st==='object'?o.st:{},r=t.rk&&typeof t.rk==='object'?t.rk:{};
     for(const k of['S','A','B','C'])d.st.rk[k]=int(r[k],1e6);
     d.st.fin=int(t.fin,1e6);d.st.best=Math.min(4,int(t.best));d.st.chain=int(t.chain,1e4);d.st.fs=int(t.fs,1e6);d.st.bfs=int(t.bfs,1e6);
-    d.st.dn=int(t.dn,1e5);d.st.bdn=int(t.bdn,1e5);d.st.dc=int(t.dc,1e5);d.st.dl=dstr(t.dl);d.st.dd=dstr(t.dd);
+    d.st.dn=int(t.dn,1e5);d.st.bdn=int(t.bdn,1e5);d.st.dc=int(t.dc,1e5);d.st.ds=int(t.ds,1e5);d.st.dl=dstr(t.dl);d.st.dd=dstr(t.dd);
     const dyOk=x=>{if(!x||typeof x!=='object'||!dstr(x.d))return null;return{d:x.d,att:x.att?1:0,fin:x.fin?1:0,s:int(x.s,1e7),r:typeof x.r==='string'&&/^[SABC]$/.test(x.r)?x.r:'',t:Math.min(9999,Math.max(0,+x.t||0)),p:Math.min(100,int(x.p)),g:int(x.g,99)}};
-    d.dy=dyOk(o.dy);d.dh=(Array.isArray(o.dh)?o.dh:[]).map(dyOk).filter(Boolean).slice(-400);d.dp=(Array.isArray(o.dp)?o.dp:[]).map(dyOk).filter(Boolean).slice(-200);   /* GAME-B11: practice attempts */
+    d.dy=dyOk(o.dy);d.dh=(Array.isArray(o.dh)?o.dh:[]).map(dyOk).filter(Boolean).slice(-400);d.dp=(Array.isArray(o.dp)?o.dp:[]).map(dyOk).filter(Boolean).slice(-200);   /* GAME-B11: practice attempts */d.dk={wk:dstr(o.dk&&typeof o.dk==='object'?o.dk.wk:'')};   /* GAME-B13: the week whose medal reward was already paid */
     d.rc=rcSan(o.rc);
     return d}
   function read(){try{const raw=localStorage.getItem(KEY);return sanitize(raw?JSON.parse(raw):null)}catch(e){return def()}}
@@ -1828,6 +1835,14 @@ function trEmber(X,P,n,e){
     for(let k=0;k<kk;k++){const h=i*17+k*5+fl*31,ox=(hr(h)-.5)*s*.9,oy=(hr(h+7)-.5)*s*.9+(1-f)*s*.3,r=Math.max(1.2,s*.09*(.5+f));
       X.fillStyle=k?rgb([255,214,102],f*.9):rgb([255,110,40],f*.9);X.fillRect(P[i].x+ox-r,P[i].y+oy-r,r*2,r*2)}}
   X.globalCompositeOperation='source-over'}
+/* GAME-B13: Streak Flame, the 7-day Daily streak trail (render only) */
+function trStreak(X,P,n,e){
+  X.lineCap='round';
+  if(e.lq){X.strokeStyle=rgb([255,196,70],.7);X.lineWidth=Math.max(2,P[0].s*.13);X.beginPath();X.moveTo(P[0].x,P[0].y);for(let i=2;i<n;i+=2)X.lineTo(P[i].x,P[i].y);X.stroke();X.lineCap='butt';return}
+  X.globalCompositeOperation='lighter';const fl=e.rm?0:Math.floor(e.t*10);
+  for(let i=0;i<n-1;i++){const f=1-i/(n-1);X.strokeStyle=rgb(i%2?[255,150,40]:[255,226,120],.6*f);X.lineWidth=Math.max(1.5,P[i].s*.22*(.3+f));X.beginPath();X.moveTo(P[i].x,P[i].y);X.lineTo(P[i+1].x,P[i+1].y);X.stroke()
+    if(!e.rm&&i%3===0){const h=i*13+fl*29,r=Math.max(1,P[i].s*.05*f);X.fillStyle=rgb([255,236,150],f*.8);X.fillRect(P[i].x+(hr(h)-.5)*P[i].s*.8-r,P[i].y+(hr(h+5)-.5)*P[i].s*.8-r,r*2,r*2)}}
+  X.globalCompositeOperation='source-over';X.lineCap='butt'}
 function trPrism(X,P,n,e){
   X.lineCap='round';const ph=e.rm?0:Math.floor(e.t*6);
   if(e.lq){const seg=4,per=Math.ceil((n-1)/seg);
@@ -1869,6 +1884,7 @@ const odDot=(X,x,y,r)=>{X.fillStyle='rgba(10,50,30,.55)';X.beginPath();X.arc(x,y
 /* COS-B1: the cosmetics table. rule types: free · rank(r) · chain(n) · fstreak(n) · days(n) · daily(n) · orbs(n) */
 const COS=[
  {id:'t1',kind:'trail',name:'Neon Ribbon',tag:'A clean glowing line',rule:{t:'free'},draw:trNeon},
+ {id:'t7',kind:'trail',name:'Streak Flame',tag:'Seven days in a row on the Daily',rule:{t:'dstreak',n:7},draw:trStreak},
  {id:'t2',kind:'trail',name:'Ember Sparks',tag:'Hot flecks, falling behind',rule:{t:'rank',r:'B'},draw:trEmber},
  {id:'t3',kind:'trail',name:'Prism Ribbon',tag:'Full-spectrum streak',rule:{t:'daily',n:3},draw:trPrism},
  {id:'t4',kind:'trail',name:'Plasma Helix',tag:'Twin twisting strands',rule:{t:'fstreak',n:5},draw:trHelix},
@@ -1950,9 +1966,9 @@ const cosSkin=()=>COS.find(c=>c.id===CS.eq.skin)||COS[6];
 const skinPal=k=>k._p||(k._p=carPalette(k.pal.body,k.pal.glow));
 const CARP=()=>{const k=cosSkin();return k.pal?skinPal(k):CAR};
 const orbC=()=>{if(tutMode)return ORB0;const k=cosSkin();return k.orb||ORB0};
-function ruleProg(r){const st=CS.st;switch(r.t){case'rank':return[st.best,RI[r.r]];case'chain':return[st.chain,r.n];case'fstreak':return[st.bfs,r.n];case'days':return[st.bdn,r.n];case'daily':return[st.dc,r.n];case'orbs':return[Math.min(wallet,r.n),r.n];default:return null}}
+function ruleProg(r){const st=CS.st;switch(r.t){case'rank':return[st.best,RI[r.r]];case'chain':return[st.chain,r.n];case'fstreak':return[st.bfs,r.n];case'days':return[st.bdn,r.n];case'daily':return[st.dc,r.n];case'dstreak':return[st.ds,r.n];case'orbs':return[Math.min(wallet,r.n),r.n];default:return null}}
 function ruleMet(r){if(r.t==='free')return true;const p=ruleProg(r);return !!p&&p[0]>=p[1]}
-function ruleText(r){switch(r.t){case'free':return'Unlocked from the start';case'rank':return'Finish a run with rank '+r.r+(r.r==='S'?'':' or better');case'chain':return'Chain '+r.n+' clean shifts in one run';case'fstreak':return'Finish '+r.n+' runs in a row (a crash resets it)';case'days':return'Finish a run on '+r.n+' days in a row';case'daily':return'Finish the Daily Challenge on '+r.n+' days';case'orbs':return'Hold '+r.n+' ◆ orbs';default:return''}}
+function ruleText(r){switch(r.t){case'free':return'Unlocked from the start';case'rank':return'Finish a run with rank '+r.r+(r.r==='S'?'':' or better');case'chain':return'Chain '+r.n+' clean shifts in one run';case'fstreak':return'Finish '+r.n+' runs in a row (a crash resets it)';case'days':return'Finish a run on '+r.n+' days in a row';case'daily':return'Finish the Daily Challenge on '+r.n+' days';case'dstreak':return'Finish the Daily Challenge '+r.n+' days in a row';case'orbs':return'Hold '+r.n+' ◆ orbs';default:return''}}
 function ruleProgText(r){const p=ruleProg(r);if(!p)return'';if(r.t==='rank')return' · best: '+(RLBL[p[0]]||'none');return' · '+p[0]+'/'+p[1]}
 /* DAILY-B1/B2: Daily Challenge. Same track for everyone for a UTC date. GEN_V names the generator version: if the generator ever changes, bump it so old and new builds never share a leaderboard day. */
 const GEN_V=2;
@@ -2023,14 +2039,27 @@ function startDaily(practice){
   if(scored){CS.dy={d:date,att:1,fin:0,s:0,r:'',t:0,p:0,g:GEN_V};Save.write(CS)}
   prepDaily(date,scored);tutMode=false;begin(0)}
 /* GAME-B12: Daily Challenge reward. The scored attempt pays orbs (the Vault currency, which only buys cosmetic skins), once per day: a participation amount, plus a finish amount and a rank bonus when you reach the gate. Edit the numbers here. Nothing here touches gameplay or hitboxes. */
-const DAILY_PAY={tryP:20,fin:60,rank:{S:60,A:40,B:20,C:0}};
-let lastDailyPay=0;
+const DAILY_PAY={tryP:20,fin:60,rank:{S:60,A:40,B:20,C:0},streakStep:10,streakCap:7,medal:150,medalDays:5};   // streak bonus = min(streak,cap) x step on a finish from day 2; weekly medal = medalDays finished days in a Monday-Sunday UTC week
+let lastDailyPay=0,lastDailyNote='';
 const dailyPay=(fin,rank)=>DAILY_PAY.tryP+(fin?DAILY_PAY.fin+(DAILY_PAY.rank[rank]||0):0);
-const dailyPayText=()=>'Rewards: +'+DAILY_PAY.tryP+' ◆ for the attempt, +'+DAILY_PAY.fin+' ◆ for finishing, up to +'+DAILY_PAY.rank.S+' ◆ for rank S.';
+const dailyPayText=()=>'Rewards: +'+DAILY_PAY.tryP+' ◆ for the attempt, +'+DAILY_PAY.fin+' ◆ for finishing, up to +'+DAILY_PAY.rank.S+' ◆ for rank S. Finish on '+DAILY_PAY.medalDays+' days of the week for a medal (+'+DAILY_PAY.medal+' ◆). Finish 7 days in a row to unlock the Streak Flame trail.';
+/* GAME-B13: streak, 7-day calendar and weekly medal. Everything is derived from the saved Daily history (finished scored attempts, UTC days), so it needs no extra clock logic and a changed device clock cannot invent past days: dates after today are ignored. */
+function dailyStats(today){today=validDate(today)?today:utcDate();const fin=new Set(),att=new Set();
+  for(const e of CS.dh){if(!validDate(e.d)||e.d>today)continue;att.add(e.d);if(e.fin)fin.add(e.d)}
+  let c=fin.has(today)?today:addDays(today,-1),streak=0;while(fin.has(c)){streak++;c=addDays(c,-1)}
+  let best=0,run=0,prev='';for(const d of[...fin].sort()){run=prev&&addDays(prev,1)===d?run+1:1;if(run>best)best=run;prev=d}
+  const wd=new Date(today+'T00:00:00Z').getUTCDay(),wkStart=addDays(today,-((wd+6)%7));let wkCount=0;for(let i=0;i<7;i++)if(fin.has(addDays(wkStart,i)))wkCount++;
+  const days=[];for(let i=6;i>=0;i--){const d=addDays(today,-i);days.push({d,s:fin.has(d)?'fin':att.has(d)?'att':'none'})}
+  return{today,streak,best:Math.max(best,CS.st.ds||0),wkStart,wkCount,medal:wkCount>=DAILY_PAY.medalDays,days}}
 function dailyEnd(fin,score,rank,prog){
   if(dailyMode!=='scored'||!CS.dy)return false;
   const e=CS.dy;e.fin=fin?1:0;e.s=Math.round(score);e.r=fin?rank:'';e.t=fin?+elapsed.toFixed(2):0;e.p=fin?100:prog;
-  CS.dh.push(Object.assign({},e));CS.dh=CS.dh.slice(-400);Save.write(CS);dailyMode='practice';lastDailyPay=dailyPay(fin,rank);try{walletAdd(lastDailyPay);walletFlush();renderVault()}catch(x){}updDaily();try{renderPanel()}catch(x){}return true}
+  CS.dh.push(Object.assign({},e));CS.dh=CS.dh.slice(-400);lastDailyPay=dailyPay(fin,rank);lastDailyNote='';
+  if(fin){const S=dailyStats(utcDate());CS.st.ds=Math.max(CS.st.ds||0,S.streak);const n=[];
+    if(S.streak>=2){const b=Math.min(S.streak,DAILY_PAY.streakCap)*DAILY_PAY.streakStep;lastDailyPay+=b;n.push('STREAK '+S.streak+' +'+b+' ◆')}
+    if(S.medal&&CS.dk.wk!==S.wkStart){CS.dk={wk:S.wkStart};lastDailyPay+=DAILY_PAY.medal;n.push('WEEKLY MEDAL +'+DAILY_PAY.medal+' ◆')}
+    lastDailyNote=n.join(' · ')}
+  Save.write(CS);dailyMode='practice';try{walletAdd(lastDailyPay);walletFlush();renderVault()}catch(x){}updDaily();try{renderPanel()}catch(x){}return true}
 const nextUTC=()=>{const n=new Date();return Date.UTC(n.getUTCFullYear(),n.getUTCMonth(),n.getUTCDate()+1)-Date.now()};
 const hms=ms=>{const t=Math.max(0,Math.floor(ms/1000));return[Math.floor(t/3600),Math.floor(t%3600/60),t%60].map(n=>String(n).padStart(2,'0')).join(':')};
 function dailyResultText(){const e=dyToday();if(!e)return'Not played yet';
@@ -2039,6 +2068,8 @@ function fillDaily(){
   const b=dailyBuild(utcDate()),e=dyToday();
   $('#dtitle').textContent='DAILY #'+b.n;$('#ddate').textContent=b.date+' · UTC';$('#dcode').textContent=b.code;
   $('#dcd').textContent=hms(nextUTC());$('#dres').textContent=dailyResultText();
+  {const S=dailyStats(utcDate());$('#dstr').textContent='STREAK '+S.streak+(S.streak===1?' DAY':' DAYS')+' · BEST '+S.best+'\n'+(S.medal?'WEEKLY MEDAL EARNED · '+S.wkCount+'/7 DAYS':'THIS WEEK '+S.wkCount+'/7 · MEDAL AT '+DAILY_PAY.medalDays);
+    const cal=$('#dcal');cal.textContent='';S.days.forEach(x=>{const sp=document.createElement('span');sp.setAttribute('role','listitem');const L='SMTWTFS'[new Date(x.d+'T00:00:00Z').getUTCDay()];sp.className=x.s+(x.d===S.today?' today':'');sp.textContent=L+'\n'+(x.s==='fin'?'✓':x.s==='att'?'×':'·');sp.style.whiteSpace='pre-line';sp.setAttribute('aria-label',x.d+(x.s==='fin'?' finished':x.s==='att'?' attempted, not finished':' not played'));cal.appendChild(sp)})}
   $('#dgo').style.display=e?'none':'';$('#dnote').textContent=e?'Your scored attempt for today is used. You can still practise this exact track; practice runs are not scored and pay no reward.':'One scored attempt per day. Starting it uses it up, even if you crash or quit. No restarts. Everyone gets the same track at NORMAL speed. '+dailyPayText()}
 function updDaily(){
   const e=dyToday(),n=dayNoOf(utcDate()),l=$('#dline');
@@ -2708,7 +2739,7 @@ function frame(t){
   requestAnimationFrame(frame);
 }
 placeOnFace(track[3].safe);D=3*L;
-if(location.hash.includes('test')){window.__wso={/* GAME-B8 test hook */crashNow:r=>crash(r||'wall'),rec:{add:recAdd,view:recView,roll:recRoll,keys:recKeys,doc:()=>CS.rc,daily:recDaily,dend:(f,sc,r,p)=>dailyEnd(f,sc,r,p),pay:()=>lastDailyPay,wal:()=>wallet,DP:DAILY_PAY,pend:(f,sc,r,p)=>dailyPracEnd(f,sc,r,p),dp:()=>CS.dp,dpbest:recDailyPractice,save:()=>Save.write(CS),dh:()=>CS.dh,startDaily:pr=>startDaily(pr),quit:()=>recDailyQuit(),migrate:()=>{CS.rc=null;recMigrate()},reload:()=>{CS=Save.read()},set:d=>{CS.rc=d}},shuf:{genStd,seed:()=>runSeed,newRunSeed,STD_FIXED,setSeed:x=>{runSeed=x>>>0;STDL=genStd(runSeed);curTrk=''}},pgs:PGS,pgsIds:PGS_IDS,beginReal:s=>begin(s||0),rep:{enc:encRep,dec:decRep,run:runRep,SIM_V,REP_FMT,dexp,last:()=>({rep:lastRep,info:lastRepInfo}),setApi:u=>{GH_API=u},leader:leaderLoad,getLeader:()=>LEADER,submit:submitDaily,gh:()=>GH&&{n:GH.n,label:GH.label,score:GH.score},gmode:m=>{gmode=m},cycle:ghostCycle,pose:ghostPose,hud:ghostHud,gstore:gStore,gkey:gKey,state:()=>({simTick,rec:rec&&{n:rec.ev.length,dirty:rec.dirty}})},daily:{genV:()=>GEN_V,dmods:()=>DMODS,dgoals:()=>DGOALS,sched:()=>SCHED,schedOk:()=>SCHED_OK,dayInfo,addDays,build:dailyBuild,genTrackData,validTrack,trackStats,dailySeed,VT,setup:prepDaily,useSeed:sd=>{DAILYT=genTrackData(sd);dailyInfo={n:0,date:'test',seed:sd};dailyMode='practice';if(savedDiff===null)savedDiff=diff;diff=1},leave:leaveDaily,start:startDaily,get:()=>({dailyMode,dy:CS.dy,dh:CS.dh}),utcDate,dayNoOf},cos:{COS,Save,getCS:()=>CS,runEnd:cosRunEnd,check:cosCheck,equip:cosEquip,dayNo:()=>dayNoOf(utcDate()),exportText:()=>Save.exportText(),importText:t=>Save.importText(t),drawTrail,renderInv,openInv,closeInv,setWallet:n=>{wallet=n}},share:{drawShareCard,cardBlob,shareResult,shareInfo,shareText,Native,getLast:()=>lastRun,getCrash:()=>lastCrash,crashInfo},a11y:{A11,FM,fmSample,set:a11ySet,apply:a11yApply,open:openSettings,close:closeSettings},step,render,begin:s=>{begin(s||0);state='run';$('#count').classList.remove('on')},bot:b=>{bot=b},look:x=>{botLook=x},
+if(location.hash.includes('test')){window.__wso={/* GAME-B8 test hook */crashNow:r=>crash(r||'wall'),rec:{add:recAdd,view:recView,roll:recRoll,keys:recKeys,doc:()=>CS.rc,daily:recDaily,dend:(f,sc,r,p)=>dailyEnd(f,sc,r,p),pay:()=>lastDailyPay,note:()=>lastDailyNote,stats:dailyStats,dk:()=>CS.dk,st:()=>CS.st,cosCheck:()=>cosCheck().map(c=>c.id),wal:()=>wallet,DP:DAILY_PAY,pend:(f,sc,r,p)=>dailyPracEnd(f,sc,r,p),dp:()=>CS.dp,dpbest:recDailyPractice,save:()=>Save.write(CS),dh:()=>CS.dh,startDaily:pr=>startDaily(pr),quit:()=>recDailyQuit(),migrate:()=>{CS.rc=null;recMigrate()},reload:()=>{CS=Save.read()},set:d=>{CS.rc=d}},shuf:{genStd,seed:()=>runSeed,newRunSeed,STD_FIXED,setSeed:x=>{runSeed=x>>>0;STDL=genStd(runSeed);curTrk=''}},pgs:PGS,pgsIds:PGS_IDS,beginReal:s=>begin(s||0),rep:{enc:encRep,dec:decRep,run:runRep,SIM_V,REP_FMT,dexp,last:()=>({rep:lastRep,info:lastRepInfo}),setApi:u=>{GH_API=u},leader:leaderLoad,getLeader:()=>LEADER,submit:submitDaily,gh:()=>GH&&{n:GH.n,label:GH.label,score:GH.score},gmode:m=>{gmode=m},cycle:ghostCycle,pose:ghostPose,hud:ghostHud,gstore:gStore,gkey:gKey,state:()=>({simTick,rec:rec&&{n:rec.ev.length,dirty:rec.dirty}})},daily:{genV:()=>GEN_V,dmods:()=>DMODS,dgoals:()=>DGOALS,sched:()=>SCHED,schedOk:()=>SCHED_OK,dayInfo,addDays,build:dailyBuild,genTrackData,validTrack,trackStats,dailySeed,VT,setup:prepDaily,useSeed:sd=>{DAILYT=genTrackData(sd);dailyInfo={n:0,date:'test',seed:sd};dailyMode='practice';if(savedDiff===null)savedDiff=diff;diff=1},leave:leaveDaily,start:startDaily,get:()=>({dailyMode,dy:CS.dy,dh:CS.dh}),utcDate,dayNoOf},cos:{COS,Save,getCS:()=>CS,runEnd:cosRunEnd,check:cosCheck,equip:cosEquip,dayNo:()=>dayNoOf(utcDate()),exportText:()=>Save.exportText(),importText:t=>Save.importText(t),drawTrail,renderInv,openInv,closeInv,setWallet:n=>{wallet=n}},share:{drawShareCard,cardBlob,shareResult,shareInfo,shareText,Native,getLast:()=>lastRun,getCrash:()=>lastCrash,crashInfo},a11y:{A11,FM,fmSample,set:a11ySet,apply:a11yApply,open:openSettings,close:closeSettings},step,render,begin:s=>{begin(s||0);state='run';$('#count').classList.remove('on')},bot:b=>{bot=b},look:x=>{botLook=x},
   advance:(dt,stop)=>advance(dt,stop),q:l=>{qMode='manual';applyQ(l);updQ()},qs:()=>({qMode,qLev,DPRCAP,QG,PCAP,DRAWD,DRAWJ}),perf:()=>{const a=FTR.slice(1).sort((x,y)=>x-y),n=a.length;return n?{n,avgMs:+(a.reduce((q,x)=>q+x,0)/n*1000).toFixed(2),p95Ms:+(a[Math.floor(n*.95)]*1000).toFixed(2),maxMs:+(a[n-1]*1000).toFixed(2)}:null},tutTick,tutOn:x=>{tutMode=x},tutS:()=>({i:tutI,n:TL.length,cur:tutCur&&tutCur.ti,k:tutCur&&tutCur.k,to:tutCur&&tutCur.to,scale:tutScale}),snap:()=>({state,D,face,elapsed,orbs:got.size,total:totalOrbs,deaths,shifts,cp:cpSeg,score:flux(),chain,boost,eff:effi(),burst:burstT,sc:Object.assign({},sc)}),setD:d=>{D=d},track,np:()=>parts.length,sk:()=>shake,setSk:x=>{shake=x},emit:burst,sp:stepParts,L:()=>L}}
 setTimeout(()=>{PGS.init()},1200);   // PGS-B2: silent sign-in shortly after launch (never blocks the game)
 requestAnimationFrame(t=>{last=t;requestAnimationFrame(frame)});
