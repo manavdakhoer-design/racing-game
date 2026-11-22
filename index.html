@@ -82,10 +82,10 @@
   .rec>div.new{border-color:#ffd166;color:#ffd166}.rec>div.new b{color:#ffd166}
   .rpan{margin:0 0 12px}.rtl{font:800 11px Orbitron,Inter,ui-sans-serif,system-ui,sans-serif;letter-spacing:.2em;color:#b9c6e2;margin:0 0 8px;text-align:center}
   .rpan .seg{margin:0 0 8px}.rrows{display:grid;gap:5px;margin:0 0 6px}
-  .rr{display:grid;grid-template-columns:minmax(80px,1fr) auto 16px minmax(78px,auto);align-items:center;gap:8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:6px 10px;font-size:10px;letter-spacing:.1em;color:#b9c6e2;text-align:left}
+  .rr{display:grid;grid-template-columns:minmax(80px,1fr) auto 34px minmax(78px,auto);align-items:center;gap:8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:6px 10px;font-size:10px;letter-spacing:.1em;color:#b9c6e2;text-align:left}
   .rr b{font-family:Orbitron,Inter,ui-sans-serif,system-ui,sans-serif;font-size:14px;color:#fff;letter-spacing:0;text-align:right}
   .rr .rk{font:800 12px Orbitron,Inter,ui-sans-serif,system-ui,sans-serif;text-align:center}.rr .rd{text-align:right;letter-spacing:.03em;color:#b9c6e2}
-  @media (max-width:360px){.rr{grid-template-columns:1fr auto 16px}.rr .rd{grid-column:1/-1;text-align:left}}
+  @media (max-width:360px){.rr{grid-template-columns:1fr auto 34px}.rr .rd{grid-column:1/-1;text-align:left}}
   .best{ min-height:16px; color:var(--cy); font-weight:800; font-size:11px; letter-spacing:.14em; margin-bottom:18px; }
   .small{ margin-top:16px; font-size:11px; color:#8ea0c4; letter-spacing:.06em; }
   #mute{ position:absolute; top:max(14px,env(safe-area-inset-top)); right:16px; z-index:12; pointer-events:auto; width:38px; height:38px; border-radius:50%; background:#0a1226b8; border:1px solid #ffffff2e; font-size:15px; display:none; }
@@ -1419,7 +1419,7 @@ function finish(){
   $('#fbreak').innerHTML=row('Clean shifts ×'+sc.cleanN+' · best chain '+sc.maxChain,fmtN(sc.clean))+row('Near misses ×'+sc.nearN,fmtN(sc.near))+row('Slingshots ×'+sc.slingN,fmtN(sc.sling))
     +row('Air-time',fmtN(sc.air))+row('Orbs ×'+sc.orbN,fmtN(sc.orb))+row('Anchors · vault · sectors',fmtN(sc.anchor+sc.vault+sc.sector))+(sc.pen?row('Checkpoint retries','−'+fmtN(sc.pen),1):'')
     +row('Flux Score',fmtN(fl))+row('Efficiency ×'+ef.toFixed(2)+' ('+Math.round(ef*100)+'% of shortest path)','→ '+fmtN(fl*ef))+row('Time bonus',fmtN(tb));
-  const rank=final>=RANK_S?'S':final>=RANK_A?'A':final>=RANK_B?'B':'C';
+  const rank=rankFor(final);
   const wasDaily=dailyMode==='scored'&&!tutMode,dn=wasDaily?dailyInfo.n:0;
   lastRun=shareInfo(final,rank,diff,elapsed,'finish');if(dn){lastRun.dn=dn;lastRun.date=dailyInfo.date}
   if(wasDaily)dailyEnd(true,final,rank,100);else dailyPracEnd(true,final,rank,100);
@@ -1427,7 +1427,7 @@ function finish(){
   setTimeout(()=>{prepShare(lastRun).catch(()=>{})},400);
   {const r=cosRunEnd({fin:true,rank,orbs:got.size,chain:sc.maxChain,sling:sc.slingN,near:sc.nearN,dailyScored:wasDaily});$('#fnew').textContent=[cosNewText(r),wasDaily&&lastDailyPay?'DAILY REWARD +'+lastDailyPay+' ◆ orbs'+(lastDailyNote?' ('+lastDailyNote+')':''):''].filter(Boolean).join(' · ')}   // SHARE: pre-render the card so the tap can share instantly
   pgsRunEnd({fin:true,rank,diff,score:final,deaths,pen:sc.pen,orbs:got.size,total:totalOrbs,chain:sc.maxChain,sling:sc.slingN,near:sc.nearN,daily:wasDaily,dc:CS.st.dc,norm:!dailyMode})   // PGS-B3
-  $('#rank').textContent=rank;$('#rank').style.color={S:'#ffd166',A:'#37e6ff',B:'#ff4fd8',C:'#b9c6e2'}[rank];
+  $('#rank').textContent=rank;$('#rank').style.color=RANKC[rank];
   $('#ftime').textContent=fmt(elapsed);$('#forbs').textContent=got.size+' / '+totalOrbs;$('#fshift').textContent=shifts;
   if(dailyMode){$('#frec').textContent='';$('#fbest').textContent='DAILY #'+dailyInfo.n+(wasDaily?' · SCORED RESULT SAVED':' · PRACTICE (not scored)');return}   // daily runs never touch the normal records
   const mark=(!bot&&!demo&&!tutMode)?recAdd(diff,final):{};   // GAME-B6: period records (daily, bot, tutorial and unfinished runs never get here)
@@ -1436,6 +1436,10 @@ function finish(){
   $('#fbest').textContent=newHi?'★ NEW HIGH SCORE ('+DNAME[diff]+') ★':'HIGH SCORE  '+fmtN(nb.s)+'  ·  BEST TIME '+fmt(nb.t);
 }
 const RANK_S=25000,RANK_A=12000,RANK_B=4000;
+/* RANK-B1: the rank ladder as data, lowest to highest. min = the lowest score that earns it. S, A and B keep their old thresholds, so nobody loses a rank they had. S+ and S++ sit above the bot's safe line (about 28,100 to 29,500), so they need near misses, slingshots and a fast time; retune min here. */
+const RANKS=[{k:'F-',min:0,c:'#ff6b6b'},{k:'F',min:200,c:'#ff8f6b'},{k:'E',min:500,c:'#d9a27e'},{k:'D',min:1000,c:'#a9b8a0'},{k:'C',min:2000,c:'#b9c6e2'},{k:'B',min:RANK_B,c:'#ff4fd8'},{k:'A',min:RANK_A,c:'#37e6ff'},{k:'S',min:RANK_S,c:'#ffd166'},{k:'S+',min:31000,c:'#7dffb0'},{k:'S++',min:34000,c:'#ffffff'}];
+const rankFor=sc=>{let k=RANKS[0].k;for(const r of RANKS)if(sc>=r.min)k=r.k;return k};
+const RANKC=Object.fromEntries(RANKS.map(r=>[r.k,r.c]));
 const bestKey=()=>'wso_best'+(diff===1?'':'_'+diff);
 const num=(v,d)=>Number.isFinite(+v)&&v!==null&&v!==''&&v!==true&&v!==false?+v:d;
 function load(){try{const o=JSON.parse(localStorage.getItem(bestKey()));if(!o||typeof o!=='object')return null;return {t:num(o.t,0)>0?num(o.t,0):0,o:Math.max(0,num(o.o,0)),s:Math.max(0,num(o.s,0))}}catch(e){return null}}
@@ -1608,7 +1612,7 @@ const PGS=(()=>{
     if(st==='off')return;if(bot&&!TESTM)return;
     if(r.fin){
       unlock('first_finish');
-      if(r.rank==='S')unlock('first_s');                                  // first S rank
+      if(RI[r.rank]>=RI['S'])unlock('first_s');                                  // first S rank
       if(r.diff===2)unlock('hyper_finish');                               // finish on HYPER
       if(!r.deaths&&!r.pen)unlock('flawless');                            // finish with no crash/retry
       if(r.total>0&&r.orbs>=r.total)unlock('all_orbs');                   // every orb in one run
@@ -1770,15 +1774,17 @@ function ghostHud(){
 const todayStr=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
 const yesterdayStr=()=>{const d=new Date();d.setDate(d.getDate()-1);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
 const Save=(()=>{
-  const KEY='wso_save',V=3,FMT=1;   /* GAME-B6: v3 adds rc (period records) */
+  const KEY='wso_save',V=4,FMT=1;   /* RANK-B1: v4 widens the rank ladder (best rank 1..4 becomes 5..8) */
+  const RK=['F-','F','E','D','C','B','A','S','S+','S++'],RK_RE=/^(?:F-|F|E|D|C|B|A|S\+\+|S\+|S)$/;   /* GAME-B6: v3 adds rc (period records) */
   const int=(x,max)=>{x=Math.floor(+x);return Number.isFinite(x)&&x>=0?Math.min(x,max||1e9):0};
   const dstr=x=>typeof x==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(x)?x:'';
   const idok=x=>typeof x==='string'&&/^[a-z0-9]{1,12}$/.test(x);
-  const def=()=>({v:V,own:{},eq:{trail:'',skin:'s1'},seen:{},st:{fin:0,rk:{S:0,A:0,B:0,C:0},best:0,chain:0,fs:0,bfs:0,dl:'',dn:0,bdn:0,dc:0,dd:'',ds:0},dy:null,dh:[],dp:[],dk:{wk:''},rc:null});
+  const def=()=>({v:V,own:{},eq:{trail:'',skin:'s1'},seen:{},st:{fin:0,rk:{'F-':0,F:0,E:0,D:0,C:0,B:0,A:0,S:0,'S+':0,'S++':0},best:0,chain:0,fs:0,bfs:0,dl:'',dn:0,bdn:0,dc:0,dd:'',ds:0},dy:null,dh:[],dp:[],dk:{wk:''},rc:null});
   function migrate(o){ // v1 -> v2 adds the daily-challenge result (dy) and history (dh). Later formats: add steps here.
     if(!o||typeof o!=='object')return null;let v=+o.v;if(!Number.isFinite(v)||v<1)v=1;
     if(v<2){if(!('dy'in o))o.dy=null;if(!Array.isArray(o.dh))o.dh=[];v=2}
     if(v<3){if(!('rc'in o))o.rc=null;v=3}
+    if(v<4){if(o.st&&typeof o.st==='object'){const b=Math.floor(+o.st.best);o.st.best=b>=1&&b<=4?b+4:0;const rk=o.st.rk&&typeof o.st.rk==='object'?o.st.rk:{};o.st.rk=rk}v=4}   /* RANK-B1: old C B A S (1..4) are now 5..8 */
     o.v=v;return o}
   /* GAME-B6: sanitise the records block. Per difficulty (0 chill, 1 normal, 2 hyper): day / wk (Monday date) / mo records {k period key, s score, d date set, at time}, all-time {s,d,at} and an archive of expired or invalid-clock records. */
   const kOk={day:/^\d{4}-\d{2}-\d{2}$/,wk:/^\d{4}-\d{2}-\d{2}$/,mo:/^\d{4}-\d{2}$/};
@@ -1794,10 +1800,10 @@ const Save=(()=>{
     if(o.seen&&typeof o.seen==='object')for(const k in o.seen)if(idok(k)&&o.seen[k])d.seen[k]=1;
     if(o.eq&&typeof o.eq==='object'){if(idok(o.eq.trail))d.eq.trail=o.eq.trail;if(idok(o.eq.skin))d.eq.skin=o.eq.skin}
     const t=o.st&&typeof o.st==='object'?o.st:{},r=t.rk&&typeof t.rk==='object'?t.rk:{};
-    for(const k of['S','A','B','C'])d.st.rk[k]=int(r[k],1e6);
-    d.st.fin=int(t.fin,1e6);d.st.best=Math.min(4,int(t.best));d.st.chain=int(t.chain,1e4);d.st.fs=int(t.fs,1e6);d.st.bfs=int(t.bfs,1e6);
+    for(const k of RK)d.st.rk[k]=int(r[k],1e6);
+    d.st.fin=int(t.fin,1e6);d.st.best=Math.min(10,int(t.best));d.st.chain=int(t.chain,1e4);d.st.fs=int(t.fs,1e6);d.st.bfs=int(t.bfs,1e6);
     d.st.dn=int(t.dn,1e5);d.st.bdn=int(t.bdn,1e5);d.st.dc=int(t.dc,1e5);d.st.ds=int(t.ds,1e5);d.st.dl=dstr(t.dl);d.st.dd=dstr(t.dd);
-    const dyOk=x=>{if(!x||typeof x!=='object'||!dstr(x.d))return null;return{d:x.d,att:x.att?1:0,fin:x.fin?1:0,s:int(x.s,1e7),r:typeof x.r==='string'&&/^[SABC]$/.test(x.r)?x.r:'',t:Math.min(9999,Math.max(0,+x.t||0)),p:Math.min(100,int(x.p)),g:int(x.g,99)}};
+    const dyOk=x=>{if(!x||typeof x!=='object'||!dstr(x.d))return null;return{d:x.d,att:x.att?1:0,fin:x.fin?1:0,s:int(x.s,1e7),r:typeof x.r==='string'&&RK_RE.test(x.r)?x.r:'',t:Math.min(9999,Math.max(0,+x.t||0)),p:Math.min(100,int(x.p)),g:int(x.g,99)}};
     d.dy=dyOk(o.dy);d.dh=(Array.isArray(o.dh)?o.dh:[]).map(dyOk).filter(Boolean).slice(-400);d.dp=(Array.isArray(o.dp)?o.dp:[]).map(dyOk).filter(Boolean).slice(-200);   /* GAME-B11: practice attempts */d.dk={wk:dstr(o.dk&&typeof o.dk==='object'?o.dk.wk:'')};   /* GAME-B13: the week whose medal reward was already paid */
     d.rc=rcSan(o.rc);
     return d}
@@ -1897,7 +1903,7 @@ const COS=[
  {id:'s5',kind:'skin',name:'Golden Hour',tag:'Gold · sparkling orbs',rule:{t:'orbs',n:600},pal:{body:'#E8B923',glow:'#FFE07A'},orb:{sp:'rgba(255,236,130,A)',gr:'#ffe98a',b:[255,236,130],decor:odSpark},decor:dcGold},
  {id:'s6',kind:'skin',name:'Midnight Pulse',tag:'Black with violet glow',rule:{t:'daily',n:7},pal:{body:'#1A1530',glow:'#9D6BFF'},orb:{sp:'rgba(150,190,255,A)',gr:'#9dbcff',b:[150,190,255],decor:null},decor:dcMid}
 ];
-const RI={C:1,B:2,A:3,S:4},RLBL=['','C','B','A','S'];
+const RI=Object.fromEntries(RANKS.map((r,i)=>[r.k,i+1])),RLBL=['',...RANKS.map(r=>r.k)];
 const ORB0={sp:'rgba(255,214,102,A)',gr:'#ffc24a',b:[255,214,102],decor:null};
 let CS=Save.read();
 /* GAME-B6: period records. Keys use the player's LOCAL date (day YYYY-MM-DD, week = the date of its Monday, month YYYY-MM). There is no scheduled job: a record counts as current only while its key equals the current period's key, so it stays on display until its period ends and then simply stops matching. A run replaces a period record only if the same period is current and the score is higher. A stored key that is not the current period is expired (older, archived) or invalid (a newer date, the clock went backwards: kept, never erased, ignored for display and rollover). ALL TIME never expires. Daily Challenge runs, bot runs and the tutorial are never counted here. Since GAME-B9 every new best counts, finished or not (see recRunEnd). */
@@ -1938,9 +1944,9 @@ function recDaily(){let b=null;for(const e of CS.dh)if(e.s>0&&(!b||e.s>b.s))b=e;
 /* GAME-B11: practice attempts on the Daily track are recorded too, in their own list (last 200) and their own row, DAILY PRACTICE, so your one official scored result stays separate. */
 function recDailyPractice(){let b=null;for(const e of CS.dp)if(e.s>0&&(!b||e.s>b.s))b=e;return b}
 function dailyPracEnd(fin,score,rank,prog){if(dailyMode!=='practice'||!dailyInfo||tutMode||bot||demo)return false;const s=Math.round(score);if(!(s>0))return false;
-  CS.dp.push({d:dailyInfo.date,att:0,fin:fin?1:0,s:Math.min(1e7,s),r:fin&&/^[SABC]$/.test(rank)?rank:'',t:fin?Math.min(9999,+elapsed.toFixed(2)):0,p:fin?100:Math.max(0,Math.min(100,prog|0)),g:GEN_V});CS.dp=CS.dp.slice(-200);Save.write(CS);try{renderPanel()}catch(x){}return true}
+  CS.dp.push({d:dailyInfo.date,att:0,fin:fin?1:0,s:Math.min(1e7,s),r:fin&&RI[rank]?rank:'',t:fin?Math.min(9999,+elapsed.toFixed(2)):0,p:fin?100:Math.max(0,Math.min(100,prog|0)),g:GEN_V});CS.dp=CS.dp.slice(-200);Save.write(CS);try{renderPanel()}catch(x){}return true}
 function recDailyQuit(){if(dailyMode==='practice'&&!tutMode&&liveRun())dailyPracEnd(false,flux(),'',Math.floor(D/(N*L)*100));if(dailyMode==='scored'&&!tutMode&&liveRun()&&CS.dy&&!CS.dy.fin&&!CS.dy.s)dailyEnd(false,flux(),'',Math.max(0,Math.min(99,Math.floor(D/(N*L)*100))))}
-const recRank=s=>s>=RANK_S?'S':s>=RANK_A?'A':s>=RANK_B?'B':'C';
+const recRank=rankFor;
 const recDate=d=>{if(!/^\d{4}-\d{2}-\d{2}$/.test(d||''))return'';try{return new Date(+d.slice(0,4),+d.slice(5,7)-1,+d.slice(8,10)).toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'})}catch(e){return d}};
 /* GAME-B7: records panel on the first screen: CHILL / NORMAL / HYPER switch (starts on the difficulty you last played), rows TODAY / THIS WEEK / THIS MONTH / ALL TIME / DAILY CHALLENGE with score, rank letter and the date it was set. Dates are re-checked when the panel opens, when the tab becomes visible again and every 30 s while the menu is open. */
 let rpView=-1,rpKey='';
@@ -1948,7 +1954,7 @@ function renderPanel(){
   const el=$('#mrec');if(!el)return;recRoll();const di=rpView<0?diff:rpView,v=recView(di),K=recKeys(Date.now());rpKey=K.day+K.wk+K.mo;
   document.querySelectorAll('#rsw button').forEach(b=>{const on=+b.dataset.d===di;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on?'true':'false')});
   el.textContent='';
-  const row=(lab,r,utc)=>{const d=document.createElement('div');d.className='rr';const a=document.createElement('span');a.className='rl';a.textContent=lab;const b=document.createElement('b');b.textContent=r?fmtN(r.s):'—';const k=document.createElement('span');k.className='rk';k.textContent=r?(r.r||recRank(r.s)):'';if(r)k.style.color={S:'#ffd166',A:'#37e6ff',B:'#ff4fd8',C:'#b9c6e2'}[k.textContent];const t=document.createElement('span');t.className='rd';t.textContent=r?(utc?recDate(r.d)+' (UTC)':recDate(r.d)):'';d.append(a,b,k,t);el.append(d)};
+  const row=(lab,r,utc)=>{const d=document.createElement('div');d.className='rr';const a=document.createElement('span');a.className='rl';a.textContent=lab;const b=document.createElement('b');b.textContent=r?fmtN(r.s):'—';const k=document.createElement('span');k.className='rk';k.textContent=r?(r.r||recRank(r.s)):'';if(r)k.style.color=RANKC[k.textContent]||'';const t=document.createElement('span');t.className='rd';t.textContent=r?(utc?recDate(r.d)+' (UTC)':recDate(r.d)):'';d.append(a,b,k,t);el.append(d)};
   row('TODAY',v.day);row('THIS WEEK',v.wk);row('THIS MONTH',v.mo);row('ALL TIME',v.all);
   const dd=recDaily();row('DAILY CHALLENGE',dd?{s:dd.s,r:dd.r,d:dd.d}:null,true);const dpr=recDailyPractice();row('DAILY PRACTICE',dpr?{s:dpr.s,r:dpr.r,d:dpr.d}:null,true)}
 function recTick(force){const K=recKeys(Date.now());if(!force&&rpKey===K.day+K.wk+K.mo)return;if(force||state==='menu')renderPanel()}
@@ -1968,7 +1974,7 @@ const CARP=()=>{const k=cosSkin();return k.pal?skinPal(k):CAR};
 const orbC=()=>{if(tutMode)return ORB0;const k=cosSkin();return k.orb||ORB0};
 function ruleProg(r){const st=CS.st;switch(r.t){case'rank':return[st.best,RI[r.r]];case'chain':return[st.chain,r.n];case'fstreak':return[st.bfs,r.n];case'days':return[st.bdn,r.n];case'daily':return[st.dc,r.n];case'dstreak':return[st.ds,r.n];case'orbs':return[Math.min(wallet,r.n),r.n];default:return null}}
 function ruleMet(r){if(r.t==='free')return true;const p=ruleProg(r);return !!p&&p[0]>=p[1]}
-function ruleText(r){switch(r.t){case'free':return'Unlocked from the start';case'rank':return'Finish a run with rank '+r.r+(r.r==='S'?'':' or better');case'chain':return'Chain '+r.n+' clean shifts in one run';case'fstreak':return'Finish '+r.n+' runs in a row (a crash resets it)';case'days':return'Finish a run on '+r.n+' days in a row';case'daily':return'Finish the Daily Challenge on '+r.n+' days';case'dstreak':return'Finish the Daily Challenge '+r.n+' days in a row';case'orbs':return'Hold '+r.n+' ◆ orbs';default:return''}}
+function ruleText(r){switch(r.t){case'free':return'Unlocked from the start';case'rank':return'Finish a run with rank '+r.r+(r.r==='S++'?'':' or better');case'chain':return'Chain '+r.n+' clean shifts in one run';case'fstreak':return'Finish '+r.n+' runs in a row (a crash resets it)';case'days':return'Finish a run on '+r.n+' days in a row';case'daily':return'Finish the Daily Challenge on '+r.n+' days';case'dstreak':return'Finish the Daily Challenge '+r.n+' days in a row';case'orbs':return'Hold '+r.n+' ◆ orbs';default:return''}}
 function ruleProgText(r){const p=ruleProg(r);if(!p)return'';if(r.t==='rank')return' · best: '+(RLBL[p[0]]||'none');return' · '+p[0]+'/'+p[1]}
 /* DAILY-B1/B2: Daily Challenge. Same track for everyone for a UTC date. GEN_V names the generator version: if the generator ever changes, bump it so old and new builds never share a leaderboard day. */
 const GEN_V=2;
@@ -2039,10 +2045,10 @@ function startDaily(practice){
   if(scored){CS.dy={d:date,att:1,fin:0,s:0,r:'',t:0,p:0,g:GEN_V};Save.write(CS)}
   prepDaily(date,scored);tutMode=false;begin(0)}
 /* GAME-B12: Daily Challenge reward. The scored attempt pays orbs (the Vault currency, which only buys cosmetic skins), once per day: a participation amount, plus a finish amount and a rank bonus when you reach the gate. Edit the numbers here. Nothing here touches gameplay or hitboxes. */
-const DAILY_PAY={tryP:20,fin:60,rank:{S:60,A:40,B:20,C:0},streakStep:10,streakCap:7,medal:150,medalDays:5};   // streak bonus = min(streak,cap) x step on a finish from day 2; weekly medal = medalDays finished days in a Monday-Sunday UTC week
+const DAILY_PAY={tryP:20,fin:60,rank:{'S++':100,'S+':80,S:60,A:40,B:20,C:0,D:0,E:0,F:0,'F-':0},streakStep:10,streakCap:7,medal:150,medalDays:5};   // streak bonus = min(streak,cap) x step on a finish from day 2; weekly medal = medalDays finished days in a Monday-Sunday UTC week
 let lastDailyPay=0,lastDailyNote='';
 const dailyPay=(fin,rank)=>DAILY_PAY.tryP+(fin?DAILY_PAY.fin+(DAILY_PAY.rank[rank]||0):0);
-const dailyPayText=()=>'Rewards: +'+DAILY_PAY.tryP+' ◆ for the attempt, +'+DAILY_PAY.fin+' ◆ for finishing, up to +'+DAILY_PAY.rank.S+' ◆ for rank S. Finish on '+DAILY_PAY.medalDays+' days of the week for a medal (+'+DAILY_PAY.medal+' ◆). Finish 7 days in a row to unlock the Streak Flame trail.';
+const dailyPayText=()=>'Rewards: +'+DAILY_PAY.tryP+' ◆ for the attempt, +'+DAILY_PAY.fin+' ◆ for finishing, up to +'+DAILY_PAY.rank['S++']+' ◆ for rank S++. Finish on '+DAILY_PAY.medalDays+' days of the week for a medal (+'+DAILY_PAY.medal+' ◆). Finish 7 days in a row to unlock the Streak Flame trail.';
 /* GAME-B13: streak, 7-day calendar and weekly medal. Everything is derived from the saved Daily history (finished scored attempts, UTC days), so it needs no extra clock logic and a changed device clock cannot invent past days: dates after today are ignored. */
 function dailyStats(today){today=validDate(today)?today:utcDate();const fin=new Set(),att=new Set();
   for(const e of CS.dh){if(!validDate(e.d)||e.d>today)continue;att.add(e.d);if(e.fin)fin.add(e.d)}
@@ -2195,8 +2201,8 @@ addEventListener('blur',pauseGame);
 /* SHARE-B1: share card. Offscreen 1080x1080 canvas, system fonts only. It contains the game name, rank, score, difficulty, time, date and the public game URL, and nothing about the player. */
 const SHARE_URL='https://manavdakhoer-design.github.io/racing-game/';
 const SHARE_FONT='system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif';
-const RANKC={S:'#ffd166',A:'#37e6ff',B:'#ff4fd8',C:'#b9c6e2'},DIFFC=['#7dffb0','#37e6ff','#ff4fd8'];
-const rankOf=sc=>sc>=RANK_S?'S':sc>=RANK_A?'A':sc>=RANK_B?'B':'C';
+const DIFFC=['#7dffb0','#37e6ff','#ff4fd8'];
+const rankOf=rankFor;
 const shareInfo=(score,rank,dif,time,kind)=>({score:Math.round(score),rank,diff:DNAME[dif],dc:DIFFC[dif],time:time>0?fmt(time):'',date:todayStr(),kind});
 let lastRun=null,lastCrash=null;
 const crashInfo=()=>{const o=shareInfo(flux(),'',diff,elapsed,'crash');o.sec=Math.min(3,Math.floor(D/L/30)+1);o.prog=Math.max(0,Math.min(99,Math.floor(D/(N*L)*100)));return o};
@@ -2221,7 +2227,7 @@ function drawShareCard(o){
   {const lab=o.kind==='best'?'HIGH SCORE':o.kind==='crash'?(o.dn?'DAILY #'+o.dn+' · ':'')+'WRECKED IN SECTOR '+o.sec:o.dn?'DAILY CHALLENGE #'+o.dn:'CUBE CLEARED',lg=lab.length>26;g.fillStyle='#9fb2d4';g.font=font(800,lg?24:28);sp(lab,S/2,415,lg?5:8)}
   g.textAlign='center';g.shadowColor=rc;g.shadowBlur=46;g.fillStyle=rc;
   if(o.kind==='crash'){fit(o.prog+'%',900,210,330,true);g.fillText(o.prog+'%',330,610);g.shadowBlur=0;g.fillStyle='#9fb2d4';g.font=font(800,26);sp('OF THE CUBE',330,660,6)}
-  else{g.font=font(900,300,true);g.fillText(o.rank,330,655);g.shadowBlur=0}
+  else{fit(o.rank,900,300,540,true);g.fillText(o.rank,330,655);g.shadowBlur=0}
   g.fillStyle='#9fb2d4';g.font=font(800,26);sp('FLUX SCORE',700,520,6);
   g.textAlign='center';g.fillStyle='#fff';fit(fmtN(o.score),900,140,430);g.fillText(fmtN(o.score),700,640);
   const pills=[[o.diff,o.dc]];if(o.time)pills.push(['TIME '+o.time,'#cfdaf1']);
@@ -2740,7 +2746,7 @@ function frame(t){
   requestAnimationFrame(frame);
 }
 placeOnFace(track[3].safe);D=3*L;
-if(location.hash.includes('test')){window.__wso={/* ECON-B7 test hook */econ:{wallet:()=>wallet,owned:()=>owned.slice(),skin:()=>skinId,buy:id=>buySkin(id),equip:id=>equipSkin(id),setWallet:w=>{wallet=w;walletDirty=true;walletFlush()},add:n=>{walletAdd(n);walletFlush()},prices:()=>SKINS.map(x=>[x.id,x.price]),exportText:()=>Save.exportText(),importText:t=>Save.importText(t)},/* GAME-B8 test hook */crashNow:r=>crash(r||'wall'),rec:{add:recAdd,view:recView,roll:recRoll,keys:recKeys,doc:()=>CS.rc,daily:recDaily,dend:(f,sc,r,p)=>dailyEnd(f,sc,r,p),pay:()=>lastDailyPay,note:()=>lastDailyNote,stats:dailyStats,dk:()=>CS.dk,st:()=>CS.st,cosCheck:()=>cosCheck().map(c=>c.id),wal:()=>wallet,DP:DAILY_PAY,pend:(f,sc,r,p)=>dailyPracEnd(f,sc,r,p),dp:()=>CS.dp,dpbest:recDailyPractice,save:()=>Save.write(CS),dh:()=>CS.dh,startDaily:pr=>startDaily(pr),quit:()=>recDailyQuit(),migrate:()=>{CS.rc=null;recMigrate()},reload:()=>{CS=Save.read()},set:d=>{CS.rc=d}},shuf:{genStd,seed:()=>runSeed,newRunSeed,STD_FIXED,setSeed:x=>{runSeed=x>>>0;STDL=genStd(runSeed);curTrk=''}},pgs:PGS,pgsIds:PGS_IDS,beginReal:s=>begin(s||0),rep:{enc:encRep,dec:decRep,run:runRep,SIM_V,REP_FMT,dexp,last:()=>({rep:lastRep,info:lastRepInfo}),setApi:u=>{GH_API=u},leader:leaderLoad,getLeader:()=>LEADER,submit:submitDaily,gh:()=>GH&&{n:GH.n,label:GH.label,score:GH.score},gmode:m=>{gmode=m},cycle:ghostCycle,pose:ghostPose,hud:ghostHud,gstore:gStore,gkey:gKey,state:()=>({simTick,rec:rec&&{n:rec.ev.length,dirty:rec.dirty}})},daily:{genV:()=>GEN_V,dmods:()=>DMODS,dgoals:()=>DGOALS,sched:()=>SCHED,schedOk:()=>SCHED_OK,dayInfo,addDays,build:dailyBuild,genTrackData,validTrack,trackStats,dailySeed,VT,setup:prepDaily,useSeed:sd=>{DAILYT=genTrackData(sd);dailyInfo={n:0,date:'test',seed:sd};dailyMode='practice';if(savedDiff===null)savedDiff=diff;diff=1},leave:leaveDaily,start:startDaily,get:()=>({dailyMode,dy:CS.dy,dh:CS.dh}),utcDate,dayNoOf},cos:{COS,Save,getCS:()=>CS,runEnd:cosRunEnd,check:cosCheck,equip:cosEquip,dayNo:()=>dayNoOf(utcDate()),exportText:()=>Save.exportText(),importText:t=>Save.importText(t),drawTrail,renderInv,openInv,closeInv,setWallet:n=>{wallet=n}},share:{drawShareCard,cardBlob,shareResult,shareInfo,shareText,Native,getLast:()=>lastRun,getCrash:()=>lastCrash,crashInfo},a11y:{A11,FM,fmSample,set:a11ySet,apply:a11yApply,open:openSettings,close:closeSettings},step,render,begin:s=>{begin(s||0);state='run';$('#count').classList.remove('on')},bot:b=>{bot=b},look:x=>{botLook=x},
+if(location.hash.includes('test')){window.__wso={/* RANK-B1 test hook */rank:{f:rankFor,list:()=>RANKS.map(r=>[r.k,r.min,r.c]),ri:RI,end:r=>{const x=cosRunEnd({fin:true,rank:r,orbs:0,chain:0,sling:0,near:0,dailyScored:false},true);return{un:x.un.map(c=>c.id)}}},/* ECON-B7 test hook */econ:{wallet:()=>wallet,owned:()=>owned.slice(),skin:()=>skinId,buy:id=>buySkin(id),equip:id=>equipSkin(id),setWallet:w=>{wallet=w;walletDirty=true;walletFlush()},add:n=>{walletAdd(n);walletFlush()},prices:()=>SKINS.map(x=>[x.id,x.price]),exportText:()=>Save.exportText(),importText:t=>Save.importText(t)},/* GAME-B8 test hook */crashNow:r=>crash(r||'wall'),rec:{add:recAdd,view:recView,roll:recRoll,keys:recKeys,doc:()=>CS.rc,daily:recDaily,dend:(f,sc,r,p)=>dailyEnd(f,sc,r,p),pay:()=>lastDailyPay,note:()=>lastDailyNote,stats:dailyStats,dk:()=>CS.dk,st:()=>CS.st,cosCheck:()=>cosCheck().map(c=>c.id),wal:()=>wallet,DP:DAILY_PAY,pend:(f,sc,r,p)=>dailyPracEnd(f,sc,r,p),dp:()=>CS.dp,dpbest:recDailyPractice,save:()=>Save.write(CS),dh:()=>CS.dh,startDaily:pr=>startDaily(pr),quit:()=>recDailyQuit(),migrate:()=>{CS.rc=null;recMigrate()},reload:()=>{CS=Save.read()},set:d=>{CS.rc=d}},shuf:{genStd,seed:()=>runSeed,newRunSeed,STD_FIXED,setSeed:x=>{runSeed=x>>>0;STDL=genStd(runSeed);curTrk=''}},pgs:PGS,pgsIds:PGS_IDS,beginReal:s=>begin(s||0),rep:{enc:encRep,dec:decRep,run:runRep,SIM_V,REP_FMT,dexp,last:()=>({rep:lastRep,info:lastRepInfo}),setApi:u=>{GH_API=u},leader:leaderLoad,getLeader:()=>LEADER,submit:submitDaily,gh:()=>GH&&{n:GH.n,label:GH.label,score:GH.score},gmode:m=>{gmode=m},cycle:ghostCycle,pose:ghostPose,hud:ghostHud,gstore:gStore,gkey:gKey,state:()=>({simTick,rec:rec&&{n:rec.ev.length,dirty:rec.dirty}})},daily:{genV:()=>GEN_V,dmods:()=>DMODS,dgoals:()=>DGOALS,sched:()=>SCHED,schedOk:()=>SCHED_OK,dayInfo,addDays,build:dailyBuild,genTrackData,validTrack,trackStats,dailySeed,VT,setup:prepDaily,useSeed:sd=>{DAILYT=genTrackData(sd);dailyInfo={n:0,date:'test',seed:sd};dailyMode='practice';if(savedDiff===null)savedDiff=diff;diff=1},leave:leaveDaily,start:startDaily,get:()=>({dailyMode,dy:CS.dy,dh:CS.dh}),utcDate,dayNoOf},cos:{COS,Save,getCS:()=>CS,runEnd:cosRunEnd,check:cosCheck,equip:cosEquip,dayNo:()=>dayNoOf(utcDate()),exportText:()=>Save.exportText(),importText:t=>Save.importText(t),drawTrail,renderInv,openInv,closeInv,setWallet:n=>{wallet=n}},share:{drawShareCard,cardBlob,shareResult,shareInfo,shareText,Native,getLast:()=>lastRun,getCrash:()=>lastCrash,crashInfo},a11y:{A11,FM,fmSample,set:a11ySet,apply:a11yApply,open:openSettings,close:closeSettings},step,render,begin:s=>{begin(s||0);state='run';$('#count').classList.remove('on')},bot:b=>{bot=b},look:x=>{botLook=x},
   advance:(dt,stop)=>advance(dt,stop),q:l=>{qMode='manual';applyQ(l);updQ()},qs:()=>({qMode,qLev,DPRCAP,QG,PCAP,DRAWD,DRAWJ}),perf:()=>{const a=FTR.slice(1).sort((x,y)=>x-y),n=a.length;return n?{n,avgMs:+(a.reduce((q,x)=>q+x,0)/n*1000).toFixed(2),p95Ms:+(a[Math.floor(n*.95)]*1000).toFixed(2),maxMs:+(a[n-1]*1000).toFixed(2)}:null},tutTick,tutOn:x=>{tutMode=x},tutS:()=>({i:tutI,n:TL.length,cur:tutCur&&tutCur.ti,k:tutCur&&tutCur.k,to:tutCur&&tutCur.to,scale:tutScale}),snap:()=>({state,D,face,elapsed,orbs:got.size,total:totalOrbs,deaths,shifts,cp:cpSeg,score:flux(),chain,boost,eff:effi(),burst:burstT,sc:Object.assign({},sc)}),setD:d=>{D=d},track,np:()=>parts.length,sk:()=>shake,setSk:x=>{shake=x},emit:burst,sp:stepParts,L:()=>L}}
 setTimeout(()=>{PGS.init()},1200);   // PGS-B2: silent sign-in shortly after launch (never blocks the game)
 requestAnimationFrame(t=>{last=t;requestAnimationFrame(frame)});
