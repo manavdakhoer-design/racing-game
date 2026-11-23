@@ -76,6 +76,12 @@
   /* RANK-B1: S++ is drawn in rainbow colours (static, so nothing moves in reduced-motion or low quality); every stop is at least 5:1 on the dark panels. The plain colour set on the element stays as the fallback. */
   .rbw{ background:linear-gradient(90deg,#ff6b6b,#ffb04d,#fff06b,#6bff9e,#4de1ff,#a79bff,#ff7be0); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; color:transparent !important; padding:0 .12em; }
   .rank.rbw{ display:inline-block; }
+  /* RANK-B2: completion title chip (PRO / PRO+ / ULTRA / ULTRA PRO), each with its own colour; ULTRA PRO is rainbow */
+  .ttl{ display:inline-block; margin:8px 0 0; padding:5px 16px; border-radius:999px; border:1px solid #ffffff44; background:#ffffff0c; font:900 13px Orbitron,Inter,ui-sans-serif,system-ui,sans-serif; letter-spacing:.24em; text-indent:.24em; }
+  .ttl:empty{ display:none }
+  .ttl.rbw{ background:linear-gradient(90deg,#ff6b6b,#ffb04d,#fff06b,#6bff9e,#4de1ff,#a79bff,#ff7be0); -webkit-background-clip:text; background-clip:text; padding:5px 16px }   /* the pill fill would hide the gradient, so the rainbow chip has no fill */
+  .ttlrow{ text-align:center; margin:0 0 8px }
+  .ttlrow .ttl{ margin:0 }
   #score,#flash,#count,#time,#speed,#fscore,#rank,.panel h1,.rec b{font-family:Orbitron,Inter,ui-sans-serif,system-ui,sans-serif}
   #gl.glitch{filter:drop-shadow(4px 0 0 rgba(255,30,70,.75)) drop-shadow(-4px 0 0 rgba(0,210,255,.75))}
   .rec{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:0 0 14px;font-size:10px;letter-spacing:.1em}
@@ -197,6 +203,17 @@
   .tog{min-width:64px;min-height:44px;padding:9px 12px;border-radius:12px;background:#ffffff10;border:1px solid #ffffff2a;font-weight:800;letter-spacing:.1em;font-size:12px;color:#b9c6e2}
   .tog[aria-checked=true]{background:linear-gradient(135deg,#37e6ff,#9b6bff);color:#071022;border-color:transparent}
   .shead{margin:14px 0 6px;font-size:10px;letter-spacing:.24em;font-weight:800;color:#9fb2d4;text-align:left}
+  /* GHOST-B7: ghost section in Settings */
+  .gopt{display:block;width:100%;text-align:left;padding:10px 12px;border-radius:12px;background:#ffffff0c;border:1px solid #ffffff2a;margin:0 0 6px;color:#e8f0ff;min-height:44px;font:inherit}
+  .gopt b{display:block;font-size:13px;letter-spacing:.08em}
+  .gopt small{display:block;margin-top:2px;font-size:11px;line-height:1.35;color:#b4c4e2;white-space:normal}
+  .gopt em{display:block;margin-top:3px;font-style:normal;font-size:11px;line-height:1.35;color:#ffd166;white-space:normal}
+  .gopt[aria-checked=true]{border-color:#37e6ff;background:#37e6ff22}
+  .gopt[aria-checked=true] b::after{content:' \2713';color:#7dffb0}
+  .gopt[aria-disabled=true]{border-style:dashed;background:transparent;cursor:not-allowed}
+  .gopt[aria-disabled=true] b{color:#b4c4e2}
+  .tog[aria-disabled=true]{border-style:dashed;background:transparent;cursor:not-allowed}
+  @media (max-height:480px){ .gopt{padding:6px 10px;min-height:40px} .gopt small,.gopt em{font-size:10px} }
   @media (max-height:480px){ #settings .panel{padding:14px 16px} #settings h2{font-size:26px;margin:2px 0} #settings .sopt{padding:7px 10px;margin-bottom:5px} #settings .sopt small{font-size:10px} }
   /* SHARE-CSS */
   #stoast{position:fixed;left:50%;bottom:max(24px,env(safe-area-inset-bottom));transform:translateX(-50%);z-index:70;max-width:90vw;padding:10px 18px;border-radius:12px;background:#0a1226f2;border:1px solid #37e6ff;color:#fff;font-weight:800;letter-spacing:.06em;font-size:13px;text-align:center;opacity:0;pointer-events:none;transition:opacity .2s}
@@ -829,7 +846,7 @@ window.__LD=LD;
 
     <div class="small" id="dline"></div>
     <div class="small" id="bestline"></div>
-    <div class="rpan"><div class="rtl">HIGH SCORES</div><div class="seg" id="rsw" role="group" aria-label="High scores for difficulty"><button type="button" data-d="0">CHILL</button><button type="button" data-d="1">NORMAL</button><button type="button" data-d="2">HYPER</button></div><div class="rrows" id="mrec"></div><div class="small" id="rnote">Every new best counts, finished or not. Today, week and month use this device's date (weeks start Monday). Daily Challenge uses UTC.</div></div>
+    <div class="rpan"><div class="rtl">HIGH SCORES</div><div class="ttlrow"><span class="ttl" id="mttl"></span></div><div class="seg" id="rsw" role="group" aria-label="High scores for difficulty"><button type="button" data-d="0">CHILL</button><button type="button" data-d="1">NORMAL</button><button type="button" data-d="2">HYPER</button></div><div class="rrows" id="mrec"></div><div class="small" id="rnote">Every new best counts, finished or not. Today, week and month use this device's date (weeks start Monday). Daily Challenge uses UTC.</div></div>
     <button class="btn alt" id="mshare" style="display:none">⇪ SHARE HIGH SCORE</button>
   </div></section>
      <section class="overlay" id="vault"><div class="panel">
@@ -873,6 +890,14 @@ window.__LD=LD;
     <div class="sopt"><div><b>Colour-blind-safe palette</b><small>Orange / green / white / violet faces, shape markers on every face, distinct icons and patterns for every hazard.</small></div><button class="tog" id="s-cb" role="switch" aria-checked="false">OFF</button></div>
     <div class="sopt"><div><b>High-contrast track edges</b><small>Thick bright track lines with a dark outline, darker panels, no background clutter.</small></div><button class="tog" id="s-hc" role="switch" aria-checked="false">OFF</button></div>
     <div class="sopt"><div><b>HUD text size</b></div><div class="seg" id="s-txt" role="group" aria-label="HUD text size"><button data-v="0">NORMAL</button><button data-v="1">LARGE</button><button data-v="2">XL</button></div></div>
+    <div class="shead">GHOST</div>
+    <div id="s-gmode" role="radiogroup" aria-label="Ghost"></div>
+    <small id="s-gnote" style="display:none;color:#ffd166;font-size:11px;margin:0 0 8px;text-align:left">A different ghost starts with your next run.</small>
+    <div class="sopt"><div><b>Show ghost label</b><small>A small name tag on the ghost, such as MY BEST.</small></div><button class="tog" id="s-gl" role="switch" aria-checked="true">ON</button></div>
+    <div class="sopt"><div><b>Show gap readout</b><small>Text such as AHEAD 0.4 s or BEHIND 1.2 s while you race the ghost.</small></div><button class="tog" id="s-gg" role="switch" aria-checked="true">ON</button></div>
+    <div class="sopt"><div><b>Show sector comparison</b><small id="s-gsn">Your time against the ghost each time you pass a sector line.</small></div><button class="tog" id="s-gsec" role="switch" aria-checked="false" aria-disabled="true">OFF</button></div>
+    <div class="sopt"><div><b>Ghost style</b></div><div class="seg" id="s-gst" role="group" aria-label="Ghost style"><button data-v="soft">SOFT</button><button data-v="outline">OUTLINE</button><button data-v="dot">DOTTED</button></div></div>
+    <div class="sopt"><div><b>Ghost opacity</b></div><div class="seg" id="s-gop" role="group" aria-label="Ghost opacity"><button data-v="0">LOW</button><button data-v="1">MEDIUM</button><button data-v="2">HIGH</button></div></div>
     <div class="shead">TESTING</div>
     <div class="sopt"><div><b>Colour-vision simulation</b><small>Filters the whole screen so you can check each mode. Not saved.</small></div><div class="seg" id="s-sim" role="group" aria-label="Colour vision simulation"><button data-v="0">OFF</button><button data-v="1">DEUTAN</button><button data-v="2">PROTAN</button><button data-v="3">TRITAN</button><button data-v="4">MONO</button></div></div>
     <div class="sopt"><div><b>Flash meter</b><small>Shows live flashes per second measured from the game canvas.</small></div><button class="tog" id="s-fm" role="switch" aria-checked="false">OFF</button></div>
@@ -895,6 +920,7 @@ window.__LD=LD;
   <section class="overlay" id="finish"><div class="panel">
     <div class="eyebrow">CUBE CLEARED</div><h2>FINISH</h2>
     <div class="rank" id="rank">S</div>
+    <div class="ttlrow"><span class="ttl" id="rtitle"></span></div>
     <div id="slab2" style="font-size:10px;letter-spacing:.2em;color:#9fb2d4;font-weight:800;margin-top:6px">FINAL SCORE</div>
     <div class="bigscore" id="fscore">0</div>
     <div class="brk" id="fbreak"></div>
@@ -1430,7 +1456,7 @@ function finish(){
   setTimeout(()=>{prepShare(lastRun).catch(()=>{})},400);
   {const r=cosRunEnd({fin:true,rank,orbs:got.size,chain:sc.maxChain,sling:sc.slingN,near:sc.nearN,dailyScored:wasDaily});$('#fnew').textContent=[cosNewText(r),wasDaily&&lastDailyPay?'DAILY REWARD +'+lastDailyPay+' ◆ orbs'+(lastDailyNote?' ('+lastDailyNote+')':''):''].filter(Boolean).join(' · ')}   // SHARE: pre-render the card so the tap can share instantly
   pgsRunEnd({fin:true,rank,diff,score:final,deaths,pen:sc.pen,orbs:got.size,total:totalOrbs,chain:sc.maxChain,sling:sc.slingN,near:sc.nearN,daily:wasDaily,dc:CS.st.dc,norm:!dailyMode})   // PGS-B3
-  $('#rank').textContent=rank;paintRank($('#rank'),rank);
+  $('#rank').textContent=rank;paintRank($('#rank'),rank);paintTitle($('#rtitle'),titleFor(rank));
   $('#ftime').textContent=fmt(elapsed);$('#forbs').textContent=got.size+' / '+totalOrbs;$('#fshift').textContent=shifts;
   if(dailyMode){$('#frec').textContent='';$('#fbest').textContent='DAILY #'+dailyInfo.n+(wasDaily?' · SCORED RESULT SAVED':' · PRACTICE (not scored)');return}   // daily runs never touch the normal records
   const mark=(!bot&&!demo&&!tutMode)?recAdd(diff,final):{};   // GAME-B6: period records (daily, bot, tutorial and unfinished runs never get here)
@@ -1445,6 +1471,10 @@ const rankFor=sc=>{let k=RANKS[0].k;for(const r of RANKS)if(sc>=r.min)k=r.k;retu
 const RANKC=Object.fromEntries(RANKS.map(r=>[r.k,r.c]));
 const RAINBOW=['#ff6b6b','#ffb04d','#fff06b','#6bff9e','#4de1ff','#a79bff','#ff7be0'];
 const paintRank=(el,r)=>{el.style.color=RANKC[r]||'';el.classList.toggle('rbw',r==='S++')};
+/* RANK-B2: a title for completing the cube (reaching the finish gate). Any rank below S is PRO, S is PRO+, S+ is ULTRA, S++ is ULTRA PRO. 'from' = the lowest rank that earns it; colours are data. Crashed runs never earn a title. */
+const TITLES=[{k:'PRO',from:'F-',c:'#5ec8ff'},{k:'PRO+',from:'S',c:'#ffa94d'},{k:'ULTRA',from:'S+',c:'#c28bff'},{k:'ULTRA PRO',from:'S++',c:'#ffffff',rainbow:true}];
+const titleFor=rank=>{if(!RI[rank])return null;let t=null;for(const x of TITLES)if(RI[rank]>=RI[x.from])t=x;return t};
+const paintTitle=(el,t)=>{el.classList.remove('rbw');el.textContent=t?t.k:'';if(!t){el.style.color='';el.style.borderColor='';return}el.style.color=t.c;el.style.borderColor=t.rainbow?'#ffffff66':t.c+'99';el.classList.toggle('rbw',!!t.rainbow)};
 const bestKey=()=>'wso_best'+(diff===1?'':'_'+diff);
 const num=(v,d)=>Number.isFinite(+v)&&v!==null&&v!==''&&v!==true&&v!==false?+v:d;
 function load(){try{const o=JSON.parse(localStorage.getItem(bestKey()));if(!o||typeof o!=='object')return null;return {t:num(o.t,0)>0?num(o.t,0):0,o:Math.max(0,num(o.o,0)),s:Math.max(0,num(o.s,0))}}catch(e){return null}}
@@ -1738,18 +1768,85 @@ async function submitDaily(){
   const j=await apiJ('/submit',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({day:lastRun&&lastRun.date||'',gv:GEN_V,pid,name,rep:lastRep})});
   return j||{ok:false,error:'network'}}
 /* GHOST-B5 (client side of the toggle) */
-let gmode='pb',ghostVis=true,GH=null,GP=null,gA=1;
-try{const g=localStorage.getItem('wso_gmode');if(g==='off'||g==='pb'||g==='lead')gmode=g}catch(e){}
+/* GHOST-B7: ghost settings. One validated JSON key (wso_gs, v1; included in Backup & restore). mode null = never chosen: MY BEST once one exists, otherwise OFF. */
+const GMODES=[
+ {k:'off',n:'OFF',d:'No ghost, a clean track.'},
+ {k:'pb',n:'MY BEST',d:'Race your fastest finished run on the same track layout.'},
+ {k:'last',n:'LAST RUN',d:'See what you did differently from your previous attempt.'},
+ {k:'lead',n:'DAILY LEADER',d:"Race today's top player (needs the online leaderboard)."},
+ {k:'par',n:'PAR',d:'Race a target pace for a gold rank.'},
+ {k:'imp',n:'IMPORTED',d:'Race a ghost code a friend sent you.'}];
+const GSTY=['soft','outline','dot'],GOPA=[.22,.38,.6];
+let GS=(()=>{
+  const d={v:1,mode:null,prev:'pb',label:true,gap:true,sect:false,style:'soft',op:1};
+  const okM=m=>GMODES.some(x=>x.k===m);
+  try{
+    const raw=localStorage.getItem('wso_gs');
+    if(raw){const o=JSON.parse(raw);if(o&&typeof o==='object'&&o.v===1){
+      if(o.mode===null||okM(o.mode))d.mode=o.mode;
+      if(okM(o.prev)&&o.prev!=='off')d.prev=o.prev;
+      if(typeof o.label==='boolean')d.label=o.label;
+      if(typeof o.gap==='boolean')d.gap=o.gap;
+      if(typeof o.sect==='boolean')d.sect=o.sect;
+      if(GSTY.includes(o.style))d.style=o.style;
+      if(o.op===0||o.op===1||o.op===2)d.op=o.op;
+      return d}}
+    const g=localStorage.getItem('wso_gmode');   /* older builds: a three-way mode */
+    if(g==='off'||g==='pb'||g==='lead'){d.mode=g;if(g!=='off')d.prev=g}
+  }catch(e){}
+  return d})();
+function gsSave(){try{localStorage.setItem('wso_gs',JSON.stringify(GS))}catch(e){}}
+let ghostVis=true,GH=null,GP=null,gA=1,GHMODE='';   /* GHOST-B7: GHMODE = which option the loaded ghost belongs to */
+const hasPB=()=>{try{for(let i=0;i<localStorage.length;i++){if(/^wso_g_(s\d|d\d{8})$/.test(localStorage.key(i)))return true}}catch(e){}return false};
+/* '' = available, otherwise the reason it is greyed out */
+function gAvail(k){
+  if(k==='off')return '';
+  if(k==='pb')return hasPB()?'':'Finish a run first so there is one to race.';
+  if(k==='lead')return GH_API?'':'Needs the online leaderboard, which is not connected.';
+  if(k==='last')return 'Not available yet.';
+  if(k==='par')return 'Not available yet.';
+  if(k==='imp')return 'No ghost code imported yet.';
+  return 'Not available.'}
+function gEff(){const m=GS.mode===null?(hasPB()?'pb':'off'):GS.mode;return gAvail(m)?'off':m}
+const gName=k=>(GMODES.find(x=>x.k===k)||GMODES[0]).n;
 const GHP=()=>GHP._||(GHP._=carPalette('#b9d0ff','#7fb2ff'));
-function ghostLbl(){return '👻 GHOST: '+(gmode==='off'?'OFF':gmode==='pb'?'MY BEST':'DAILY LEADER')}
-function ghostCycle(){const o=GH_API?['off','pb','lead']:['off','pb'];gmode=o[(o.indexOf(gmode)+1)%o.length];try{localStorage.setItem('wso_gmode',gmode)}catch(e){}$('#ghostbtn').textContent=ghostLbl()}
+function ghostLbl(){return '👻 GHOST: '+gName(gEff())}
+function ghostRenderSettings(){
+  const box=$('#s-gmode');if(!box)return;const eff=gEff();
+  if(box._n!==1){box._n=1;box.innerHTML='';GMODES.forEach(m=>{
+    const b=document.createElement('button');b.type='button';b.className='gopt';b.dataset.k=m.k;b.setAttribute('role','radio');
+    b.innerHTML='<b></b><small></small><em></em>';b.children[0].textContent=m.n;b.children[1].textContent=m.d;
+    b.onclick=()=>{if(!gAvail(m.k))setGMode(m.k)};box.appendChild(b)})}
+  GMODES.forEach((m,i)=>{const b=box.children[i],why=gAvail(m.k);
+    b.setAttribute('aria-checked',m.k===eff?'true':'false');b.setAttribute('aria-disabled',why?'true':'false');
+    b.children[2].textContent=why;b.children[2].style.display=why?'':'none'});
+  const inRun=state==='run'||state==='paused';$('#s-gnote').style.display=inRun&&eff!=='off'&&!(GH&&GHMODE===eff)?'block':'none';
+  const tg=(id,on)=>{const e=$(id);e.setAttribute('aria-checked',on?'true':'false');e.textContent=on?'ON':'OFF'};
+  tg('#s-gl',GS.label);tg('#s-gg',GS.gap);tg('#s-gsec',false);
+  $('#s-gsn').textContent='Not available yet. Your time against the ghost each time you pass a sector line.';
+  document.querySelectorAll('#s-gst button').forEach(x=>x.classList.toggle('on',x.dataset.v===GS.style));
+  document.querySelectorAll('#s-gop button').forEach(x=>x.classList.toggle('on',+x.dataset.v===GS.op))}
+/* one place keeps the menu button, pause button, G key and Settings in step */
+function ghostSync(){
+  const e=gEff(),b=$('#ghostbtn');if(b){b.textContent=ghostLbl();b.title=e==='off'&&gAvail('pb')?gAvail('pb'):''}
+  const p=$('#pghost');if(p)p.textContent=e==='off'?'👻 SHOW GHOST':'👻 HIDE GHOST';
+  ghostRenderSettings()}
+function setGMode(m){
+  if(!GMODES.some(x=>x.k===m)||gAvail(m))return false;
+  GS.mode=m;if(m!=='off')GS.prev=m;gsSave();
+  /* a ghost is only (re)built when a run starts: building one mid-run would reset the live run. In a run, OFF hides it and the same option shows it again; a different option applies from the next run. */
+  if(state==='run'||state==='paused')ghostVis=m!=='off'&&!!GH&&GHMODE===m;
+  else ghostVis=true;
+  ghostSync();return true}
+function ghostCycle(){const o=['off','pb','lead'].filter(k=>!gAvail(k)),i=o.indexOf(gEff());setGMode(o[(i+1)%o.length])}
+function ghostToggle(){const e=gEff();if(e!=='off')setGMode('off');else{const t=!gAvail(GS.prev)?GS.prev:(!gAvail('pb')?'pb':'');if(t)setGMode(t)}}
 function ghostPrep(seg){
-  GH=null;GP=null;if(seg!==0||tutMode||gmode==='off')return;
+  GH=null;GP=null;GHMODE='';ghostVis=true;const gm=gEff();if(seg!==0||tutMode||gm==='off')return;
   let s=null;
-  if(gmode==='lead'&&dailyMode&&LEADER&&LEADER.date===dailyInfo.date&&LEADER.r.seed===DAILYT.seed)s={r:LEADER.r,label:'#1 '+LEADER.name};
+  if(gm==='lead'&&dailyMode&&LEADER&&LEADER.date===dailyInfo.date&&LEADER.r.seed===DAILYT.seed)s={r:LEADER.r,label:'#1 '+LEADER.name};
   if(!s)s=gPB();if(!s)return;
   const r=s.r;if(r.diff!==diff||(dailyMode?(!r.mode||r.seed!==DAILYT.seed):(r.mode||r.seed!==runSeed)))return;   /* GAME-B1: a normal ghost only shows on the same layout */
-  try{const x=runRep(r,{trace:true});if(x.ok&&x.trace){GH=x.trace;GH.label=s.label;GH.score=r.score;GH.ms=r.ms}}catch(e){GH=null}
+  try{const x=runRep(r,{trace:true});if(x.ok&&x.trace){GH=x.trace;GHMODE=gm;GH.label=s.label;GH.score=r.score;GH.ms=r.ms}}catch(e){GH=null}
 }
 function ghostPose(){
   if(!GH||!ghostVis||GH.n<2||state==='menu')return null;
@@ -1760,16 +1857,19 @@ function ghostPose(){
 }
 function drawGhost(){
   const g=GP;if(!g)return;const q=pj(g.x,g.y,-g.d),s=q[2];
-  ctx.save();ctx.globalAlpha=.38;ctx.translate(q[0],q[1]);ctx.rotate(camT-g.t);ctx.scale(s,-s);
+  const a=GOPA[GS.op];ctx.save();ctx.translate(q[0],q[1]);ctx.rotate(camT-g.t);ctx.scale(s,-s);
+  if(GS.style==='outline'){ctx.globalAlpha=a*.55;if(qLev!==0){ctx.shadowColor='#b9d0ff';ctx.shadowBlur=Math.max(3,s*.09)}}   /* faint body with a pale rim glow */
+  else if(GS.style==='dot'){ctx.globalAlpha=Math.min(1,a*1.4);ctx.beginPath();for(let x=-1.4;x<1.4;x+=.16)for(let y=-.7;y<.8;y+=.16)ctx.rect(x,y,.09,.09);ctx.clip()}   /* stipple */
+  else ctx.globalAlpha=a;
   carBody(ctx,GHP(),1,true,null);ctx.restore()}
 let ghT='';
 function ghostHud(){
   const e=$('#ghg');let t='';
   if(GH&&ghostVis&&state==='run'){
     const n=GH.n;let lo=0,hi=n-1;
-    if(GH.D[hi]<D){t=GH.label+' · '+(GH.fin?'GHOST FINISHED':'GHOST CRASHED')}
+    if(GH.D[hi]<D){t=(GS.label?GH.label+' · ':'')+(GH.fin?'GHOST FINISHED':'GHOST CRASHED')}
     else{while(lo<hi){const m=(lo+hi)>>1;if(GH.D[m]>=D)hi=m;else lo=m+1}
-      const gap=(lo-simTick)/120;t=GH.label+' · '+(gap>=0?'AHEAD ':'BEHIND ')+Math.abs(gap).toFixed(2)+'s';e.dataset.a=gap>=0?'1':'0'}
+      const gap=(lo-simTick)/120;t=[GS.label?GH.label:'',GS.gap?(gap>=0?'AHEAD ':'BEHIND ')+Math.abs(gap).toFixed(2)+'s':''].filter(Boolean).join(' · ');e.dataset.a=gap>=0?'1':'0'}
   }
   if(t!==ghT){ghT=t;e.textContent=t}
 }
@@ -1958,7 +2058,7 @@ let rpView=-1,rpKey='';
 function renderPanel(){
   const el=$('#mrec');if(!el)return;recRoll();const di=rpView<0?diff:rpView,v=recView(di),K=recKeys(Date.now());rpKey=K.day+K.wk+K.mo;
   document.querySelectorAll('#rsw button').forEach(b=>{const on=+b.dataset.d===di;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on?'true':'false')});
-  el.textContent='';
+  el.textContent='';{const bt=CS.st&&CS.st.best>0?titleFor(RLBL[CS.st.best]):null,mt=$('#mttl');if(mt){paintTitle(mt,bt);if(bt)mt.textContent='TITLE · '+bt.k}}
   const row=(lab,r,utc)=>{const d=document.createElement('div');d.className='rr';const a=document.createElement('span');a.className='rl';a.textContent=lab;const b=document.createElement('b');b.textContent=r?fmtN(r.s):'—';const k=document.createElement('span');k.className='rk';k.textContent=r?(r.r||recRank(r.s)):'';if(r)paintRank(k,k.textContent);const t=document.createElement('span');t.className='rd';t.textContent=r?(utc?recDate(r.d)+' (UTC)':recDate(r.d)):'';d.append(a,b,k,t);el.append(d)};
   row('TODAY',v.day);row('THIS WEEK',v.wk);row('THIS MONTH',v.mo);row('ALL TIME',v.all);
   const dd=recDaily();row('DAILY CHALLENGE',dd?{s:dd.s,r:dd.r,d:dd.d}:null,true);const dpr=recDailyPractice();row('DAILY PRACTICE',dpr?{s:dpr.s,r:dpr.r,d:dpr.d}:null,true)}
@@ -2165,7 +2265,7 @@ function showHint(){if(hintShown||demo)return;hintShown=true;try{localStorage.se
 $('#pbtn').onclick=()=>{state==='paused'?resumeGame():pauseGame()};
 function pauseGame(){if(demo||(state!=='run'&&state!=='count'))return;$('#pause')._prev=state;state='paused';$('#pause').classList.add('on')}
 function resumeGame(){if(state!=='paused')return;state=$('#pause')._prev||'run';$('#pause').classList.remove('on')}
-function toMenu(){recDailyQuit();recAbandon();leaveDaily();tutMode=false;useTrack(false);tutHide();document.body.classList.remove('tut');$('#pquit').textContent='RESTART RUN';renderVault();updDaily();updBest();updInvBadge();cosCheck();['pause','crash','finish','tdone'].forEach(i=>$('#'+i).classList.remove('on'));$('#menu').classList.add('on');document.body.classList.remove('playing');$('#count').classList.remove('on');demo=true;state='menu';reset(0);D=3*L;placeOnFace(track[3].safe)}
+function toMenu(){ghostSync();recDailyQuit();recAbandon();leaveDaily();tutMode=false;useTrack(false);tutHide();document.body.classList.remove('tut');$('#pquit').textContent='RESTART RUN';renderVault();updDaily();updBest();updInvBadge();cosCheck();['pause','crash','finish','tdone'].forEach(i=>$('#'+i).classList.remove('on'));$('#menu').classList.add('on');document.body.classList.remove('playing');$('#count').classList.remove('on');demo=true;state='menu';reset(0);D=3*L;placeOnFace(track[3].safe)}
 $('#go').onclick=()=>{leaveDaily();tutMode=false;begin(0)};$('#again').onclick=()=>{tutMode=false;begin(0)};$('#restart1').onclick=()=>begin(0);
 $('#retry').onclick=()=>begin(cpSeg);$('#resume').onclick=resumeGame;$('#pquit').onclick=()=>tryRestart('Tap again to restart');$('#chome').onclick=$('#phome').onclick=$('#fhome').onclick=toMenu;
 /* RESTART-GUARD: during a live run (also while paused mid-run) a restart needs a second press within 1.5 s */
@@ -2182,11 +2282,11 @@ function tryRestart(msg){
 $('#mute').textContent=muted?'🔇':'🔊';
 $('#mute').onclick=()=>{muted=!muted;$('#mute').textContent=muted?'🔇':'🔊';try{localStorage.setItem('wso_mute',muted?'1':'0')}catch(e){}};
 const tb=(id,r)=>{$(id).addEventListener('pointerdown',e=>{e.preventDefault();requestShift(r)})};tb('#tl',-1);tb('#tr',1);tb('#tf',2);
-$('#ghostbtn').textContent=ghostLbl();$('#ghostbtn').onclick=ghostCycle;
-$('#pghost').onclick=()=>{ghostVis=!ghostVis;$('#pghost').textContent=ghostVis?'👻 HIDE GHOST':'👻 SHOW GHOST'};$('#pghost').textContent='👻 HIDE GHOST';
+$('#ghostbtn').onclick=ghostCycle;
+$('#pghost').onclick=ghostToggle;
 $('#fsubmit').onclick=async()=>{const b=$('#fsubmit');b.disabled=true;b.textContent='SUBMITTING…';const j=await submitDaily();b.textContent=j&&j.ok?'SUBMITTED · RANK #'+j.rank:'NOT ACCEPTED: '+(j&&j.error||'error');if(j&&j.ok)PGS.submit('daily',j.score)};   // PGS mirrors only server-verified daily scores
 addEventListener('keydown',e=>{
-  if(e.repeat)return;const k=e.key;if(k==='g'||k==='G'){ghostVis=!ghostVis;return}
+  if(e.repeat)return;const k=e.key;if(k==='g'||k==='G'){ghostToggle();return}
   if($('#settings').classList.contains('on')){if(k==='Escape')closeSettings();return}
   if(k==='ArrowLeft'||k==='a'||k==='A'){e.preventDefault();requestShift(-1)}
   else if(k==='ArrowRight'||k==='d'||k==='D'){e.preventDefault();requestShift(1)}
@@ -2208,7 +2308,7 @@ const SHARE_URL='https://manavdakhoer-design.github.io/racing-game/';
 const SHARE_FONT='system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif';
 const DIFFC=['#7dffb0','#37e6ff','#ff4fd8'];
 const rankOf=rankFor;
-const shareInfo=(score,rank,dif,time,kind)=>({score:Math.round(score),rank,diff:DNAME[dif],dc:DIFFC[dif],time:time>0?fmt(time):'',date:todayStr(),kind});
+const shareInfo=(score,rank,dif,time,kind)=>({score:Math.round(score),rank,diff:DNAME[dif],dc:DIFFC[dif],time:time>0?fmt(time):'',date:todayStr(),kind,title:kind==='finish'?(titleFor(rank)||{k:''}).k:''});
 let lastRun=null,lastCrash=null;
 const crashInfo=()=>{const o=shareInfo(flux(),'',diff,elapsed,'crash');o.sec=Math.min(3,Math.floor(D/L/30)+1);o.prog=Math.max(0,Math.min(99,Math.floor(D/(N*L)*100)));return o};
 function drawShareCard(o){
@@ -2229,7 +2329,7 @@ function drawShareCard(o){
   g.textAlign='center';fit('WEIGHT-SHIFT',900,116,940,true);g.fillStyle='#8a2bd8';g.fillText('WEIGHT-SHIFT',S/2+5,198+5);g.fillStyle='#fff';g.fillText('WEIGHT-SHIFT',S/2,198);
   fit('ODYSSEY',900,116,940,true);g.fillStyle='#e0405a';g.fillText('ODYSSEY',S/2+5,312+5);g.fillStyle='#ffb347';g.fillText('ODYSSEY',S/2,312);
   rr(130,360,820,470,34);g.fillStyle='rgba(6,9,26,.8)';g.fill();g.strokeStyle='rgba(255,255,255,.2)';g.lineWidth=2;g.stroke();
-  {const lab=o.kind==='best'?'HIGH SCORE':o.kind==='crash'?(o.dn?'DAILY #'+o.dn+' · ':'')+'WRECKED IN SECTOR '+o.sec:o.dn?'DAILY CHALLENGE #'+o.dn:'CUBE CLEARED',lg=lab.length>26;g.fillStyle='#9fb2d4';g.font=font(800,lg?24:28);sp(lab,S/2,415,lg?5:8)}
+  {const lab=o.kind==='best'?'HIGH SCORE':o.kind==='crash'?(o.dn?'DAILY #'+o.dn+' · ':'')+'WRECKED IN SECTOR '+o.sec:(o.dn?'DAILY CHALLENGE #'+o.dn:'CUBE CLEARED')+(o.title?' · '+o.title:''),lg=lab.length>26;g.fillStyle='#9fb2d4';g.font=font(800,lg?24:28);sp(lab,S/2,415,lg?5:8)}
   g.textAlign='center';g.shadowColor=rc;g.shadowBlur=46;g.fillStyle=rc;
   if(o.kind==='crash'){fit(o.prog+'%',900,210,330,true);g.fillText(o.prog+'%',330,610);g.shadowBlur=0;g.fillStyle='#9fb2d4';g.font=font(800,26);sp('OF THE CUBE',330,660,6)}
   else{fit(o.rank,900,300,540,true);if(o.rank==='S++'){const w=g.measureText(o.rank).width,gr=g.createLinearGradient(330-w/2,0,330+w/2,0);RAINBOW.forEach((c,i)=>gr.addColorStop(i/(RAINBOW.length-1),c));g.fillStyle=gr;g.shadowColor='#c9b8ff'}g.fillText(o.rank,330,655);g.shadowBlur=0}
@@ -2245,7 +2345,7 @@ function drawShareCard(o){
 const cardBlob=o=>new Promise((res,rej)=>{try{drawShareCard(o).toBlob(b=>b?res(b):rej(new Error('toBlob failed')),'image/png')}catch(e){rej(e)}});
 let shareCache=null;
 function prepShare(o){const k=JSON.stringify(o);if(shareCache&&shareCache.k===k)return shareCache.p;const p=cardBlob(o);shareCache={k,p};p.catch(()=>{if(shareCache&&shareCache.p===p)shareCache=null});return p}
-const shareText=o=>'Weight-Shift Odyssey · '+(o.dn?'Daily #'+o.dn+' · ':'')+(o.kind==='crash'?'Wrecked in sector '+o.sec+' ('+o.prog+'% of the cube)':'Rank '+o.rank)+' · '+fmtN(o.score)+' pts · '+o.diff+(o.time?' · '+o.time:'')+' · '+o.date+'\n'+SHARE_URL;
+const shareText=o=>'Weight-Shift Odyssey · '+(o.dn?'Daily #'+o.dn+' · ':'')+(o.kind==='crash'?'Wrecked in sector '+o.sec+' ('+o.prog+'% of the cube)':'Rank '+o.rank+(o.title?' · '+o.title:''))+' · '+fmtN(o.score)+' pts · '+o.diff+(o.time?' · '+o.time:'')+' · '+o.date+'\n'+SHARE_URL;
 /* SHARE-B3: native wrapper. Uses @capacitor/share (+ @capacitor/filesystem for the image) when running inside the app; returns null when it can't, so the web path takes over. */
 const Native={
   plugins(){const C=window.Capacitor;if(!C||typeof C.isNativePlatform!=='function'||!C.isNativePlatform())return null;const P=C.Plugins||{};return P.Share?P:null},
@@ -2385,11 +2485,15 @@ if(mqRM&&mqRM.addEventListener)mqRM.addEventListener('change',()=>{if(!rmExplici
 $('#s-rm').onclick=()=>a11ySet('rm',!A11.rm);$('#s-cb').onclick=()=>a11ySet('cb',!A11.cb);$('#s-hc').onclick=()=>a11ySet('hc',!A11.hc);$('#s-fm').onclick=()=>a11ySet('fm',!A11.fm);
 document.querySelectorAll('#s-txt button').forEach(x=>x.onclick=()=>a11ySet('txt',+x.dataset.v));
 document.querySelectorAll('#s-sim button').forEach(x=>x.onclick=()=>a11ySet('sim',+x.dataset.v));
+$('#s-gl').onclick=()=>{GS.label=!GS.label;gsSave();ghostSync();ghT=null};$('#s-gg').onclick=()=>{GS.gap=!GS.gap;gsSave();ghostSync();ghT=null};
+$('#s-gsec').onclick=()=>{};   /* GHOST-B7: switches on in GHOST-B9 */
+document.querySelectorAll('#s-gst button').forEach(x=>x.onclick=()=>{GS.style=x.dataset.v;gsSave();ghostSync()});
+document.querySelectorAll('#s-gop button').forEach(x=>x.onclick=()=>{GS.op=+x.dataset.v;gsSave();ghostSync()});
 let setPrev='menu';
-function openSettings(from){setPrev=from;$('#settings').classList.toggle('hb',from!=='pause');$('#'+from).classList.remove('on');$('#settings').classList.add('on');a11yApply();$('#s-rm').focus()}
+function openSettings(from){setPrev=from;$('#settings').classList.toggle('hb',from!=='pause');$('#'+from).classList.remove('on');$('#settings').classList.add('on');a11yApply();ghostSync();$('#s-rm').focus()}
 function closeSettings(){$('#settings').classList.remove('on');$('#'+setPrev).classList.add('on')}
 $('#setbtn').onclick=()=>openSettings('menu');$('#pset').onclick=()=>openSettings('pause');$('#sback').onclick=closeSettings;
-a11yApply();
+a11yApply();ghostSync();
 /* TUTORIAL-MODE */
 let tutMode=false;
 $('#tutbtn').onclick=()=>{leaveDaily();tutMode=true;begin(0)};
@@ -2751,7 +2855,7 @@ function frame(t){
   requestAnimationFrame(frame);
 }
 placeOnFace(track[3].safe);D=3*L;
-if(location.hash.includes('test')){window.__wso={/* RANK-B1 test hook */rank:{paint:paintRank,rainbow:()=>RAINBOW,f:rankFor,list:()=>RANKS.map(r=>[r.k,r.min,r.c]),ri:RI,end:r=>{const x=cosRunEnd({fin:true,rank:r,orbs:0,chain:0,sling:0,near:0,dailyScored:false},true);return{un:x.un.map(c=>c.id)}}},/* ECON-B7 test hook */econ:{wallet:()=>wallet,owned:()=>owned.slice(),skin:()=>skinId,buy:id=>buySkin(id),equip:id=>equipSkin(id),setWallet:w=>{wallet=w;walletDirty=true;walletFlush()},add:n=>{walletAdd(n);walletFlush()},prices:()=>SKINS.map(x=>[x.id,x.price]),exportText:()=>Save.exportText(),importText:t=>Save.importText(t)},/* GAME-B8 test hook */crashNow:r=>crash(r||'wall'),rec:{add:recAdd,view:recView,roll:recRoll,keys:recKeys,doc:()=>CS.rc,daily:recDaily,dend:(f,sc,r,p)=>dailyEnd(f,sc,r,p),pay:()=>lastDailyPay,note:()=>lastDailyNote,stats:dailyStats,dk:()=>CS.dk,st:()=>CS.st,cosCheck:()=>cosCheck().map(c=>c.id),wal:()=>wallet,DP:DAILY_PAY,pend:(f,sc,r,p)=>dailyPracEnd(f,sc,r,p),dp:()=>CS.dp,dpbest:recDailyPractice,save:()=>Save.write(CS),dh:()=>CS.dh,startDaily:pr=>startDaily(pr),quit:()=>recDailyQuit(),migrate:()=>{CS.rc=null;recMigrate()},reload:()=>{CS=Save.read()},set:d=>{CS.rc=d}},shuf:{genStd,seed:()=>runSeed,newRunSeed,STD_FIXED,setSeed:x=>{runSeed=x>>>0;STDL=genStd(runSeed);curTrk=''}},pgs:PGS,pgsIds:PGS_IDS,beginReal:s=>begin(s||0),rep:{enc:encRep,dec:decRep,run:runRep,SIM_V,REP_FMT,dexp,last:()=>({rep:lastRep,info:lastRepInfo}),setApi:u=>{GH_API=u},leader:leaderLoad,getLeader:()=>LEADER,submit:submitDaily,gh:()=>GH&&{n:GH.n,label:GH.label,score:GH.score},gmode:m=>{gmode=m},cycle:ghostCycle,pose:ghostPose,hud:ghostHud,gstore:gStore,gkey:gKey,state:()=>({simTick,rec:rec&&{n:rec.ev.length,dirty:rec.dirty}})},daily:{genV:()=>GEN_V,dmods:()=>DMODS,dgoals:()=>DGOALS,sched:()=>SCHED,schedOk:()=>SCHED_OK,dayInfo,addDays,build:dailyBuild,genTrackData,validTrack,trackStats,dailySeed,VT,setup:prepDaily,useSeed:sd=>{DAILYT=genTrackData(sd);dailyInfo={n:0,date:'test',seed:sd};dailyMode='practice';if(savedDiff===null)savedDiff=diff;diff=1},leave:leaveDaily,start:startDaily,get:()=>({dailyMode,dy:CS.dy,dh:CS.dh}),utcDate,dayNoOf},cos:{COS,Save,getCS:()=>CS,runEnd:cosRunEnd,check:cosCheck,equip:cosEquip,dayNo:()=>dayNoOf(utcDate()),exportText:()=>Save.exportText(),importText:t=>Save.importText(t),drawTrail,renderInv,openInv,closeInv,setWallet:n=>{wallet=n}},share:{drawShareCard,cardBlob,shareResult,shareInfo,shareText,Native,getLast:()=>lastRun,getCrash:()=>lastCrash,crashInfo},a11y:{A11,FM,fmSample,set:a11ySet,apply:a11yApply,open:openSettings,close:closeSettings},step,render,begin:s=>{begin(s||0);state='run';$('#count').classList.remove('on')},bot:b=>{bot=b},look:x=>{botLook=x},
+if(location.hash.includes('test')){window.__wso={/* GHOST-B7 test hook */ghost:{gs:()=>GS,eff:gEff,avail:gAvail,set:setGMode,toggle:ghostToggle,cycle:ghostCycle,label:ghostLbl,sync:ghostSync,has:hasPB,gh:()=>GH,vis:()=>ghostVis},/* RANK-B1 test hook */rank:{fin:()=>finish(),sc:()=>sc,calc:()=>calcFinal(),setElapsed:e=>{elapsed=e},title:titleFor,paintTitle,paint:paintRank,rainbow:()=>RAINBOW,f:rankFor,list:()=>RANKS.map(r=>[r.k,r.min,r.c]),ri:RI,end:r=>{const x=cosRunEnd({fin:true,rank:r,orbs:0,chain:0,sling:0,near:0,dailyScored:false},true);return{un:x.un.map(c=>c.id)}}},/* ECON-B7 test hook */econ:{wallet:()=>wallet,owned:()=>owned.slice(),skin:()=>skinId,buy:id=>buySkin(id),equip:id=>equipSkin(id),setWallet:w=>{wallet=w;walletDirty=true;walletFlush()},add:n=>{walletAdd(n);walletFlush()},prices:()=>SKINS.map(x=>[x.id,x.price]),exportText:()=>Save.exportText(),importText:t=>Save.importText(t)},/* GAME-B8 test hook */crashNow:r=>crash(r||'wall'),rec:{add:recAdd,view:recView,roll:recRoll,keys:recKeys,doc:()=>CS.rc,daily:recDaily,dend:(f,sc,r,p)=>dailyEnd(f,sc,r,p),pay:()=>lastDailyPay,note:()=>lastDailyNote,stats:dailyStats,dk:()=>CS.dk,st:()=>CS.st,cosCheck:()=>cosCheck().map(c=>c.id),wal:()=>wallet,DP:DAILY_PAY,pend:(f,sc,r,p)=>dailyPracEnd(f,sc,r,p),dp:()=>CS.dp,dpbest:recDailyPractice,save:()=>Save.write(CS),dh:()=>CS.dh,startDaily:pr=>startDaily(pr),quit:()=>recDailyQuit(),migrate:()=>{CS.rc=null;recMigrate()},reload:()=>{CS=Save.read()},set:d=>{CS.rc=d}},shuf:{genStd,seed:()=>runSeed,newRunSeed,STD_FIXED,setSeed:x=>{runSeed=x>>>0;STDL=genStd(runSeed);curTrk=''}},pgs:PGS,pgsIds:PGS_IDS,beginReal:s=>begin(s||0),rep:{enc:encRep,dec:decRep,run:runRep,SIM_V,REP_FMT,dexp,last:()=>({rep:lastRep,info:lastRepInfo}),setApi:u=>{GH_API=u},leader:leaderLoad,getLeader:()=>LEADER,submit:submitDaily,gh:()=>GH&&{n:GH.n,label:GH.label,score:GH.score},gmode:m=>{GS.mode=m;gsSave()},cycle:ghostCycle,pose:ghostPose,hud:ghostHud,gstore:gStore,gkey:gKey,state:()=>({simTick,rec:rec&&{n:rec.ev.length,dirty:rec.dirty}})},daily:{genV:()=>GEN_V,dmods:()=>DMODS,dgoals:()=>DGOALS,sched:()=>SCHED,schedOk:()=>SCHED_OK,dayInfo,addDays,build:dailyBuild,genTrackData,validTrack,trackStats,dailySeed,VT,setup:prepDaily,useSeed:sd=>{DAILYT=genTrackData(sd);dailyInfo={n:0,date:'test',seed:sd};dailyMode='practice';if(savedDiff===null)savedDiff=diff;diff=1},leave:leaveDaily,start:startDaily,get:()=>({dailyMode,dy:CS.dy,dh:CS.dh}),utcDate,dayNoOf},cos:{COS,Save,getCS:()=>CS,runEnd:cosRunEnd,check:cosCheck,equip:cosEquip,dayNo:()=>dayNoOf(utcDate()),exportText:()=>Save.exportText(),importText:t=>Save.importText(t),drawTrail,renderInv,openInv,closeInv,setWallet:n=>{wallet=n}},share:{drawShareCard,cardBlob,shareResult,shareInfo,shareText,Native,getLast:()=>lastRun,getCrash:()=>lastCrash,crashInfo},a11y:{A11,FM,fmSample,set:a11ySet,apply:a11yApply,open:openSettings,close:closeSettings},step,render,begin:s=>{begin(s||0);state='run';$('#count').classList.remove('on')},bot:b=>{bot=b},look:x=>{botLook=x},
   advance:(dt,stop)=>advance(dt,stop),q:l=>{qMode='manual';applyQ(l);updQ()},qs:()=>({qMode,qLev,DPRCAP,QG,PCAP,DRAWD,DRAWJ}),perf:()=>{const a=FTR.slice(1).sort((x,y)=>x-y),n=a.length;return n?{n,avgMs:+(a.reduce((q,x)=>q+x,0)/n*1000).toFixed(2),p95Ms:+(a[Math.floor(n*.95)]*1000).toFixed(2),maxMs:+(a[n-1]*1000).toFixed(2)}:null},tutTick,tutOn:x=>{tutMode=x},tutS:()=>({i:tutI,n:TL.length,cur:tutCur&&tutCur.ti,k:tutCur&&tutCur.k,to:tutCur&&tutCur.to,scale:tutScale}),snap:()=>({state,D,face,elapsed,orbs:got.size,total:totalOrbs,deaths,shifts,cp:cpSeg,score:flux(),chain,boost,eff:effi(),burst:burstT,sc:Object.assign({},sc)}),setD:d=>{D=d},track,np:()=>parts.length,sk:()=>shake,setSk:x=>{shake=x},emit:burst,sp:stepParts,L:()=>L}}
 setTimeout(()=>{PGS.init()},1200);   // PGS-B2: silent sign-in shortly after launch (never blocks the game)
 requestAnimationFrame(t=>{last=t;requestAnimationFrame(frame)});
