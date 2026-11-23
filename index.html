@@ -2778,7 +2778,27 @@ const SKINS=[
   pal:{primary:'#9D4DFF',secondary:'#5B6CFF',accent:'#1DE9D6',glow:'#B77CFF'},
        car:{body:'#FFE87A',glow:'#FFD21F'},
   ground:{base:'#0C0B2E',line:'#8A5BFF',faces:['#9D4DFF','#5B6CFF','#D66BFF','#7FA0FF']},
-  obs:{a:'#1DF2D0',b:'#5FFFEA'}}
+  obs:{a:'#1DF2D0',b:'#5FFFEA'}},
+ {id:'candy',name:'Candy Pop',tag:'The Playful',price:3200,glowK:1.1,   /* VAULT-B1: four new themes */
+  pal:{primary:'#FF7BC8',secondary:'#7BFFE0',accent:'#FFE45E',glow:'#FF9AD5'},
+       car:{body:'#7DF0C4',glow:'#6FFFD0'},
+  ground:{base:'#1A0A22',line:'#FF7BC8',faces:['#FF7BC8','#7BFFE0','#FFE45E','#B88BFF']},
+  obs:{a:'#FFFFFF',b:'#FFE45E'}},
+ {id:'glacier',name:'Glacier Rush',tag:'The Frozen',price:4800,glowK:1.05,
+  pal:{primary:'#9FE8FF',secondary:'#E6F7FF',accent:'#5FB4FF',glow:'#BFF1FF'},
+       car:{body:'#FF9E7A',glow:'#FF8A5E'},
+  ground:{base:'#06141F',line:'#8FE3FF',faces:['#9FE8FF','#E6F7FF','#5FB4FF','#B7C9FF']},
+  obs:{a:'#FFB38A',b:'#FFE0CC'}},
+ {id:'sunset',name:'Retro Sunset',tag:'The Synthwave',price:7200,glowK:1.15,
+  pal:{primary:'#FF5E9C',secondary:'#FF9A3C',accent:'#7A5CFF',glow:'#FF7DB4'},
+       car:{body:'#6BE8FF',glow:'#4FDFFF'},
+  ground:{base:'#150822',line:'#FF5E9C',faces:['#FF5E9C','#FF9A3C','#7A5CFF','#FFD36B']},
+  obs:{a:'#7FF3FF',b:'#C9FBFF'}},
+ {id:'tidal',name:'Tidal Reef',tag:'The Deep Blue',price:10000,glowK:1.1,
+  pal:{primary:'#1FD1C2',secondary:'#2E86FF',accent:'#7DFFE3',glow:'#5FE9DC'},
+       car:{body:'#FFC27A',glow:'#FFB04D'},
+  ground:{base:'#03121C',line:'#1FD1C2',faces:['#1FD1C2','#2E86FF','#7DFFE3','#FFB86B']},
+  obs:{a:'#FFD166',b:'#FFF1B8'}}
 ];
 const hexRgb=h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];
 const skinOf=id=>SKINS.find(s=>s.id===id)||SKINS[0];
