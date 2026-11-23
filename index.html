@@ -892,6 +892,10 @@ window.__LD=LD;
     <div class="sopt"><div><b>HUD text size</b></div><div class="seg" id="s-txt" role="group" aria-label="HUD text size"><button data-v="0">NORMAL</button><button data-v="1">LARGE</button><button data-v="2">XL</button></div></div>
     <div class="shead">GHOST</div>
     <div id="s-gmode" role="radiogroup" aria-label="Ghost"></div>
+    <div class="sopt" id="s-gimp"><div><b>Import ghost code</b><small>Paste a code a friend sent you. It races on its own track and never changes your records.</small></div>
+      <textarea id="s-gcode" rows="2" maxlength="12100" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Ghost code" placeholder="Paste ghost code" style="grid-column:1/-1;width:100%;box-sizing:border-box;padding:8px 10px;border-radius:10px;background:#00000055;border:1px solid #ffffff2a;color:#e8f0ff;font:12px/1.3 ui-monospace,Menlo,monospace;resize:vertical"></textarea>
+      <div class="seg"><button id="s-gdo">IMPORT</button><button id="s-gclr">CLEAR IMPORTED</button></div>
+      <small id="s-gmsg" role="status" aria-live="polite" style="grid-column:1/-1;color:#ffd166"></small></div>
     <small id="s-gnote" style="display:none;color:#ffd166;font-size:11px;margin:0 0 8px;text-align:left">A different ghost starts with your next run.</small>
     <div class="sopt"><div><b>Show ghost label</b><small>A small name tag on the ghost, such as MY BEST.</small></div><button class="tog" id="s-gl" role="switch" aria-checked="true">ON</button></div>
     <div class="sopt"><div><b>Show gap readout</b><small>Text such as AHEAD 0.4 s or BEHIND 1.2 s while you race the ghost.</small></div><button class="tog" id="s-gg" role="switch" aria-checked="true">ON</button></div>
@@ -914,7 +918,7 @@ window.__LD=LD;
     <p class="tag" id="chint">Find the wall that's safe, and shift before it hits.</p>
     <div class="fnew" id="cnew"></div>
     <div class="stats" style="margin-top:0"><div>SCORE<strong id="cscore">0</strong></div></div>
-    <button class="btn" id="retry">RETRY</button><button class="btn alt" id="restart1">RESTART FROM SECTOR 1</button><button class="btn alt" id="cshare">⇪ SHARE</button><button class="btn alt" id="chome">HOME</button>
+    <button class="btn" id="retry">RETRY</button><button class="btn alt" id="restart1">RESTART FROM SECTOR 1</button><button class="btn alt" id="cshare">⇪ SHARE</button><button class="btn alt" id="ccopy" style="display:none">COPY GHOST CODE</button><button class="btn alt" id="chome">HOME</button>
   </div></section>
 
   <section class="overlay" id="finish"><div class="panel">
@@ -928,7 +932,7 @@ window.__LD=LD;
     <div class="best" id="fbest"></div>
     <div class="fnew" id="fnew"></div><div class="fnew rep" id="frep"></div><button class="btn alt" id="fsubmit" style="display:none">SUBMIT TO DAILY LEADERBOARD</button>
     <div class="rec" id="frec"></div>
-    <button class="btn" id="again">RACE AGAIN</button><button class="btn alt" id="fshare">⇪ SHARE SCORE</button><button class="btn alt" id="fhome">HOME</button>
+    <button class="btn" id="again">RACE AGAIN</button><button class="btn alt" id="fshare">⇪ SHARE SCORE</button><button class="btn alt" id="fcopy" style="display:none">COPY GHOST CODE</button><button class="btn alt" id="fhome">HOME</button>
   </div></section>
 
   <section class="overlay" id="tdone"><div class="panel">
@@ -1383,7 +1387,7 @@ function startCount(){
   document.body.classList.add('playing');['menu','pause','crash','finish','tdone','settings','inv','daily','pgs'].forEach(i=>$('#'+i).classList.remove('on'));
   demo=false;state='count';countT=0;lastPhase=-1;
 }
-function begin(seg){if(!tutMode&&!dailyMode&&(seg===0||!STDL)){runSeed=newRunSeed();STDL=genStd(runSeed);curTrk=''}   /* GAME-B1: a new normal run gets a new layout; a checkpoint retry keeps it */
+function begin(seg){if(!tutMode&&!dailyMode&&(seg===0||!STDL)){runSeed=ghostSeed()||newRunSeed();STDL=genStd(runSeed);curTrk=''}   /* GAME-B1: a new normal run gets a new layout; a checkpoint retry keeps it */
   ghostPrep(seg);walletFlush();showHint();audioInit();if(AC&&AC.state==='suspended')AC.resume();useTrack(tutMode?'tut':dailyMode?'daily':'run');reset(seg);repStart(seg);if(tutMode)tutReset();document.body.classList.toggle('tut',tutMode);restartAt=0;$('#rtoast').classList.remove('on');$('#pquit').textContent=tutMode?'RESTART TUTORIAL':'RESTART RUN';{const dd=dailyMode&&!tutMode;$('#slabel').textContent=dd?'DAILY #'+dailyInfo.n+(dailyMode==='scored'?' · SCORED':' · PRACTICE'):'FLUX SCORE';$('#pquit').style.display=dailyMode==='scored'&&!tutMode?'none':''}startCount()}
 const anchorLock=()=>{if(demo||state!=='run')return false;for(const j of ANCH){if(D>=j*L-2&&D<j*L+9)return true}return false};
 function shiftNow(rel){   // applied inside a tick (GHOST-B0); recorded by tick number
@@ -1731,9 +1735,9 @@ function runRep(r,opt){
 function botBeats(seed){const x=runRep({mode:1,diff:1,seed,ticks:30000,ev:[],fin:0,score:0,ms:0,orbs:0},{bot:true});return !!(x.res&&x.res.fin)}
 function repStart(seg){simTick=0;lastShiftK=-99;inputQ.length=0;lastRep=null;lastRepInfo=null;rec=(!tutMode)?{ev:[],dirty:seg>0}:null}
 function repEnd(fin,score){
-  if(!rec||rec.dirty||tutMode){lastRep=null;return null}
+  if(!rec||rec.dirty||tutMode){lastRep=null;gLastSave();return null}
   const r={gv:GEN_V,mode:dailyMode?1:0,diff,seed:dailyMode?DAILYT.seed:runSeed,fin:fin?1:0,ticks:simTick,score:Math.max(0,Math.round(score)),ms:Math.round(elapsed*1000),orbs:got.size,ev:rec.ev};
-  lastRep=encRep(r);lastRepInfo={bytes:b64d(lastRep).length,chars:lastRep.length,events:r.ev.length,ticks:r.ticks};return lastRepInfo
+  lastRep=encRep(r);lastRepInfo={bytes:b64d(lastRep).length,chars:lastRep.length,events:r.ev.length,ticks:r.ticks};gLastSave();return lastRepInfo
 }
 /* GHOST-B3: personal-best ghost, stored locally per mode (normal: per difficulty; daily: per UTC date). */
 const gKey=()=>dailyMode?'wso_g_d'+dailyInfo.date.replace(/-/g,''):'wso_g_s'+diff;
@@ -1771,11 +1775,11 @@ async function submitDaily(){
 /* GHOST-B7: ghost settings. One validated JSON key (wso_gs, v1; included in Backup & restore). mode null = never chosen: MY BEST once one exists, otherwise OFF. */
 const GMODES=[
  {k:'off',n:'OFF',d:'No ghost, a clean track.'},
- {k:'pb',n:'MY BEST',d:'Race your fastest finished run on the same track layout.'},
- {k:'last',n:'LAST RUN',d:'See what you did differently from your previous attempt.'},
+ {k:'pb',n:'MY BEST',d:'Race your fastest finished run. Your runs use the same track as that run.'},
+ {k:'last',n:'LAST RUN',d:'See what you did differently from your previous attempt. Uses the same track as that attempt.'},
  {k:'lead',n:'DAILY LEADER',d:"Race today's top player (needs the online leaderboard)."},
- {k:'par',n:'PAR',d:'Race a target pace for a gold rank.'},
- {k:'imp',n:'IMPORTED',d:'Race a ghost code a friend sent you.'}];
+ {k:'par',n:'PAR',d:"Race the practice bot's clean run. It works on any track, and it is a steady pace, not a record."},
+ {k:'imp',n:'IMPORTED',d:'Race a ghost code a friend sent you. Uses the track from that code.'}];
 const GSTY=['soft','outline','dot'],GOPA=[.22,.38,.6];
 let GS=(()=>{
   const d={v:1,mode:null,prev:'pb',label:true,gap:true,sect:false,style:'soft',op:1};
@@ -1803,9 +1807,9 @@ function gAvail(k){
   if(k==='off')return '';
   if(k==='pb')return hasPB()?'':'Finish a run first so there is one to race.';
   if(k==='lead')return GH_API?'':'Needs the online leaderboard, which is not connected.';
-  if(k==='last')return 'Not available yet.';
-  if(k==='par')return 'Not available yet.';
-  if(k==='imp')return 'No ghost code imported yet.';
+  if(k==='last')return gGet('wso_g_last')?'':'Finish or crash a run first so there is one to race.';
+  if(k==='par')return '';
+  if(k==='imp')return gGet('wso_g_imp')?'':'No ghost code imported yet. Paste one below.';
   return 'Not available.'}
 function gEff(){const m=GS.mode===null?(hasPB()?'pb':'off'):GS.mode;return gAvail(m)?'off':m}
 const gName=k=>(GMODES.find(x=>x.k===k)||GMODES[0]).n;
@@ -1838,15 +1842,42 @@ function setGMode(m){
   if(state==='run'||state==='paused')ghostVis=m!=='off'&&!!GH&&GHMODE===m;
   else ghostVis=true;
   ghostSync();return true}
-function ghostCycle(){const o=['off','pb','lead'].filter(k=>!gAvail(k)),i=o.indexOf(gEff());setGMode(o[(i+1)%o.length])}
+function ghostCycle(){const o=['off','pb','last','par','imp','lead'].filter(k=>!gAvail(k)),i=o.indexOf(gEff());setGMode(o[(i+1)%o.length])}
 function ghostToggle(){const e=gEff();if(e!=='off')setGMode('off');else{const t=!gAvail(GS.prev)?GS.prev:(!gAvail('pb')?'pb':'');if(t)setGMode(t)}}
+/* GHOST-B11: LAST RUN. The last run that ended (finished or crashed) is kept in wso_g_last. GHOST-B13: an imported code is kept in wso_g_imp. Both are re-checked every time they are read. */
+const gGet=k=>{try{return localStorage.getItem(k)}catch(e){return null}};
+function gLoad(k,label){const x=gGet(k);if(!x)return null;const d=decRep(x);if(!d.ok)return null;return{rep:x,r:d.r,label:label||(k==='wso_g_last'?(d.r.fin?'LAST RUN':'LAST RUN (UNFINISHED)'):'IMPORTED')}}
+function gLastSave(){try{if(lastRep)localStorage.setItem('wso_g_last',lastRep)}catch(e){}
+  const a=$('#fcopy'),c=$('#ccopy');[a,c].forEach(b=>{if(b){b.style.display=lastRep?'':'none';b.textContent='COPY GHOST CODE'}})}
+/* GHOST-B12: PAR. The practice bot (the same one that proves every Daily track can be finished) drives a clean run on the current track; its path is the ghost. */
+function gPar(){return{r:{mode:dailyMode?1:0,diff,seed:dailyMode?DAILYT.seed:runSeed,ticks:30000,ev:[],fin:0,score:0,ms:0,orbs:0,gv:GEN_V},label:'PAR',bot:true}}
+/* In a normal run an explicit choice (MY BEST, LAST RUN, IMPORTED) races on the ghost's own track, so the ghost can actually match. */
+function ghostSeed(){
+  if(dailyMode||tutMode||GS.mode===null)return 0;const m=gEff();
+  const s=m==='pb'?gPB():m==='last'?gLoad('wso_g_last'):m==='imp'?gLoad('wso_g_imp'):null;
+  return s&&!s.r.mode&&s.r.seed&&s.r.diff===diff?s.r.seed:0}
+/* GHOST-B13: import a pasted code. Returns {ok,msg}. Nothing here touches records. */
+const GERR={format:'That is not a ghost code.',corrupt:'That code is damaged or has been edited (the checksum does not match).',version:'That ghost is from another version of the game and cannot be used.'};
+function gImport(text){
+  if(state==='run'||state==='paused')return{ok:false,msg:'Finish or leave your run before importing a ghost.'};
+  const t=String(text||'').replace(/\s+/g,'');if(!t)return{ok:false,msg:'Paste a ghost code first.'};
+  const d=decRep(t);if(!d.ok)return{ok:false,msg:GERR[d.err]||GERR.format};
+  if(!(d.r.diff>=0&&d.r.diff<=2))return{ok:false,msg:'That code has impossible values.'};
+  let x=null;try{x=runRep(d.r,{trace:true})}catch(e){x=null}
+  if(!x||!x.ok||!x.trace)return{ok:false,msg:'That ghost does not replay here. It may have been edited.'};
+  try{localStorage.setItem('wso_g_imp',t)}catch(e){return{ok:false,msg:'Could not save the ghost on this device.'}}
+  return{ok:true,msg:'Ghost imported: '+(d.r.ms/1000).toFixed(1)+' s, score '+fmtN(d.r.score)+(d.r.fin?'':' (unfinished run)')+'. It races on its own track and does not change your records.'}}
 function ghostPrep(seg){
   GH=null;GP=null;GHMODE='';ghostVis=true;const gm=gEff();if(seg!==0||tutMode||gm==='off')return;
   let s=null;
-  if(gm==='lead'&&dailyMode&&LEADER&&LEADER.date===dailyInfo.date&&LEADER.r.seed===DAILYT.seed)s={r:LEADER.r,label:'#1 '+LEADER.name};
-  if(!s)s=gPB();if(!s)return;
+  if(gm==='par')s=gPar();else if(gm==='last')s=gLoad('wso_g_last');else if(gm==='imp')s=gLoad('wso_g_imp');
+  else{if(gm==='lead'&&dailyMode&&LEADER&&LEADER.date===dailyInfo.date&&LEADER.r.seed===DAILYT.seed)s={r:LEADER.r,label:'#1 '+LEADER.name};
+    if(!s)s=gPB()}
+  if(!s)return;
   const r=s.r;if(r.diff!==diff||(dailyMode?(!r.mode||r.seed!==DAILYT.seed):(r.mode||r.seed!==runSeed)))return;   /* GAME-B1: a normal ghost only shows on the same layout */
-  try{const x=runRep(r,{trace:true});if(x.ok&&x.trace){GH=x.trace;GHMODE=gm;GH.label=s.label;GH.score=r.score;GH.ms=r.ms}}catch(e){GH=null}
+  try{const x=runRep(r,{trace:true,bot:!!s.bot});
+    if(s.bot){if(x.res&&x.res.fin&&x.trace){GH=x.trace;GH.fin=true;GHMODE=gm;GH.label=s.label;GH.score=x.res.score;GH.ms=x.res.ms}}
+    else if(x.ok&&x.trace){GH=x.trace;GHMODE=gm;GH.label=s.label;GH.score=r.score;GH.ms=r.ms}}catch(e){GH=null}
 }
 function ghostPose(){
   if(!GH||!ghostVis||GH.n<2||state==='menu')return null;
@@ -2486,6 +2517,11 @@ $('#s-rm').onclick=()=>a11ySet('rm',!A11.rm);$('#s-cb').onclick=()=>a11ySet('cb'
 document.querySelectorAll('#s-txt button').forEach(x=>x.onclick=()=>a11ySet('txt',+x.dataset.v));
 document.querySelectorAll('#s-sim button').forEach(x=>x.onclick=()=>a11ySet('sim',+x.dataset.v));
 $('#s-gl').onclick=()=>{GS.label=!GS.label;gsSave();ghostSync();ghT=null};$('#s-gg').onclick=()=>{GS.gap=!GS.gap;gsSave();ghostSync();ghT=null};
+$('#s-gdo').onclick=()=>{const r=gImport($('#s-gcode').value);$('#s-gmsg').textContent=r.msg;$('#s-gmsg').style.color=r.ok?'#7dffb0':'#ffd166';if(r.ok){$('#s-gcode').value='';setGMode('imp')}ghostSync()};
+$('#s-gclr').onclick=()=>{try{localStorage.removeItem('wso_g_imp')}catch(e){}$('#s-gmsg').textContent='Imported ghost removed.';$('#s-gmsg').style.color='#ffd166';ghostSync()};
+const gCopy=async b=>{if(!lastRep)return;let ok=false;try{await navigator.clipboard.writeText(lastRep);ok=true}catch(e){try{const t=document.createElement('textarea');t.value=lastRep;t.style.cssText='position:fixed;opacity:0';document.body.appendChild(t);t.select();ok=document.execCommand('copy');t.remove()}catch(_){}}
+  b.textContent=ok?'COPIED':'COPY FAILED';setTimeout(()=>{b.textContent='COPY GHOST CODE'},1800)};
+$('#fcopy').onclick=()=>gCopy($('#fcopy'));$('#ccopy').onclick=()=>gCopy($('#ccopy'));
 $('#s-gsec').onclick=()=>{};   /* GHOST-B7: switches on in GHOST-B9 */
 document.querySelectorAll('#s-gst button').forEach(x=>x.onclick=()=>{GS.style=x.dataset.v;gsSave();ghostSync()});
 document.querySelectorAll('#s-gop button').forEach(x=>x.onclick=()=>{GS.op=+x.dataset.v;gsSave();ghostSync()});
@@ -2855,7 +2891,7 @@ function frame(t){
   requestAnimationFrame(frame);
 }
 placeOnFace(track[3].safe);D=3*L;
-if(location.hash.includes('test')){window.__wso={/* GHOST-B7 test hook */ghost:{gs:()=>GS,eff:gEff,avail:gAvail,set:setGMode,toggle:ghostToggle,cycle:ghostCycle,label:ghostLbl,sync:ghostSync,has:hasPB,gh:()=>GH,vis:()=>ghostVis},/* RANK-B1 test hook */rank:{fin:()=>finish(),sc:()=>sc,calc:()=>calcFinal(),setElapsed:e=>{elapsed=e},title:titleFor,paintTitle,paint:paintRank,rainbow:()=>RAINBOW,f:rankFor,list:()=>RANKS.map(r=>[r.k,r.min,r.c]),ri:RI,end:r=>{const x=cosRunEnd({fin:true,rank:r,orbs:0,chain:0,sling:0,near:0,dailyScored:false},true);return{un:x.un.map(c=>c.id)}}},/* ECON-B7 test hook */econ:{wallet:()=>wallet,owned:()=>owned.slice(),skin:()=>skinId,buy:id=>buySkin(id),equip:id=>equipSkin(id),setWallet:w=>{wallet=w;walletDirty=true;walletFlush()},add:n=>{walletAdd(n);walletFlush()},prices:()=>SKINS.map(x=>[x.id,x.price]),exportText:()=>Save.exportText(),importText:t=>Save.importText(t)},/* GAME-B8 test hook */crashNow:r=>crash(r||'wall'),rec:{add:recAdd,view:recView,roll:recRoll,keys:recKeys,doc:()=>CS.rc,daily:recDaily,dend:(f,sc,r,p)=>dailyEnd(f,sc,r,p),pay:()=>lastDailyPay,note:()=>lastDailyNote,stats:dailyStats,dk:()=>CS.dk,st:()=>CS.st,cosCheck:()=>cosCheck().map(c=>c.id),wal:()=>wallet,DP:DAILY_PAY,pend:(f,sc,r,p)=>dailyPracEnd(f,sc,r,p),dp:()=>CS.dp,dpbest:recDailyPractice,save:()=>Save.write(CS),dh:()=>CS.dh,startDaily:pr=>startDaily(pr),quit:()=>recDailyQuit(),migrate:()=>{CS.rc=null;recMigrate()},reload:()=>{CS=Save.read()},set:d=>{CS.rc=d}},shuf:{genStd,seed:()=>runSeed,newRunSeed,STD_FIXED,setSeed:x=>{runSeed=x>>>0;STDL=genStd(runSeed);curTrk=''}},pgs:PGS,pgsIds:PGS_IDS,beginReal:s=>begin(s||0),rep:{enc:encRep,dec:decRep,run:runRep,SIM_V,REP_FMT,dexp,last:()=>({rep:lastRep,info:lastRepInfo}),setApi:u=>{GH_API=u},leader:leaderLoad,getLeader:()=>LEADER,submit:submitDaily,gh:()=>GH&&{n:GH.n,label:GH.label,score:GH.score},gmode:m=>{GS.mode=m;gsSave()},cycle:ghostCycle,pose:ghostPose,hud:ghostHud,gstore:gStore,gkey:gKey,state:()=>({simTick,rec:rec&&{n:rec.ev.length,dirty:rec.dirty}})},daily:{genV:()=>GEN_V,dmods:()=>DMODS,dgoals:()=>DGOALS,sched:()=>SCHED,schedOk:()=>SCHED_OK,dayInfo,addDays,build:dailyBuild,genTrackData,validTrack,trackStats,dailySeed,VT,setup:prepDaily,useSeed:sd=>{DAILYT=genTrackData(sd);dailyInfo={n:0,date:'test',seed:sd};dailyMode='practice';if(savedDiff===null)savedDiff=diff;diff=1},leave:leaveDaily,start:startDaily,get:()=>({dailyMode,dy:CS.dy,dh:CS.dh}),utcDate,dayNoOf},cos:{COS,Save,getCS:()=>CS,runEnd:cosRunEnd,check:cosCheck,equip:cosEquip,dayNo:()=>dayNoOf(utcDate()),exportText:()=>Save.exportText(),importText:t=>Save.importText(t),drawTrail,renderInv,openInv,closeInv,setWallet:n=>{wallet=n}},share:{drawShareCard,cardBlob,shareResult,shareInfo,shareText,Native,getLast:()=>lastRun,getCrash:()=>lastCrash,crashInfo},a11y:{A11,FM,fmSample,set:a11ySet,apply:a11yApply,open:openSettings,close:closeSettings},step,render,begin:s=>{begin(s||0);state='run';$('#count').classList.remove('on')},bot:b=>{bot=b},look:x=>{botLook=x},
+if(location.hash.includes('test')){window.__wso={/* GHOST-B7 test hook */ghost:{gs:()=>GS,eff:gEff,avail:gAvail,set:setGMode,toggle:ghostToggle,cycle:ghostCycle,label:ghostLbl,sync:ghostSync,has:hasPB,gh:()=>GH,vis:()=>ghostVis,imp:gImport,seed:ghostSeed,raw:{b64d,b64e,crc16},last:()=>gGet('wso_g_last')},/* RANK-B1 test hook */rank:{fin:()=>finish(),sc:()=>sc,calc:()=>calcFinal(),setElapsed:e=>{elapsed=e},title:titleFor,paintTitle,paint:paintRank,rainbow:()=>RAINBOW,f:rankFor,list:()=>RANKS.map(r=>[r.k,r.min,r.c]),ri:RI,end:r=>{const x=cosRunEnd({fin:true,rank:r,orbs:0,chain:0,sling:0,near:0,dailyScored:false},true);return{un:x.un.map(c=>c.id)}}},/* ECON-B7 test hook */econ:{wallet:()=>wallet,owned:()=>owned.slice(),skin:()=>skinId,buy:id=>buySkin(id),equip:id=>equipSkin(id),setWallet:w=>{wallet=w;walletDirty=true;walletFlush()},add:n=>{walletAdd(n);walletFlush()},prices:()=>SKINS.map(x=>[x.id,x.price]),exportText:()=>Save.exportText(),importText:t=>Save.importText(t)},/* GAME-B8 test hook */crashNow:r=>crash(r||'wall'),rec:{add:recAdd,view:recView,roll:recRoll,keys:recKeys,doc:()=>CS.rc,daily:recDaily,dend:(f,sc,r,p)=>dailyEnd(f,sc,r,p),pay:()=>lastDailyPay,note:()=>lastDailyNote,stats:dailyStats,dk:()=>CS.dk,st:()=>CS.st,cosCheck:()=>cosCheck().map(c=>c.id),wal:()=>wallet,DP:DAILY_PAY,pend:(f,sc,r,p)=>dailyPracEnd(f,sc,r,p),dp:()=>CS.dp,dpbest:recDailyPractice,save:()=>Save.write(CS),dh:()=>CS.dh,startDaily:pr=>startDaily(pr),quit:()=>recDailyQuit(),migrate:()=>{CS.rc=null;recMigrate()},reload:()=>{CS=Save.read()},set:d=>{CS.rc=d}},shuf:{genStd,seed:()=>runSeed,newRunSeed,STD_FIXED,setSeed:x=>{runSeed=x>>>0;STDL=genStd(runSeed);curTrk=''}},pgs:PGS,pgsIds:PGS_IDS,beginReal:s=>begin(s||0),rep:{enc:encRep,dec:decRep,run:runRep,SIM_V,REP_FMT,dexp,last:()=>({rep:lastRep,info:lastRepInfo}),setApi:u=>{GH_API=u},leader:leaderLoad,getLeader:()=>LEADER,submit:submitDaily,gh:()=>GH&&{n:GH.n,label:GH.label,score:GH.score},gmode:m=>{GS.mode=m;gsSave()},cycle:ghostCycle,pose:ghostPose,hud:ghostHud,gstore:gStore,gkey:gKey,state:()=>({simTick,rec:rec&&{n:rec.ev.length,dirty:rec.dirty}})},daily:{genV:()=>GEN_V,dmods:()=>DMODS,dgoals:()=>DGOALS,sched:()=>SCHED,schedOk:()=>SCHED_OK,dayInfo,addDays,build:dailyBuild,genTrackData,validTrack,trackStats,dailySeed,VT,setup:prepDaily,useSeed:sd=>{DAILYT=genTrackData(sd);dailyInfo={n:0,date:'test',seed:sd};dailyMode='practice';if(savedDiff===null)savedDiff=diff;diff=1},leave:leaveDaily,start:startDaily,get:()=>({dailyMode,dy:CS.dy,dh:CS.dh}),utcDate,dayNoOf},cos:{COS,Save,getCS:()=>CS,runEnd:cosRunEnd,check:cosCheck,equip:cosEquip,dayNo:()=>dayNoOf(utcDate()),exportText:()=>Save.exportText(),importText:t=>Save.importText(t),drawTrail,renderInv,openInv,closeInv,setWallet:n=>{wallet=n}},share:{drawShareCard,cardBlob,shareResult,shareInfo,shareText,Native,getLast:()=>lastRun,getCrash:()=>lastCrash,crashInfo},a11y:{A11,FM,fmSample,set:a11ySet,apply:a11yApply,open:openSettings,close:closeSettings},step,render,begin:s=>{begin(s||0);state='run';$('#count').classList.remove('on')},bot:b=>{bot=b},look:x=>{botLook=x},
   advance:(dt,stop)=>advance(dt,stop),q:l=>{qMode='manual';applyQ(l);updQ()},qs:()=>({qMode,qLev,DPRCAP,QG,PCAP,DRAWD,DRAWJ}),perf:()=>{const a=FTR.slice(1).sort((x,y)=>x-y),n=a.length;return n?{n,avgMs:+(a.reduce((q,x)=>q+x,0)/n*1000).toFixed(2),p95Ms:+(a[Math.floor(n*.95)]*1000).toFixed(2),maxMs:+(a[n-1]*1000).toFixed(2)}:null},tutTick,tutOn:x=>{tutMode=x},tutS:()=>({i:tutI,n:TL.length,cur:tutCur&&tutCur.ti,k:tutCur&&tutCur.k,to:tutCur&&tutCur.to,scale:tutScale}),snap:()=>({state,D,face,elapsed,orbs:got.size,total:totalOrbs,deaths,shifts,cp:cpSeg,score:flux(),chain,boost,eff:effi(),burst:burstT,sc:Object.assign({},sc)}),setD:d=>{D=d},track,np:()=>parts.length,sk:()=>shake,setSk:x=>{shake=x},emit:burst,sp:stepParts,L:()=>L}}
 setTimeout(()=>{PGS.init()},1200);   // PGS-B2: silent sign-in shortly after launch (never blocks the game)
 requestAnimationFrame(t=>{last=t;requestAnimationFrame(frame)});
