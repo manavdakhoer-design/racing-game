@@ -250,6 +250,9 @@
   .bl .bm{grid-column:2/4;display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:11px;color:#9fb2d4}
   .bl .rp{min-height:44px;min-width:44px;padding:0 10px;border-radius:10px;border:1px solid #ffffff2a;background:transparent;color:#9fb2d4;font:inherit;font-size:11px;letter-spacing:.06em;cursor:pointer}
   .bl .rp:disabled{opacity:.6;cursor:default} .bl .rp.ask{color:#ffd166;border-color:#ffd16699}
+  /* BOARD-B6 */
+  .sel{width:100%;box-sizing:border-box;min-height:44px;padding:8px 10px;border-radius:10px;background:#0b1630;color:#fff;border:1px solid #ffffff2a;font:inherit;font-size:14px}
+  #s-npick label{grid-column:1/-1;display:grid;gap:4px;font-size:11px;letter-spacing:.06em;color:#9fb2d4}
   .dcard{display:grid;grid-template-columns:auto 1fr;gap:8px 14px;text-align:left;padding:12px 14px;border-radius:14px;background:#ffffff0c;margin:12px 0 10px;align-items:baseline}
   .dcard .dk{font-size:10px;letter-spacing:.16em;font-weight:800;color:#9fb2d4} .dcard .dv{font-weight:800;font-size:14px;font-variant-numeric:tabular-nums;text-align:right;letter-spacing:.04em}
   #dline{color:#ffd166;font-weight:800}
@@ -925,6 +928,12 @@ window.__LD=LD;
     <div class="sopt"><div><b>Share my Daily scores online</b><small id="s-bsn">Off. Nothing is sent anywhere.</small></div><button class="tog" id="s-bon" role="switch" aria-checked="false">OFF</button></div>
     <div class="sopt" id="s-bnote" style="display:none"><div style="grid-column:1/-1"><b>Before you turn this on</b><small id="s-bntext" style="font-size:12px"></small></div><div class="seg" style="grid-column:1/-1"><button id="s-bgo">TURN ON</button><button id="s-bno">CANCEL</button></div></div>
     <small id="s-bst" role="status" aria-live="polite" style="display:block;color:#ffd166;font-size:11px;margin:-2px 0 8px;text-align:left"></small>
+    <div class="sopt" id="s-nrow" style="display:none"><div><b>Racer name</b><small id="s-nname" role="status" aria-live="polite">Loading…</small></div><div class="seg"><button id="s-nchg">CHANGE</button></div></div>
+    <div class="sopt" id="s-npick" style="display:none"><div style="grid-column:1/-1"><b>Pick your name</b><small>Names are built from a fixed list, so no personal details can end up on the board. You can change it once per day (UTC).</small></div>
+      <label>FIRST WORD<select class="sel" id="s-nadj"></select></label><label>SECOND WORD<select class="sel" id="s-nnoun"></select></label><label>NUMBER<select class="sel" id="s-nnum"></select></label>
+      <small id="s-nprev" role="status" aria-live="polite" style="grid-column:1/-1;font-size:13px;color:#5ec8ff"></small>
+      <div class="seg" style="grid-column:1/-1"><button id="s-nsave">SAVE NAME</button><button id="s-ngen">USE GENERATED NAME</button><button id="s-ncan">CANCEL</button></div></div>
+    <div class="sopt" id="s-nhide" style="display:none"><div><b>Hide my name</b><small>Your scores stay on the board but show as "Hidden".</small></div><button class="tog" id="s-nh" role="switch" aria-checked="false">OFF</button></div>
     <div class="shead">TESTING</div>
     <div class="sopt"><div><b>Colour-vision simulation</b><small>Filters the whole screen so you can check each mode. Not saved.</small></div><div class="seg" id="s-sim" role="group" aria-label="Colour vision simulation"><button data-v="0">OFF</button><button data-v="1">DEUTAN</button><button data-v="2">PROTAN</button><button data-v="3">TRITAN</button><button data-v="4">MONO</button></div></div>
     <div class="sopt"><div><b>Flash meter</b><small>Shows live flashes per second measured from the game canvas.</small></div><button class="tog" id="s-fm" role="switch" aria-checked="false">OFF</button></div>
@@ -1901,19 +1910,61 @@ async function boardGhost(){
   const b=dailyBuild(utcDate());if(!LEADER||LEADER.date!==b.date){st.textContent='Loading the leader…';await leaderLoad()}
   if(!LEADER||LEADER.date!==b.date){st.textContent=$('#dlead').textContent||'No leader ghost available yet.';return}
   setGMode('lead');st.textContent='Ghost set: #1 '+LEADER.name+' · '+fmtN(LEADER.score)+'. It races you in your next Daily run.'}
+/* BOARD-B6: racer name. The server builds the name from its own lists (board_b6.sql); the client only sends three numbers.
+   NAME_ADJ and NAME_NOUN must match the lists in set_my_name. */
+const NAME_ADJ=['Swift', 'Brave', 'Bright', 'Calm', 'Clever', 'Cosmic', 'Crimson', 'Daring', 'Electric', 'Fast', 'Fierce', 'Frosty', 'Gentle', 'Golden', 'Happy', 'Jolly', 'Lucky', 'Mighty', 'Misty', 'Neon', 'Nimble', 'Noble', 'Orange', 'Proud', 'Quick', 'Rapid', 'Royal', 'Shiny', 'Silent', 'Sleepy', 'Solar', 'Sonic', 'Speedy', 'Sunny', 'Turbo', 'Velvet', 'Violet', 'Wild', 'Wise', 'Zesty'],
+NAME_NOUN=['Falcon', 'Comet', 'Rocket', 'Tiger', 'Otter', 'Panda', 'Fox', 'Wolf', 'Eagle', 'Dolphin', 'Dragon', 'Phoenix', 'Raven', 'Lynx', 'Puma', 'Heron', 'Badger', 'Beetle', 'Cheetah', 'Gecko', 'Hawk', 'Jaguar', 'Koala', 'Lemur', 'Llama', 'Moose', 'Narwhal', 'Orca', 'Pelican', 'Quokka', 'Rabbit', 'Salmon', 'Shark', 'Sparrow', 'Swan', 'Turtle', 'Walrus', 'Whale', 'Zebra', 'Racer'];
+const nameOf=(a,n,d)=>NAME_ADJ[a]+'-'+NAME_NOUN[n]+'-'+String(d).padStart(2,'0');
+async function brdCall(fn,args){
+  const body=JSON.stringify(args),call=s=>bx('/rest/v1/rpc/'+fn,{b:body},s.a);
+  let s=await brdSess();if(!s)return{ok:false,error:brdWhy||'network'};
+  let r=await call(s);if(r.s===401){s=await brdSess(true);if(s)r=await call(s)}
+  if(r.s===0)return{ok:false,error:r.off?'offline':'network'};
+  if(r.s===200||r.s===204)return{ok:true,j:r.j};
+  const m=r.j&&typeof r.j.message==='string'?r.j.message:'';
+  return{ok:false,error:/name-limit/.test(m)?'name-limit':/bad-name|bad-value/.test(m)?'bad':'server'}}
+let MYP=null;
+const NMSG={'name-limit':'You can change your name once per day (UTC). Try again tomorrow.',offline:'No connection. Try again later.',network:'No connection. Try again later.',bad:'That name is not allowed.',busy:'The board is busy. Try again soon.'};
+function brdNameUi(){
+  const on=brdOn();['#s-nrow','#s-nhide'].forEach(q=>$(q).style.display=on?'':'none');if(!on){$('#s-npick').style.display='none';return}
+  $('#s-nname').textContent=MYP?MYP.name+(MYP.hidden?' (hidden on the board)':'')+(MYP.can?'':' · next change tomorrow (UTC)'):'Not available right now.';
+  const ch=$('#s-nchg');ch.disabled=!MYP||!MYP.can;ch.setAttribute('aria-disabled',ch.disabled?'true':'false');
+  const h=$('#s-nh');h.textContent=MYP&&MYP.hidden?'ON':'OFF';h.setAttribute('aria-checked',MYP&&MYP.hidden?'true':'false');h.setAttribute('aria-disabled',MYP?'false':'true')}
+async function brdNameLoad(force){
+  if(!brdOn()){MYP=null;brdNameUi();return}
+  if(!MYP)$('#s-nname').textContent='Loading…';
+  if(force)BC.delete('my_player{}');
+  const r=await brdRpc('my_player',{}),x=r.ok&&r.rows[0];
+  MYP=x&&typeof x.name==='string'&&/^[A-Za-z0-9-]{3,24}$/.test(x.name)&&typeof x.name_hidden==='boolean'&&typeof x.can_change==='boolean'?{name:x.name,hidden:x.name_hidden,can:x.can_change}:null;
+  brdNameUi()}
+function brdPickInit(){
+  const A=$('#s-nadj');if(A.options.length)return;
+  NAME_ADJ.forEach((w,i)=>A.add(new Option(w,i)));NAME_NOUN.forEach((w,i)=>$('#s-nnoun').add(new Option(w,i)));
+  for(let i=0;i<100;i++)$('#s-nnum').add(new Option(String(i).padStart(2,'0'),i));
+  const pv=()=>{$('#s-nprev').textContent='Your name: '+nameOf(+$('#s-nadj').value,+$('#s-nnoun').value,+$('#s-nnum').value)};
+  ['#s-nadj','#s-nnoun','#s-nnum'].forEach(q=>$(q).onchange=pv);
+  $('#s-nadj').value=String(Math.floor(Math.random()*NAME_ADJ.length));$('#s-nnoun').value=String(Math.floor(Math.random()*NAME_NOUN.length));$('#s-nnum').value=String(Math.floor(Math.random()*100));pv()}
+async function brdNameSave(a,n,d){
+  brdStatus('Saving…');const r=await brdCall('set_my_name',{p_adj:a,p_noun:n,p_num:d});
+  if(r.ok&&typeof r.j==='string'&&/^[A-Za-z0-9-]{3,24}$/.test(r.j)){BC.clear();MYP={name:r.j,hidden:!!(MYP&&MYP.hidden),can:false};$('#s-npick').style.display='none';brdNameUi();brdStatus('Name saved: '+r.j+'. It shows on the board after a refresh.');$('#s-nchg').focus();return}
+  brdStatus(NMSG[r.error]||'Could not save the name. Try again later.');if(r.error==='name-limit')brdNameLoad(true)}
+async function brdHide(){
+  if(!MYP)return;const want=!MYP.hidden;brdStatus('Saving…');const r=await brdCall('set_name_hidden',{p_hidden:want});
+  if(r.ok){BC.clear();MYP.hidden=want;brdNameUi();brdStatus(want?'Your name is hidden. Your scores show as Hidden.':'Your name is shown on the board again.')}
+  else brdStatus(NMSG[r.error]||'Could not change that. Try again later.')}
 /* BOARD-B4: Settings switch + opt-in notice */
 const BNOTICE='Your scores are shared with a random id and a racer name picked by the game. No email or personal data. You can turn this off at any time.';
 function brdSync(){
   const t=$('#s-bon');if(!t)return;const cfg=brdCfg(),on=brdOn();
   t.textContent=on?'ON':'OFF';t.setAttribute('aria-checked',on?'true':'false');t.setAttribute('aria-disabled',cfg?'false':'true');
   $('#s-bsn').textContent=!cfg?'Not connected in this version of the game.':on?'On. Your verified Daily scores go to the online board.':'Off. Nothing is sent anywhere.';
-  $('#s-bntext').textContent=BNOTICE}
+  $('#s-bntext').textContent=BNOTICE;brdNameUi();if(on)brdNameLoad(false)}
 function brdStatus(m){const e=$('#s-bst');if(e)e.textContent=m||''}
 function brdAsk(){if(!brdCfg())return;$('#s-bnote').style.display='';$('#s-bgo').focus()}
 async function brdEnable(){
   $('#s-bnote').style.display='none';BS.on=true;bsSave();brdSync();ghostSync();brdStatus('Connecting…');
   const s=await brdSess();brdStatus(s?'Connected.':brdWhy==='offline'||brdWhy==='network'?'No connection right now. It will connect when you next submit a score.':'The board could not be reached. Try again later.')}
-function brdDisable(){BS.on=false;bsSave();BC.clear();LEADER=null;$('#s-bnote').style.display='none';brdStatus('');brdSync();ghostSync();try{$('#dlead').textContent=''}catch(e){}}
+function brdDisable(){BS.on=false;MYP=null;bsSave();BC.clear();LEADER=null;$('#s-bnote').style.display='none';brdStatus('');brdSync();ghostSync();try{$('#dlead').textContent=''}catch(e){}}
 /* GHOST-B7: ghost settings. One validated JSON key (wso_gs, v1; included in Backup & restore). mode null = never chosen: MY BEST once one exists, otherwise OFF. */
 const GMODES=[
  {k:'off',n:'OFF',d:'No ghost, a clean track.'},
@@ -2663,7 +2714,9 @@ document.querySelectorAll('#s-txt button').forEach(x=>x.onclick=()=>a11ySet('txt
 document.querySelectorAll('#s-sim button').forEach(x=>x.onclick=()=>a11ySet('sim',+x.dataset.v));
 $('#dboard').onclick=()=>openBoard('daily');$('#fboard').onclick=()=>openBoard('finish');$('#bback').onclick=closeBoard;
 $('#bref').onclick=()=>{const st=$('#bst');if(Date.now()<bCool){st.textContent='Just refreshed. Give it a few seconds.';return}bCool=Date.now()+5000;boardLoad(true)};
-$('#bghost').onclick=boardGhost;$('#bsets').onclick=()=>{$('#board').classList.remove('on');openSettings('board')};
+$('#bghost').onclick=boardGhost;$('#s-nchg').onclick=()=>{if(!MYP||!MYP.can)return;brdPickInit();$('#s-npick').style.display='';$('#s-nadj').focus()};$('#s-ncan').onclick=()=>{$('#s-npick').style.display='none';$('#s-nchg').focus()};
+$('#s-nsave').onclick=()=>brdNameSave(+$('#s-nadj').value,+$('#s-nnoun').value,+$('#s-nnum').value);$('#s-ngen').onclick=()=>brdNameSave(-1,0,0);$('#s-nh').onclick=brdHide;
+$('#bsets').onclick=()=>{$('#board').classList.remove('on');openSettings('board')};
 $('#s-bon').onclick=()=>{if(!brdCfg())return;if(brdOn())brdDisable();else brdAsk()};$('#s-bgo').onclick=brdEnable;$('#s-bno').onclick=()=>{$('#s-bnote').style.display='none';$('#s-bon').focus()};
 $('#s-gl').onclick=()=>{GS.label=!GS.label;gsSave();ghostSync();ghT=null};$('#s-gg').onclick=()=>{GS.gap=!GS.gap;gsSave();ghostSync();ghT=null};
 $('#s-gdo').onclick=()=>{const r=gImport($('#s-gcode').value);$('#s-gmsg').textContent=r.msg;$('#s-gmsg').style.color=r.ok?'#7dffb0':'#ffd166';if(r.ok){$('#s-gcode').value='';setGMode('imp')}ghostSync()};
@@ -3060,7 +3113,7 @@ function frame(t){
   requestAnimationFrame(frame);
 }
 placeOnFace(track[3].safe);D=3*L;
-if(location.hash.includes('test')){window.__wso={/* GHOST-B7 test hook */ghost:{gs:()=>GS,eff:gEff,avail:gAvail,set:setGMode,toggle:ghostToggle,cycle:ghostCycle,label:ghostLbl,sync:ghostSync,has:hasPB,gh:()=>GH,vis:()=>ghostVis,imp:gImport,seed:ghostSeed,raw:{b64d,b64e,crc16},last:()=>gGet('wso_g_last')},/* RANK-B1 test hook */rank:{fin:()=>finish(),sc:()=>sc,calc:()=>calcFinal(),setElapsed:e=>{elapsed=e},title:titleFor,paintTitle,paint:paintRank,rainbow:()=>RAINBOW,f:rankFor,list:()=>RANKS.map(r=>[r.k,r.min,r.c]),ri:RI,end:r=>{const x=cosRunEnd({fin:true,rank:r,orbs:0,chain:0,sling:0,near:0,dailyScored:false},true);return{un:x.un.map(c=>c.id)}}},/* ECON-B7 test hook */econ:{wallet:()=>wallet,owned:()=>owned.slice(),skin:()=>skinId,buy:id=>buySkin(id),equip:id=>equipSkin(id),setWallet:w=>{wallet=w;walletDirty=true;walletFlush()},add:n=>{walletAdd(n);walletFlush()},prices:()=>SKINS.map(x=>[x.id,x.price]),exportText:()=>Save.exportText(),importText:t=>Save.importText(t)},/* GAME-B8 test hook */crashNow:r=>crash(r||'wall'),rec:{add:recAdd,view:recView,roll:recRoll,keys:recKeys,doc:()=>CS.rc,daily:recDaily,dend:(f,sc,r,p)=>dailyEnd(f,sc,r,p),pay:()=>lastDailyPay,note:()=>lastDailyNote,stats:dailyStats,dk:()=>CS.dk,st:()=>CS.st,cosCheck:()=>cosCheck().map(c=>c.id),wal:()=>wallet,DP:DAILY_PAY,pend:(f,sc,r,p)=>dailyPracEnd(f,sc,r,p),dp:()=>CS.dp,dpbest:recDailyPractice,save:()=>Save.write(CS),dh:()=>CS.dh,startDaily:pr=>startDaily(pr),quit:()=>recDailyQuit(),migrate:()=>{CS.rc=null;recMigrate()},reload:()=>{CS=Save.read()},set:d=>{CS.rc=d}},shuf:{genStd,seed:()=>runSeed,newRunSeed,STD_FIXED,setSeed:x=>{runSeed=x>>>0;STDL=genStd(runSeed);curTrk=''}},pgs:PGS,pgsIds:PGS_IDS,beginReal:s=>begin(s||0),rep:{enc:encRep,dec:decRep,run:runRep,SIM_V,REP_FMT,dexp,last:()=>({rep:lastRep,info:lastRepInfo}),setApi:u=>{if(u){BOARD.url=u;BOARD.key='k'.repeat(30);BS.on=true}else BS.on=false},board:{open:openBoard,load:boardLoad,report:brdReport,boardGhost,setLast:(rep,run)=>{lastRep=rep;lastRepInfo={bytes:1,chars:rep.length,events:1};lastRun=run},cfg:brdCfg,on:brdOn,bs:()=>BS,sess:brdSess,sessGet,rpc:brdRpc,submit:submitDaily,cache:()=>BC.size,clear:()=>BC.clear(),leader:leaderLoad,get:()=>LEADER,sync:()=>brdSync(),cfgSet:(u,k)=>{BOARD.url=u;BOARD.key=k},why:()=>brdWhy},leader:leaderLoad,getLeader:()=>LEADER,submit:submitDaily,gh:()=>GH&&{n:GH.n,label:GH.label,score:GH.score},gmode:m=>{GS.mode=m;gsSave()},cycle:ghostCycle,pose:ghostPose,hud:ghostHud,gstore:gStore,gkey:gKey,state:()=>({simTick,rec:rec&&{n:rec.ev.length,dirty:rec.dirty}})},daily:{genV:()=>GEN_V,dmods:()=>DMODS,dgoals:()=>DGOALS,sched:()=>SCHED,schedOk:()=>SCHED_OK,dayInfo,addDays,build:dailyBuild,genTrackData,validTrack,trackStats,dailySeed,VT,setup:prepDaily,useSeed:sd=>{DAILYT=genTrackData(sd);dailyInfo={n:0,date:'test',seed:sd};dailyMode='practice';if(savedDiff===null)savedDiff=diff;diff=1},leave:leaveDaily,start:startDaily,get:()=>({dailyMode,dy:CS.dy,dh:CS.dh}),utcDate,dayNoOf},cos:{COS,Save,getCS:()=>CS,runEnd:cosRunEnd,check:cosCheck,equip:cosEquip,dayNo:()=>dayNoOf(utcDate()),exportText:()=>Save.exportText(),importText:t=>Save.importText(t),drawTrail,renderInv,openInv,closeInv,setWallet:n=>{wallet=n}},share:{drawShareCard,cardBlob,shareResult,shareInfo,shareText,Native,getLast:()=>lastRun,getCrash:()=>lastCrash,crashInfo},a11y:{A11,FM,fmSample,set:a11ySet,apply:a11yApply,open:openSettings,close:closeSettings},step,render,begin:s=>{begin(s||0);state='run';$('#count').classList.remove('on')},bot:b=>{bot=b},look:x=>{botLook=x},
+if(location.hash.includes('test')){window.__wso={/* GHOST-B7 test hook */ghost:{gs:()=>GS,eff:gEff,avail:gAvail,set:setGMode,toggle:ghostToggle,cycle:ghostCycle,label:ghostLbl,sync:ghostSync,has:hasPB,gh:()=>GH,vis:()=>ghostVis,imp:gImport,seed:ghostSeed,raw:{b64d,b64e,crc16},last:()=>gGet('wso_g_last')},/* RANK-B1 test hook */rank:{fin:()=>finish(),sc:()=>sc,calc:()=>calcFinal(),setElapsed:e=>{elapsed=e},title:titleFor,paintTitle,paint:paintRank,rainbow:()=>RAINBOW,f:rankFor,list:()=>RANKS.map(r=>[r.k,r.min,r.c]),ri:RI,end:r=>{const x=cosRunEnd({fin:true,rank:r,orbs:0,chain:0,sling:0,near:0,dailyScored:false},true);return{un:x.un.map(c=>c.id)}}},/* ECON-B7 test hook */econ:{wallet:()=>wallet,owned:()=>owned.slice(),skin:()=>skinId,buy:id=>buySkin(id),equip:id=>equipSkin(id),setWallet:w=>{wallet=w;walletDirty=true;walletFlush()},add:n=>{walletAdd(n);walletFlush()},prices:()=>SKINS.map(x=>[x.id,x.price]),exportText:()=>Save.exportText(),importText:t=>Save.importText(t)},/* GAME-B8 test hook */crashNow:r=>crash(r||'wall'),rec:{add:recAdd,view:recView,roll:recRoll,keys:recKeys,doc:()=>CS.rc,daily:recDaily,dend:(f,sc,r,p)=>dailyEnd(f,sc,r,p),pay:()=>lastDailyPay,note:()=>lastDailyNote,stats:dailyStats,dk:()=>CS.dk,st:()=>CS.st,cosCheck:()=>cosCheck().map(c=>c.id),wal:()=>wallet,DP:DAILY_PAY,pend:(f,sc,r,p)=>dailyPracEnd(f,sc,r,p),dp:()=>CS.dp,dpbest:recDailyPractice,save:()=>Save.write(CS),dh:()=>CS.dh,startDaily:pr=>startDaily(pr),quit:()=>recDailyQuit(),migrate:()=>{CS.rc=null;recMigrate()},reload:()=>{CS=Save.read()},set:d=>{CS.rc=d}},shuf:{genStd,seed:()=>runSeed,newRunSeed,STD_FIXED,setSeed:x=>{runSeed=x>>>0;STDL=genStd(runSeed);curTrk=''}},pgs:PGS,pgsIds:PGS_IDS,beginReal:s=>begin(s||0),rep:{enc:encRep,dec:decRep,run:runRep,SIM_V,REP_FMT,dexp,last:()=>({rep:lastRep,info:lastRepInfo}),setApi:u=>{if(u){BOARD.url=u;BOARD.key='k'.repeat(30);BS.on=true}else BS.on=false},board:{nameLoad:brdNameLoad,myp:()=>MYP,nameOf,lists:()=>[NAME_ADJ,NAME_NOUN],open:openBoard,load:boardLoad,report:brdReport,boardGhost,setLast:(rep,run)=>{lastRep=rep;lastRepInfo={bytes:1,chars:rep.length,events:1};lastRun=run},cfg:brdCfg,on:brdOn,bs:()=>BS,sess:brdSess,sessGet,rpc:brdRpc,submit:submitDaily,cache:()=>BC.size,clear:()=>BC.clear(),leader:leaderLoad,get:()=>LEADER,sync:()=>brdSync(),cfgSet:(u,k)=>{BOARD.url=u;BOARD.key=k},why:()=>brdWhy},leader:leaderLoad,getLeader:()=>LEADER,submit:submitDaily,gh:()=>GH&&{n:GH.n,label:GH.label,score:GH.score},gmode:m=>{GS.mode=m;gsSave()},cycle:ghostCycle,pose:ghostPose,hud:ghostHud,gstore:gStore,gkey:gKey,state:()=>({simTick,rec:rec&&{n:rec.ev.length,dirty:rec.dirty}})},daily:{genV:()=>GEN_V,dmods:()=>DMODS,dgoals:()=>DGOALS,sched:()=>SCHED,schedOk:()=>SCHED_OK,dayInfo,addDays,build:dailyBuild,genTrackData,validTrack,trackStats,dailySeed,VT,setup:prepDaily,useSeed:sd=>{DAILYT=genTrackData(sd);dailyInfo={n:0,date:'test',seed:sd};dailyMode='practice';if(savedDiff===null)savedDiff=diff;diff=1},leave:leaveDaily,start:startDaily,get:()=>({dailyMode,dy:CS.dy,dh:CS.dh}),utcDate,dayNoOf},cos:{COS,Save,getCS:()=>CS,runEnd:cosRunEnd,check:cosCheck,equip:cosEquip,dayNo:()=>dayNoOf(utcDate()),exportText:()=>Save.exportText(),importText:t=>Save.importText(t),drawTrail,renderInv,openInv,closeInv,setWallet:n=>{wallet=n}},share:{drawShareCard,cardBlob,shareResult,shareInfo,shareText,Native,getLast:()=>lastRun,getCrash:()=>lastCrash,crashInfo},a11y:{A11,FM,fmSample,set:a11ySet,apply:a11yApply,open:openSettings,close:closeSettings},step,render,begin:s=>{begin(s||0);state='run';$('#count').classList.remove('on')},bot:b=>{bot=b},look:x=>{botLook=x},
   advance:(dt,stop)=>advance(dt,stop),q:l=>{qMode='manual';applyQ(l);updQ()},qs:()=>({qMode,qLev,DPRCAP,QG,PCAP,DRAWD,DRAWJ}),perf:()=>{const a=FTR.slice(1).sort((x,y)=>x-y),n=a.length;return n?{n,avgMs:+(a.reduce((q,x)=>q+x,0)/n*1000).toFixed(2),p95Ms:+(a[Math.floor(n*.95)]*1000).toFixed(2),maxMs:+(a[n-1]*1000).toFixed(2)}:null},tutTick,tutOn:x=>{tutMode=x},tutS:()=>({i:tutI,n:TL.length,cur:tutCur&&tutCur.ti,k:tutCur&&tutCur.k,to:tutCur&&tutCur.to,scale:tutScale}),snap:()=>({state,D,face,elapsed,orbs:got.size,total:totalOrbs,deaths,shifts,cp:cpSeg,score:flux(),chain,boost,eff:effi(),burst:burstT,sc:Object.assign({},sc)}),setD:d=>{D=d},track,np:()=>parts.length,sk:()=>shake,setSk:x=>{shake=x},emit:burst,sp:stepParts,L:()=>L}}
 setTimeout(()=>{PGS.init()},1200);   // PGS-B2: silent sign-in shortly after launch (never blocks the game)
 requestAnimationFrame(t=>{last=t;requestAnimationFrame(frame)});
