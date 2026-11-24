@@ -241,6 +241,15 @@
   .dcal span.fin{background:linear-gradient(135deg,#37e6ff,#9b6bff);color:#071022;border-color:transparent}
   .dcal span.att{border-color:#ffd166;color:#ffd166}
   .dcal span.today{outline:2px solid #ffffffa0;outline-offset:2px}
+  /* BOARD-B5 */
+  #board{place-items:start center} #board .panel{margin:auto;width:100%;max-width:520px}
+  .bl{list-style:none;margin:8px 0 12px;padding:0;display:grid;gap:6px;text-align:left}
+  .bl li{display:grid;grid-template-columns:40px 1fr auto;gap:2px 8px;align-items:center;padding:8px 10px;border-radius:12px;background:#ffffff0c;font-size:13px}
+  .bl li.me{background:#5ec8ff24;outline:1px solid #5ec8ff99}
+  .bl .bp{font-weight:800;color:#9fb2d4} .bl .bn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap} .bl .bs{font-weight:800;font-variant-numeric:tabular-nums}
+  .bl .bm{grid-column:2/4;display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:11px;color:#9fb2d4}
+  .bl .rp{min-height:44px;min-width:44px;padding:0 10px;border-radius:10px;border:1px solid #ffffff2a;background:transparent;color:#9fb2d4;font:inherit;font-size:11px;letter-spacing:.06em;cursor:pointer}
+  .bl .rp:disabled{opacity:.6;cursor:default} .bl .rp.ask{color:#ffd166;border-color:#ffd16699}
   .dcard{display:grid;grid-template-columns:auto 1fr;gap:8px 14px;text-align:left;padding:12px 14px;border-radius:14px;background:#ffffff0c;margin:12px 0 10px;align-items:baseline}
   .dcard .dk{font-size:10px;letter-spacing:.16em;font-weight:800;color:#9fb2d4} .dcard .dv{font-weight:800;font-size:14px;font-variant-numeric:tabular-nums;text-align:right;letter-spacing:.04em}
   #dline{color:#ffd166;font-weight:800}
@@ -873,7 +882,17 @@ window.__LD=LD;
     <div class="dstreak" id="dstr"></div><div class="dcal" id="dcal" role="list" aria-label="Last 7 days"></div>
     <p class="tag" id="dlead" style="margin:4px auto 2px;font-size:12px;color:#ffd166"></p>
     <p class="tag" id="dnote" style="margin:6px auto 14px;font-size:12px"></p>
-    <button class="btn" id="dgo">START SCORED ATTEMPT</button><button class="btn alt" id="dprac">PRACTISE (UNSCORED)</button><button class="btn alt" id="dback">BACK</button>
+    <button class="btn" id="dgo">START SCORED ATTEMPT</button><button class="btn alt" id="dprac">PRACTISE (UNSCORED)</button><button class="btn alt" id="dboard" style="display:none">🌐 ONLINE BOARD</button><button class="btn alt" id="dback">BACK</button>
+  </div></section>
+
+  <section class="overlay" id="board" aria-label="Online Daily board"><div class="panel">
+    <div class="eyebrow">ONLINE BOARD</div><h2 id="btitle">TOP 100 TODAY</h2>
+    <p class="tag" id="bsub" style="margin:4px auto 8px;font-size:12px"></p>
+    <p class="tag" id="bme" style="margin:0 auto 8px;font-size:13px;color:#5ec8ff"></p>
+    <p class="tag" id="bst" role="status" aria-live="polite" style="margin:0 auto 8px;font-size:12px;color:#ffd166"></p>
+    <div id="boff" style="display:none"><p class="tag" style="margin:8px auto 12px;font-size:12px">The online board is off. Nothing is sent or loaded while it is off.</p><button class="btn" id="bsets">OPEN SETTINGS</button></div>
+    <button class="btn" id="bghost">👻 RACE THE LEADER'S GHOST</button><button class="btn alt" id="bref">REFRESH</button><button class="btn alt" id="bback">BACK</button>
+    <ol class="bl" id="bl" aria-label="Top scores today"></ol>
   </div></section>
 
   <section class="overlay" id="inv" aria-label="Inventory"><div class="panel">
@@ -934,7 +953,7 @@ window.__LD=LD;
     <div class="brk" id="fbreak"></div>
     <div class="stats"><div>TIME<strong id="ftime">0:00.00</strong></div><div>ORBS<strong id="forbs">0</strong></div><div>SHIFTS<strong id="fshift">0</strong></div></div>
     <div class="best" id="fbest"></div>
-    <div class="fnew" id="fnew"></div><div class="fnew rep" id="frep"></div><button class="btn alt" id="fsubmit" style="display:none">SUBMIT TO DAILY LEADERBOARD</button>
+    <div class="fnew" id="fnew"></div><div class="fnew rep" id="frep"></div><button class="btn alt" id="fsubmit" style="display:none">SUBMIT TO DAILY LEADERBOARD</button><button class="btn alt" id="fboard" style="display:none">🌐 VIEW BOARD</button>
     <div class="rec" id="frec"></div>
     <button class="btn" id="again">RACE AGAIN</button><button class="btn alt" id="fshare">⇪ SHARE SCORE</button><button class="btn alt" id="fcopy" style="display:none">COPY GHOST CODE</button><button class="btn alt" id="fhome">HOME</button>
   </div></section>
@@ -1460,7 +1479,7 @@ function finish(){
   const wasDaily=dailyMode==='scored'&&!tutMode,dn=wasDaily?dailyInfo.n:0;
   lastRun=shareInfo(final,rank,diff,elapsed,'finish');if(dn){lastRun.dn=dn;lastRun.date=dailyInfo.date}
   if(wasDaily)dailyEnd(true,final,rank,100);else dailyPracEnd(true,final,rank,100);
-  {const ri=repEnd(true,final),gs=ri?gStore():'';$('#frep').textContent=ri?'REPLAY '+ri.bytes+' bytes ('+ri.chars+' chars, '+ri.events+' inputs)'+(gs?' · '+gs:''):'';$('#fsubmit').style.display=ri&&wasDaily&&brdOn()?'':'none';$('#fsubmit').disabled=false;$('#fsubmit').textContent='SUBMIT TO DAILY LEADERBOARD'}   // GHOST-B1/B3
+  {const ri=repEnd(true,final),gs=ri?gStore():'';$('#frep').textContent=ri?'REPLAY '+ri.bytes+' bytes ('+ri.chars+' chars, '+ri.events+' inputs)'+(gs?' · '+gs:''):'';$('#fsubmit').style.display=ri&&wasDaily&&brdOn()?'':'none';$('#fsubmit').disabled=false;$('#fsubmit').textContent='SUBMIT TO DAILY LEADERBOARD';$('#fboard').style.display='none'}   // GHOST-B1/B3
   setTimeout(()=>{prepShare(lastRun).catch(()=>{})},400);
   {const r=cosRunEnd({fin:true,rank,orbs:got.size,chain:sc.maxChain,sling:sc.slingN,near:sc.nearN,dailyScored:wasDaily});$('#fnew').textContent=[cosNewText(r),wasDaily&&lastDailyPay?'DAILY REWARD +'+lastDailyPay+' ◆ orbs'+(lastDailyNote?' ('+lastDailyNote+')':''):''].filter(Boolean).join(' · ')}   // SHARE: pre-render the card so the tap can share instantly
   pgsRunEnd({fin:true,rank,diff,score:final,deaths,pen:sc.pen,orbs:got.size,total:totalOrbs,chain:sc.maxChain,sling:sc.slingN,near:sc.nearN,daily:wasDaily,dc:CS.st.dc,norm:!dailyMode})   // PGS-B3
@@ -1823,6 +1842,65 @@ async function submitDaily(){
   if(j&&j.ok===true&&Number.isFinite(j.score)){BC.clear();return{ok:true,score:j.score,pos:j.pos,total:j.total,rank:j.rank,flagged:!!j.flagged}}
   return{ok:false,error:j&&typeof j.error==='string'?j.error.slice(0,20):'server'}}
 /* GHOST-B5 (client side of the toggle) */
+/* BOARD-B5: board screen. Server rows are untrusted: every field is validated and shown with textContent only. */
+let bFrom='daily',bLast=null,bBusy=false,bCool=0;const bRep=new Set();
+const UUIDR=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,RKS=['F-','F','E','D','C','B','A','S','S+','S++'];
+const fmtMs=ms=>{const t=Math.round(ms/1000);return Math.floor(t/60)+':'+String(t%60).padStart(2,'0')};
+const bInt=(v,a,b)=>Number.isInteger(+v)&&+v>=a&&+v<=b;
+function bRow(r){return r&&typeof r==='object'&&bInt(r.pos,1,100)&&UUIDR.test(r.row_id||'')&&typeof r.display_name==='string'&&bInt(r.score,0,10000000)&&RKS.includes(r.rank)&&bInt(r.time_ms,0,3600000)?{pos:+r.pos,id:r.row_id,name:cleanName(r.display_name)||'Racer',score:+r.score,rank:r.rank,ms:+r.time_ms,me:r.is_me===true}:null}
+function bMe(r){return r&&bInt(r.pos,1,1e7)&&bInt(r.score,0,10000000)&&RKS.includes(r.rank)&&bInt(r.total,1,1e8)?{pos:+r.pos,score:+r.score,rank:r.rank,total:+r.total}:null}
+async function brdReport(id){
+  if(!UUIDR.test(id||''))return{ok:false,error:'format'};
+  const body=JSON.stringify({p_public_id:id}),call=s=>bx('/rest/v1/rpc/report_row',{b:body},s.a);
+  let s=await brdSess();if(!s)return{ok:false,error:brdWhy||'network'};
+  let r=await call(s);if(r.s===401){s=await brdSess(true);if(s)r=await call(s)}
+  if(r.s===0)return{ok:false,error:r.off?'offline':'network'};
+  if(r.s===200||r.s===204){bRep.add(id);return{ok:true}}
+  if(r.s===400&&r.j&&/too many/i.test(String(r.j.message||'')))return{ok:false,error:'limit'};
+  return{ok:false,error:'server'}}
+function bRender(rows){
+  const ol=$('#bl');ol.textContent='';
+  for(const x of rows){const li=document.createElement('li');if(x.me)li.className='me';
+    const p=document.createElement('span');p.className='bp';p.textContent='#'+x.pos;
+    const n=document.createElement('span');n.className='bn';n.textContent=x.name+(x.me?' (you)':'');
+    const sc=document.createElement('span');sc.className='bs';sc.textContent=fmtN(x.score);
+    const m=document.createElement('div');m.className='bm';const i=document.createElement('span');i.textContent=x.rank+' · '+fmtMs(x.ms);m.appendChild(i);
+    if(!x.me){const b=document.createElement('button');b.className='rp';b.type='button';
+      const done=bRep.has(x.id);b.textContent=done?'REPORTED':'REPORT';b.disabled=done;b.setAttribute('aria-label',(done?'Reported ':'Report ')+'score of '+x.name);
+      let t=null;b.onclick=async()=>{
+        if(!b.classList.contains('ask')){b.classList.add('ask');b.textContent='TAP AGAIN TO REPORT';t=setTimeout(()=>{b.classList.remove('ask');b.textContent='REPORT'},4000);return}
+        clearTimeout(t);b.disabled=true;b.textContent='SENDING…';const r=await brdReport(x.id);b.classList.remove('ask');
+        if(r.ok){b.textContent='REPORTED';$('#bst').textContent='Report sent. Thank you.'}
+        else{b.disabled=false;b.textContent='REPORT';$('#bst').textContent=r.error==='limit'?'You have sent many reports today. Try again tomorrow.':r.error==='offline'||r.error==='network'?'No connection. Try again later.':'Could not send the report. Try again later.'}};
+      m.appendChild(b)}
+    li.append(p,n,sc,m);ol.appendChild(li)}}
+async function boardLoad(force){
+  const on=brdOn(),st=$('#bst');$('#boff').style.display=on?'none':'';
+  ['#bghost','#bref','#bl'].forEach(q=>$(q).style.display=on?'':'none');
+  if(!on){$('#bme').textContent='';$('#bsub').textContent='';st.textContent='';return}
+  if(bBusy)return;bBusy=true;
+  try{const b=dailyBuild(utcDate()),A={p_day:b.date,p_gen_v:GEN_V};
+    $('#bsub').textContent='DAILY #'+b.n+' · '+b.date+' · UTC';
+    if(force){BC.delete('board_top'+JSON.stringify(A));BC.delete('board_me'+JSON.stringify(A))}
+    st.textContent='Loading…';
+    const [t,m]=await Promise.all([brdRpc('board_top',A),brdRpc('board_me',A)]);
+    if(!t.ok){
+      if(bLast&&bLast.day===b.date){bRender(bLast.rows);$('#bme').textContent=bLast.me?'YOU: #'+bLast.me.pos+' of '+bLast.me.total+' · '+fmtN(bLast.me.score)+' · '+bLast.me.rank:'';
+        st.textContent='No connection. Showing results from '+new Date(bLast.t).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})+'.'}
+      else{$('#bl').textContent='';$('#bme').textContent='';st.textContent=t.error==='offline'||t.error==='network'?'No connection. The board needs the internet.':t.error==='busy'?'The board is busy. Try again soon.':'The board could not be loaded. Try again later.'}
+      return}
+    const rows=t.rows.map(bRow).filter(Boolean).slice(0,100),me=m.ok&&m.rows[0]?bMe(m.rows[0]):null;
+    bLast={day:b.date,rows,me,t:Date.now()};bRender(rows);
+    $('#bme').textContent=me?'YOU: #'+me.pos+' of '+me.total+' · '+fmtN(me.score)+' · '+me.rank:'You have no score on today\'s board yet.';
+    st.textContent=rows.length?'':'No scores yet today. Be the first.'}
+  finally{bBusy=false}}
+function openBoard(from){bFrom=from;$('#'+from).classList.remove('on');$('#board').classList.add('on');boardLoad(false);$('#bback').focus()}
+function closeBoard(){$('#board').classList.remove('on');$('#'+bFrom).classList.add('on')}
+async function boardGhost(){
+  const st=$('#bst'),why=gAvail('lead');if(why){st.textContent=why;return}
+  const b=dailyBuild(utcDate());if(!LEADER||LEADER.date!==b.date){st.textContent='Loading the leader…';await leaderLoad()}
+  if(!LEADER||LEADER.date!==b.date){st.textContent=$('#dlead').textContent||'No leader ghost available yet.';return}
+  setGMode('lead');st.textContent='Ghost set: #1 '+LEADER.name+' · '+fmtN(LEADER.score)+'. It races you in your next Daily run.'}
 /* BOARD-B4: Settings switch + opt-in notice */
 const BNOTICE='Your scores are shared with a random id and a racer name picked by the game. No email or personal data. You can turn this off at any time.';
 function brdSync(){
@@ -2276,6 +2354,7 @@ function fillDaily(){
   $('#dcd').textContent=hms(nextUTC());$('#dres').textContent=dailyResultText();
   {const S=dailyStats(utcDate());$('#dstr').textContent='STREAK '+S.streak+(S.streak===1?' DAY':' DAYS')+' · BEST '+S.best+'\n'+(S.medal?'WEEKLY MEDAL EARNED · '+S.wkCount+'/7 DAYS':'THIS WEEK '+S.wkCount+'/7 · MEDAL AT '+DAILY_PAY.medalDays);
     const cal=$('#dcal');cal.textContent='';S.days.forEach(x=>{const sp=document.createElement('span');sp.setAttribute('role','listitem');const L='SMTWTFS'[new Date(x.d+'T00:00:00Z').getUTCDay()];sp.className=x.s+(x.d===S.today?' today':'');sp.textContent=L+'\n'+(x.s==='fin'?'✓':x.s==='att'?'×':'·');sp.style.whiteSpace='pre-line';sp.setAttribute('aria-label',x.d+(x.s==='fin'?' finished':x.s==='att'?' attempted, not finished':' not played'));cal.appendChild(sp)})}
+  $('#dboard').style.display=brdCfg()?'':'none';
   $('#dgo').style.display=e?'none':'';$('#dnote').textContent=e?'Your scored attempt for today is used. You can still practise this exact track; practice runs are not scored and pay no reward.':'One scored attempt per day. Starting it uses it up, even if you crash or quit. No restarts. Everyone gets the same track at NORMAL speed. '+dailyPayText()}
 function updDaily(){
   const e=dyToday(),n=dayNoOf(utcDate()),l=$('#dline');
@@ -2380,7 +2459,7 @@ const tb=(id,r)=>{$(id).addEventListener('pointerdown',e=>{e.preventDefault();re
 $('#ghostbtn').onclick=ghostCycle;
 $('#pghost').onclick=ghostToggle;
 $('#fsubmit').onclick=async()=>{const b=$('#fsubmit');b.disabled=true;b.textContent='SUBMITTING…';const j=await submitDaily();
-  if(j.ok){b.textContent=j.flagged?'SAVED · SHOWS ON THE BOARD SHORTLY':'SUBMITTED · RANK #'+j.pos;PGS.submit('daily',j.score)}   // PGS mirrors only server-verified daily scores
+  if(j.ok){b.textContent=j.flagged?'SAVED · SHOWS ON THE BOARD SHORTLY':'SUBMITTED · RANK #'+j.pos;PGS.submit('daily',j.score);$('#fboard').style.display=''}   // PGS mirrors only server-verified daily scores
   else{b.textContent=brdMsg(j.error);b.disabled=!(j.error==='offline'||j.error==='network'||j.error==='busy'||j.error==='server')}};
 addEventListener('keydown',e=>{
   if(e.repeat)return;const k=e.key;if(k==='g'||k==='G'){ghostToggle();return}
@@ -2582,6 +2661,9 @@ if(mqRM&&mqRM.addEventListener)mqRM.addEventListener('change',()=>{if(!rmExplici
 $('#s-rm').onclick=()=>a11ySet('rm',!A11.rm);$('#s-cb').onclick=()=>a11ySet('cb',!A11.cb);$('#s-hc').onclick=()=>a11ySet('hc',!A11.hc);$('#s-fm').onclick=()=>a11ySet('fm',!A11.fm);
 document.querySelectorAll('#s-txt button').forEach(x=>x.onclick=()=>a11ySet('txt',+x.dataset.v));
 document.querySelectorAll('#s-sim button').forEach(x=>x.onclick=()=>a11ySet('sim',+x.dataset.v));
+$('#dboard').onclick=()=>openBoard('daily');$('#fboard').onclick=()=>openBoard('finish');$('#bback').onclick=closeBoard;
+$('#bref').onclick=()=>{const st=$('#bst');if(Date.now()<bCool){st.textContent='Just refreshed. Give it a few seconds.';return}bCool=Date.now()+5000;boardLoad(true)};
+$('#bghost').onclick=boardGhost;$('#bsets').onclick=()=>{$('#board').classList.remove('on');openSettings('board')};
 $('#s-bon').onclick=()=>{if(!brdCfg())return;if(brdOn())brdDisable();else brdAsk()};$('#s-bgo').onclick=brdEnable;$('#s-bno').onclick=()=>{$('#s-bnote').style.display='none';$('#s-bon').focus()};
 $('#s-gl').onclick=()=>{GS.label=!GS.label;gsSave();ghostSync();ghT=null};$('#s-gg').onclick=()=>{GS.gap=!GS.gap;gsSave();ghostSync();ghT=null};
 $('#s-gdo').onclick=()=>{const r=gImport($('#s-gcode').value);$('#s-gmsg').textContent=r.msg;$('#s-gmsg').style.color=r.ok?'#7dffb0':'#ffd166';if(r.ok){$('#s-gcode').value='';setGMode('imp')}ghostSync()};
@@ -2594,7 +2676,7 @@ document.querySelectorAll('#s-gst button').forEach(x=>x.onclick=()=>{GS.style=x.
 document.querySelectorAll('#s-gop button').forEach(x=>x.onclick=()=>{GS.op=+x.dataset.v;gsSave();ghostSync()});
 let setPrev='menu';
 function openSettings(from){setPrev=from;$('#settings').classList.toggle('hb',from!=='pause');$('#'+from).classList.remove('on');$('#settings').classList.add('on');a11yApply();ghostSync();brdSync();brdStatus('');$('#s-bnote').style.display='none';$('#s-rm').focus()}
-function closeSettings(){$('#settings').classList.remove('on');$('#'+setPrev).classList.add('on')}
+function closeSettings(){$('#settings').classList.remove('on');$('#'+setPrev).classList.add('on');if(setPrev==='board')boardLoad(false)}
 $('#setbtn').onclick=()=>openSettings('menu');$('#pset').onclick=()=>openSettings('pause');$('#sback').onclick=closeSettings;
 a11yApply();ghostSync();
 /* TUTORIAL-MODE */
@@ -2978,7 +3060,7 @@ function frame(t){
   requestAnimationFrame(frame);
 }
 placeOnFace(track[3].safe);D=3*L;
-if(location.hash.includes('test')){window.__wso={/* GHOST-B7 test hook */ghost:{gs:()=>GS,eff:gEff,avail:gAvail,set:setGMode,toggle:ghostToggle,cycle:ghostCycle,label:ghostLbl,sync:ghostSync,has:hasPB,gh:()=>GH,vis:()=>ghostVis,imp:gImport,seed:ghostSeed,raw:{b64d,b64e,crc16},last:()=>gGet('wso_g_last')},/* RANK-B1 test hook */rank:{fin:()=>finish(),sc:()=>sc,calc:()=>calcFinal(),setElapsed:e=>{elapsed=e},title:titleFor,paintTitle,paint:paintRank,rainbow:()=>RAINBOW,f:rankFor,list:()=>RANKS.map(r=>[r.k,r.min,r.c]),ri:RI,end:r=>{const x=cosRunEnd({fin:true,rank:r,orbs:0,chain:0,sling:0,near:0,dailyScored:false},true);return{un:x.un.map(c=>c.id)}}},/* ECON-B7 test hook */econ:{wallet:()=>wallet,owned:()=>owned.slice(),skin:()=>skinId,buy:id=>buySkin(id),equip:id=>equipSkin(id),setWallet:w=>{wallet=w;walletDirty=true;walletFlush()},add:n=>{walletAdd(n);walletFlush()},prices:()=>SKINS.map(x=>[x.id,x.price]),exportText:()=>Save.exportText(),importText:t=>Save.importText(t)},/* GAME-B8 test hook */crashNow:r=>crash(r||'wall'),rec:{add:recAdd,view:recView,roll:recRoll,keys:recKeys,doc:()=>CS.rc,daily:recDaily,dend:(f,sc,r,p)=>dailyEnd(f,sc,r,p),pay:()=>lastDailyPay,note:()=>lastDailyNote,stats:dailyStats,dk:()=>CS.dk,st:()=>CS.st,cosCheck:()=>cosCheck().map(c=>c.id),wal:()=>wallet,DP:DAILY_PAY,pend:(f,sc,r,p)=>dailyPracEnd(f,sc,r,p),dp:()=>CS.dp,dpbest:recDailyPractice,save:()=>Save.write(CS),dh:()=>CS.dh,startDaily:pr=>startDaily(pr),quit:()=>recDailyQuit(),migrate:()=>{CS.rc=null;recMigrate()},reload:()=>{CS=Save.read()},set:d=>{CS.rc=d}},shuf:{genStd,seed:()=>runSeed,newRunSeed,STD_FIXED,setSeed:x=>{runSeed=x>>>0;STDL=genStd(runSeed);curTrk=''}},pgs:PGS,pgsIds:PGS_IDS,beginReal:s=>begin(s||0),rep:{enc:encRep,dec:decRep,run:runRep,SIM_V,REP_FMT,dexp,last:()=>({rep:lastRep,info:lastRepInfo}),setApi:u=>{if(u){BOARD.url=u;BOARD.key='k'.repeat(30);BS.on=true}else BS.on=false},board:{setLast:(rep,run)=>{lastRep=rep;lastRepInfo={bytes:1,chars:rep.length,events:1};lastRun=run},cfg:brdCfg,on:brdOn,bs:()=>BS,sess:brdSess,sessGet,rpc:brdRpc,submit:submitDaily,cache:()=>BC.size,clear:()=>BC.clear(),leader:leaderLoad,get:()=>LEADER,sync:()=>brdSync(),cfgSet:(u,k)=>{BOARD.url=u;BOARD.key=k},why:()=>brdWhy},leader:leaderLoad,getLeader:()=>LEADER,submit:submitDaily,gh:()=>GH&&{n:GH.n,label:GH.label,score:GH.score},gmode:m=>{GS.mode=m;gsSave()},cycle:ghostCycle,pose:ghostPose,hud:ghostHud,gstore:gStore,gkey:gKey,state:()=>({simTick,rec:rec&&{n:rec.ev.length,dirty:rec.dirty}})},daily:{genV:()=>GEN_V,dmods:()=>DMODS,dgoals:()=>DGOALS,sched:()=>SCHED,schedOk:()=>SCHED_OK,dayInfo,addDays,build:dailyBuild,genTrackData,validTrack,trackStats,dailySeed,VT,setup:prepDaily,useSeed:sd=>{DAILYT=genTrackData(sd);dailyInfo={n:0,date:'test',seed:sd};dailyMode='practice';if(savedDiff===null)savedDiff=diff;diff=1},leave:leaveDaily,start:startDaily,get:()=>({dailyMode,dy:CS.dy,dh:CS.dh}),utcDate,dayNoOf},cos:{COS,Save,getCS:()=>CS,runEnd:cosRunEnd,check:cosCheck,equip:cosEquip,dayNo:()=>dayNoOf(utcDate()),exportText:()=>Save.exportText(),importText:t=>Save.importText(t),drawTrail,renderInv,openInv,closeInv,setWallet:n=>{wallet=n}},share:{drawShareCard,cardBlob,shareResult,shareInfo,shareText,Native,getLast:()=>lastRun,getCrash:()=>lastCrash,crashInfo},a11y:{A11,FM,fmSample,set:a11ySet,apply:a11yApply,open:openSettings,close:closeSettings},step,render,begin:s=>{begin(s||0);state='run';$('#count').classList.remove('on')},bot:b=>{bot=b},look:x=>{botLook=x},
+if(location.hash.includes('test')){window.__wso={/* GHOST-B7 test hook */ghost:{gs:()=>GS,eff:gEff,avail:gAvail,set:setGMode,toggle:ghostToggle,cycle:ghostCycle,label:ghostLbl,sync:ghostSync,has:hasPB,gh:()=>GH,vis:()=>ghostVis,imp:gImport,seed:ghostSeed,raw:{b64d,b64e,crc16},last:()=>gGet('wso_g_last')},/* RANK-B1 test hook */rank:{fin:()=>finish(),sc:()=>sc,calc:()=>calcFinal(),setElapsed:e=>{elapsed=e},title:titleFor,paintTitle,paint:paintRank,rainbow:()=>RAINBOW,f:rankFor,list:()=>RANKS.map(r=>[r.k,r.min,r.c]),ri:RI,end:r=>{const x=cosRunEnd({fin:true,rank:r,orbs:0,chain:0,sling:0,near:0,dailyScored:false},true);return{un:x.un.map(c=>c.id)}}},/* ECON-B7 test hook */econ:{wallet:()=>wallet,owned:()=>owned.slice(),skin:()=>skinId,buy:id=>buySkin(id),equip:id=>equipSkin(id),setWallet:w=>{wallet=w;walletDirty=true;walletFlush()},add:n=>{walletAdd(n);walletFlush()},prices:()=>SKINS.map(x=>[x.id,x.price]),exportText:()=>Save.exportText(),importText:t=>Save.importText(t)},/* GAME-B8 test hook */crashNow:r=>crash(r||'wall'),rec:{add:recAdd,view:recView,roll:recRoll,keys:recKeys,doc:()=>CS.rc,daily:recDaily,dend:(f,sc,r,p)=>dailyEnd(f,sc,r,p),pay:()=>lastDailyPay,note:()=>lastDailyNote,stats:dailyStats,dk:()=>CS.dk,st:()=>CS.st,cosCheck:()=>cosCheck().map(c=>c.id),wal:()=>wallet,DP:DAILY_PAY,pend:(f,sc,r,p)=>dailyPracEnd(f,sc,r,p),dp:()=>CS.dp,dpbest:recDailyPractice,save:()=>Save.write(CS),dh:()=>CS.dh,startDaily:pr=>startDaily(pr),quit:()=>recDailyQuit(),migrate:()=>{CS.rc=null;recMigrate()},reload:()=>{CS=Save.read()},set:d=>{CS.rc=d}},shuf:{genStd,seed:()=>runSeed,newRunSeed,STD_FIXED,setSeed:x=>{runSeed=x>>>0;STDL=genStd(runSeed);curTrk=''}},pgs:PGS,pgsIds:PGS_IDS,beginReal:s=>begin(s||0),rep:{enc:encRep,dec:decRep,run:runRep,SIM_V,REP_FMT,dexp,last:()=>({rep:lastRep,info:lastRepInfo}),setApi:u=>{if(u){BOARD.url=u;BOARD.key='k'.repeat(30);BS.on=true}else BS.on=false},board:{open:openBoard,load:boardLoad,report:brdReport,boardGhost,setLast:(rep,run)=>{lastRep=rep;lastRepInfo={bytes:1,chars:rep.length,events:1};lastRun=run},cfg:brdCfg,on:brdOn,bs:()=>BS,sess:brdSess,sessGet,rpc:brdRpc,submit:submitDaily,cache:()=>BC.size,clear:()=>BC.clear(),leader:leaderLoad,get:()=>LEADER,sync:()=>brdSync(),cfgSet:(u,k)=>{BOARD.url=u;BOARD.key=k},why:()=>brdWhy},leader:leaderLoad,getLeader:()=>LEADER,submit:submitDaily,gh:()=>GH&&{n:GH.n,label:GH.label,score:GH.score},gmode:m=>{GS.mode=m;gsSave()},cycle:ghostCycle,pose:ghostPose,hud:ghostHud,gstore:gStore,gkey:gKey,state:()=>({simTick,rec:rec&&{n:rec.ev.length,dirty:rec.dirty}})},daily:{genV:()=>GEN_V,dmods:()=>DMODS,dgoals:()=>DGOALS,sched:()=>SCHED,schedOk:()=>SCHED_OK,dayInfo,addDays,build:dailyBuild,genTrackData,validTrack,trackStats,dailySeed,VT,setup:prepDaily,useSeed:sd=>{DAILYT=genTrackData(sd);dailyInfo={n:0,date:'test',seed:sd};dailyMode='practice';if(savedDiff===null)savedDiff=diff;diff=1},leave:leaveDaily,start:startDaily,get:()=>({dailyMode,dy:CS.dy,dh:CS.dh}),utcDate,dayNoOf},cos:{COS,Save,getCS:()=>CS,runEnd:cosRunEnd,check:cosCheck,equip:cosEquip,dayNo:()=>dayNoOf(utcDate()),exportText:()=>Save.exportText(),importText:t=>Save.importText(t),drawTrail,renderInv,openInv,closeInv,setWallet:n=>{wallet=n}},share:{drawShareCard,cardBlob,shareResult,shareInfo,shareText,Native,getLast:()=>lastRun,getCrash:()=>lastCrash,crashInfo},a11y:{A11,FM,fmSample,set:a11ySet,apply:a11yApply,open:openSettings,close:closeSettings},step,render,begin:s=>{begin(s||0);state='run';$('#count').classList.remove('on')},bot:b=>{bot=b},look:x=>{botLook=x},
   advance:(dt,stop)=>advance(dt,stop),q:l=>{qMode='manual';applyQ(l);updQ()},qs:()=>({qMode,qLev,DPRCAP,QG,PCAP,DRAWD,DRAWJ}),perf:()=>{const a=FTR.slice(1).sort((x,y)=>x-y),n=a.length;return n?{n,avgMs:+(a.reduce((q,x)=>q+x,0)/n*1000).toFixed(2),p95Ms:+(a[Math.floor(n*.95)]*1000).toFixed(2),maxMs:+(a[n-1]*1000).toFixed(2)}:null},tutTick,tutOn:x=>{tutMode=x},tutS:()=>({i:tutI,n:TL.length,cur:tutCur&&tutCur.ti,k:tutCur&&tutCur.k,to:tutCur&&tutCur.to,scale:tutScale}),snap:()=>({state,D,face,elapsed,orbs:got.size,total:totalOrbs,deaths,shifts,cp:cpSeg,score:flux(),chain,boost,eff:effi(),burst:burstT,sc:Object.assign({},sc)}),setD:d=>{D=d},track,np:()=>parts.length,sk:()=>shake,setSk:x=>{shake=x},emit:burst,sp:stepParts,L:()=>L}}
 setTimeout(()=>{PGS.init()},1200);   // PGS-B2: silent sign-in shortly after launch (never blocks the game)
 requestAnimationFrame(t=>{last=t;requestAnimationFrame(frame)});
