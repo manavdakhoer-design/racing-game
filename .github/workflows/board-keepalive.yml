@@ -1,0 +1,30 @@
+name: Board keep-alive
+on:
+  schedule:
+    - cron: '23 6 * * *'
+  workflow_dispatch:
+permissions:
+  actions: write
+  contents: read
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    env:
+      BOARD_URL: https://rgjzpxwdlzkynsjsnqkz.supabase.co
+      BOARD_KEY: ${{ secrets.BOARD_KEY }}
+    steps:
+      - name: Ping the board
+        run: |
+          set -eu
+          if [ -z "$BOARD_KEY" ]; then echo "The repository secret BOARD_KEY is missing"; exit 1; fi
+          day=$(date -u +%F)
+          code=$(curl -sS -m 30 --retry 2 -o /tmp/board.json -w '%{http_code}' -X POST "$BOARD_URL/rest/v1/rpc/board_top" \
+            -H "apikey: $BOARD_KEY" -H "content-type: application/json" -d "{\"p_day\":\"$day\",\"p_gen_v\":2}")
+          echo "board_top answered HTTP $code"
+          test "$code" = "200"
+      - name: Keep this schedule alive (best effort)
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/board-keepalive.yml/enable"
