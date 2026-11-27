@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src https://rgjzpxwdlzkynsjsnqkz.supabase.co; base-uri 'none'; form-action 'none'">
+<title>Delete your online data · Weight-Shift Odyssey</title>
+<style>
+:root{--bg:#070b1a;--fg:#e8f0ff;--mut:#9fb2d4;--card:#ffffff0f;--acc:#5ec8ff;--warn:#ffd166;--bad:#ff6b6b}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding:24px 16px 48px}
+main{max-width:640px;margin:0 auto}
+h1{font-size:26px;line-height:1.2;margin:0 0 6px} h2{font-size:17px;margin:26px 0 6px}
+p,li{color:var(--fg)} .mut{color:var(--mut);font-size:14px}
+.card{background:var(--card);border-radius:14px;padding:14px 16px;margin:14px 0}
+ul{padding-left:20px;margin:6px 0} li{margin:4px 0}
+button{font:inherit;font-weight:700;letter-spacing:.04em;min-height:48px;padding:0 20px;border-radius:12px;border:0;background:var(--bad);color:#190808;cursor:pointer}
+button:disabled{opacity:.5;cursor:default}
+#st{margin:12px 0 0;min-height:1.5em;color:var(--warn)} a{color:var(--acc)}
+:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+</style></head>
+<body><main>
+<h1>Delete your online data</h1>
+<p class="mut">Weight-Shift Odyssey · online Daily board</p>
+
+<h2>What is stored</h2>
+<p>The game has no accounts, passwords or email. If you turn on the online board, the server keeps only:</p>
+<ul>
+<li>a random anonymous id,</li>
+<li>a racer name that the game picks (for example Racer-4F2A, or a name you pick from a fixed word list),</li>
+<li>the Daily scores you submit, with the replay that proves them (kept up to 90 days),</li>
+<li>a short-lived anti-abuse log that holds a daily-salted hash of your network address, never the address itself (kept 2 days).</li>
+</ul>
+<p>Nothing else leaves your device. Your records, orbs and settings stay on your device.</p>
+
+<h2>Delete it</h2>
+<div class="card">
+<p><b>In the app or the game:</b> open <b>Settings → Online board → Delete my online data</b> and confirm. This is the easiest way, and it works the same in the Android app and in the browser game.</p>
+</div>
+<div class="card">
+<p><b>From this browser:</b> if you used the online board in the browser version of the game on this device, you can delete that data here.</p>
+<button id="go" type="button">DELETE MY ONLINE DATA</button>
+<p id="st" role="status" aria-live="polite"></p>
+</div>
+<p class="mut">Deleting removes your racer name and every score you sent. It cannot be undone. It does not touch the progress saved on your device.</p>
+
+<h2>If you can no longer open the game</h2>
+<p>Because there is no account, nobody, including us, can tell which anonymous id belongs to you. If you cannot reach the device, your data is removed automatically: scores and replays after 90 days, and anonymous ids that never sent a score after 30 days.</p>
+
+<p class="mut"><a href="privacy.html">Privacy policy</a></p>
+</main>
+<script>
+const URLB='https://rgjzpxwdlzkynsjsnqkz.supabase.co',KEY='sb_publishable_IrugWkN-2FuEiRy_Ps4Xgg_xeRJvGAn';
+const $=s=>document.querySelector(s),st=m=>{$('#st').textContent=m};
+const READY=KEY.length>=20&&KEY!=='__BOARD'+'_KEY__';
+function sess(){try{const j=JSON.parse(localStorage.getItem('wso_bsess')||'null');if(j&&typeof j.a==='string'&&typeof j.r==='string'&&Number.isFinite(j.e))return j}catch(e){}return null}
+function clean(){try{localStorage.removeItem('wso_bsess');localStorage.setItem('wso_board','{"v":1,"on":false}')}catch(e){}}
+async function post(path,body,tok){
+  const c=new AbortController(),t=setTimeout(()=>c.abort(),8000);
+  try{if(navigator.onLine===false)return{s:0,j:null};const h={apikey:KEY,'content-type':'application/json'};if(tok)h.authorization='Bearer '+tok;
+    const r=await fetch(URLB+path,{method:'POST',headers:h,body,signal:c.signal,cache:'no-store',credentials:'omit'});let j=null;try{j=await r.json()}catch(e){}return{s:r.status,j}}
+  catch(e){return{s:0,j:null}}finally{clearTimeout(t)}}
+async function refresh(s){
+  const r=await post('/auth/v1/token?grant_type=refresh_token',JSON.stringify({refresh_token:s.r}));
+  if(r.s===200&&r.j&&typeof r.j.access_token==='string'&&typeof r.j.refresh_token==='string'){const n={a:r.j.access_token,r:r.j.refresh_token,e:Date.now()+(Number(r.j.expires_in)||3600)*1000,u:s.u};try{localStorage.setItem('wso_bsess',JSON.stringify(n))}catch(e){}return{s:n}}
+  if(r.s===400||r.s===401||r.s===403)return{gone:true};
+  return{err:r.s===0?'network':'server'}}
+async function run(){
+  const b=$('#go');b.disabled=true;st('Deleting…');
+  try{
+    if(!READY){st('This page is not connected to the online board yet.');return}
+    let s=sess();if(!s){st('No online data was found in this browser. If you used the Android app, delete it there: Settings → Online board → Delete my online data.');return}
+    if(s.e<=Date.now()+60000){const r=await refresh(s);if(r.gone){clean();st('Your online data was already deleted.');return}if(r.err){st(r.err==='network'?'No connection. Nothing was deleted. Try again later.':'The server had a problem. Nothing was deleted. Try again later.');return}s=r.s}
+    let r=await post('/functions/v1/delete-my-data','{}',s.a);
+    if(r.s===401){const f=await refresh(s);if(f.gone){clean();st('Your online data was already deleted.');return}if(f.err){st('Nothing was deleted. Try again later.');return}r=await post('/functions/v1/delete-my-data','{}',f.s.a)}
+    if(r.s===200&&r.j&&r.j.ok===true){clean();st('Done. Your online data was deleted and the online board is off in this browser.');return}
+    if(r.s===401){clean();st('Your online data was already deleted.');return}
+    st(r.s===0?'No connection. Nothing was deleted. Try again later.':'The server had a problem. Nothing was deleted. Try again later.')
+  }finally{b.disabled=false}}
+$('#go').onclick=run;
+</script></body></html>
